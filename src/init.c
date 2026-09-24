@@ -40,9 +40,10 @@ static const R_CallMethodDef call_methods[] = {
   {"C_zuhtml_info", (DL_FUNC) &C_zuhtml_info, 0},
   {"C_zuh_doc_new", (DL_FUNC) &C_zuh_doc_new, 0},
   {"C_zuh_doc_alive", (DL_FUNC) &C_zuh_doc_alive, 1},
-  {"C_zuh_parse", (DL_FUNC) &C_zuh_parse, 4},
+  {"C_zuh_parse", (DL_FUNC) &C_zuh_parse, 5},
   {"C_zuh_doc_problems", (DL_FUNC) &C_zuh_doc_problems, 1},
   {"C_zuh_doc_meta", (DL_FUNC) &C_zuh_doc_meta, 1},
+  {"C_zuh_doc_dump", (DL_FUNC) &C_zuh_doc_dump, 1},
   {NULL, NULL, 0}
 };
 

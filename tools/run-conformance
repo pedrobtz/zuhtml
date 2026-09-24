@@ -1,0 +1,5 @@
+#!/bin/sh
+# Run the html5lib tree-construction fixtures against zuhtml's tree.
+# Run from the package root. Pass --verbose to print each failing case.
+set -eu
+exec Rscript tools/conformance.R "$@"

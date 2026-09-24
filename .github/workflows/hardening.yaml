@@ -2,8 +2,8 @@
 # a gate counts once it has been seen to fail, so every run also proves the
 # gate can still see what it guards against. See .agents/roadmap.md.
 #
-# Stage 1 added the vendor and lint gates, Stage 2 the sanitizers; fuzzing
-# and conformance join at later stages.
+# Stage 1 added the vendor and lint gates, Stage 2 the sanitizers, Stage 3
+# the tree-construction conformance gate; fuzzing joins at Stage 8.
 #
 # paths-ignore skips the workflow for prose-only changes. GitHub applies it
 # only when every changed file matches, so a commit touching both a .md file
@@ -62,3 +62,18 @@ jobs:
         # LeakSanitizer is unavailable on macOS, so this Linux job is the only
         # place a block the abort path forgets is actually caught.
         run: CC=clang ASAN_OPTIONS=detect_leaks=1 ./tools/run-sanitizers
+
+  conformance:
+    runs-on: ubuntu-latest
+    name: html5lib tree-construction conformance
+    steps:
+      - uses: actions/checkout@v6
+      - uses: r-lib/actions/setup-r@v2
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::pkgload
+          needs: check
+      - name: every case passes or is an adjudicated deviation
+        run: ./tools/run-conformance
+      - name: canary - a corrupted rendering must fail every case
+        run: ./tools/run-conformance --canary

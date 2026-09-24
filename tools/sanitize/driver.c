@@ -1,5 +1,6 @@
-/* Drives the parse seam -- ledger, abort, depth limit, diagnostics -- with
- * no R in the way, for tools/run-sanitizers. Exits non-zero on any failed
+/* Drives the parse seam -- ledger, abort, limits, conversion into the
+ * frozen document, the tree dump -- with no R in the way, for
+ * tools/run-sanitizers. Exits non-zero on any failed
  * expectation; ASan, UBSan and (on Linux) LeakSanitizer report the rest.
  *
  *   driver                 the gate
@@ -30,6 +31,8 @@ static const zuh_parse_opts defaults = {
   (size_t) 512 << 20, /* max_memory */
   512,                /* max_depth */
   100,                /* max_errors */
+  1000000,            /* max_nodes */
+  1,                  /* keep_comments */
   0                   /* fail_at */
 };
 
@@ -73,6 +76,40 @@ repeat(const char *unit, size_t n, size_t *len) {
   return b;
 }
 
+/* Walk every node of a frozen document and check the links agree: each
+ * child names its parent, siblings point at each other, IDs are preorder
+ * and subtree_end bounds the descendants. Returns the number of nodes
+ * reached. */
+static size_t
+check_links(const zuh_doc *doc) {
+  zuh_id id;
+  size_t reached = 0;
+  for (id = 0; id < doc->n_nodes; id++) {
+    const zuh_node *n = &doc->nodes[id];
+    zuh_id c, prev = ZUH_NONE, expect = id + 1;
+    reached++;
+    EXPECT(n->subtree_end >= id && n->subtree_end < doc->n_nodes,
+           "node %u: subtree_end %u out of range", id, n->subtree_end);
+    for (c = n->first_child; c != ZUH_NONE; c = doc->nodes[c].next_sibling) {
+      EXPECT(c == expect, "node %u: child %u is not in preorder", id, c);
+      EXPECT(doc->nodes[c].parent == id, "node %u: child %u has parent %u",
+             id, c, doc->nodes[c].parent);
+      EXPECT(doc->nodes[c].prev_sibling == prev,
+             "node %u: child %u has the wrong previous sibling", id, c);
+      prev = c;
+      expect = doc->nodes[c].subtree_end + 1;
+    }
+    EXPECT(n->last_child == prev, "node %u: last_child is wrong", id);
+    EXPECT(expect - 1 == n->subtree_end || n->first_child == ZUH_NONE,
+           "node %u: children do not end at subtree_end", id);
+    EXPECT(n->attr_start + n->attr_count <= doc->n_attrs,
+           "node %u: attributes out of range", id);
+    EXPECT(n->name < doc->pool_len && n->value < doc->pool_len,
+           "node %u: string offsets out of range", id);
+  }
+  return reached;
+}
+
 static zuh_status
 parse(const char *buf, size_t len, const zuh_parse_opts *o,
       zuh_parse_stats *stats, size_t *n_problems) {
@@ -81,9 +118,19 @@ parse(const char *buf, size_t len, const zuh_parse_opts *o,
   if (doc == NULL)
     exit(2);
   st = zuh_gumbo_parse(buf, len, o, doc, stats);
-  if (st != ZUH_OK)
-    EXPECT(doc->problems == NULL && doc->n_problems == 0,
-           "a failed parse left diagnostics in the document");
+  if (st != ZUH_OK) {
+    EXPECT(doc->problems == NULL && doc->n_problems == 0 &&
+               doc->nodes == NULL && doc->n_nodes == 0,
+           "a failed parse left data in the document");
+  } else {
+    char *dump;
+    size_t dlen;
+    EXPECT(check_links(doc) == doc->n_nodes, "not every node was reached");
+    EXPECT(zuh_doc_dump(doc, &dump, &dlen) == ZUH_OK && dump != NULL &&
+               strlen(dump) == dlen,
+           "the tree dump failed");
+    free(dump);
+  }
   if (n_problems != NULL)
     *n_problems = doc->n_problems;
   zuh_doc_free(doc);
@@ -158,6 +205,17 @@ limits(void) {
   o.max_memory = 4096;
   st = parse(buf, len, &o, &stats, NULL);
   EXPECT(st == ZUH_LIMIT_MEMORY, "max_memory: status %d", (int) st);
+
+  /* 1000 paragraphs of an element and a text node each, plus html, head,
+   * body and the document: 2004 nodes. */
+  o = defaults;
+  o.max_nodes = 2003;
+  st = parse(buf, len, &o, &stats, NULL);
+  EXPECT(st == ZUH_LIMIT_NODES && stats.observed == 2004,
+         "max_nodes: status %d, observed %zu", (int) st, stats.observed);
+  o.max_nodes = 2004;
+  st = parse(buf, len, &o, &stats, NULL);
+  EXPECT(st == ZUH_OK, "max_nodes at the count: status %d", (int) st);
   free(buf);
 
   /* Diagnostics are truncated at max_errors, and parsing continues. */
@@ -174,10 +232,13 @@ limits(void) {
   free(buf);
 }
 
-/* 16 MiB of sawtooth nesting under the default caps. */
+/* 16 MiB of sawtooth nesting under the default caps, except max_nodes:
+ * the input holds about 1.5M elements, past the 1M default. Reconciling
+ * max_nodes with max_input is a Stage 8 decision (see the roadmap). */
 static void
 sawtooth(void) {
   zuh_parse_opts o = defaults;
+  o.max_nodes = 2000000;
   zuh_parse_stats stats;
   size_t l1, l2, len, n;
   char *open = repeat("<div>", 500, &l1);
