@@ -52,9 +52,20 @@ The principle: an argument or export left out now can be added in a patch releas
 
 Plus S3 methods on `zuhtml_nodeset`: `print`, `format`, `length`, `[`, `[[`, `c`, `rev`, `as.character` (serialize).
 
+**Widened 2026-09-24 (roadmap Stages 10 to 15), to 42 exports**, after a survey of HTML libraries in other languages:
+
+| Area | Added |
+|---|---|
+| Navigate | `html_closest(x, css)` |
+| Values | `html_strings(x, trim, drop_empty)`; `html_serialize(pretty =)`; `html_markdown(x)` |
+| Extract | `html_title()`, `html_meta()`, `html_json_ld(x, parse)`, `html_microdata()`, `html_table_cells()`, `html_forms()`; `html_tables(match =)`; `html_table(convert =, decimal =, thousands =)` |
+| Parse | encoding sniffing from `<meta charset>` for raw input (§5) |
+
+The specifications are in the roadmap's Stages 10 to 15, and each stage amends the section it touches here when it lands.
+
 Kept although each is a sub-project: the CSS subset of §6 (it is the product); `html_serialize()` (the round-trip oracle); `html_url()` with RFC 3986 §5 resolution; `html_table()` with the full grid algorithm.
 
-Deferred from the surface this design describes: `html_read_connection()`; `keep_source` and `html_source_position()`; `errors=`; `html_extract_limits()` (folded into `html_limits()`); fragment `namespace=`; `group=` on `html_elements()`; `html_find()`; `html_has_attr()`; `html_strings()`; `html_write()`; `html_list(mode = "data.frame")`, `nested_text`, `html_lists()`; `html_dl()`; `span = "anchor"`, `col_types`, `decimal_mark`, `grouping_mark`, `name_repair`, `nested=`, `html_table_cells()`, `html_table_meta()`; `html_images()`, `html_headings()`, `html_meta()`, `html_title()`, `html_description()`, `html_canonical()`, `html_data()`; `strict=` on `html_url()`; `html_extraction_problems()`. Sections below keep their specifications to guide the architecture; each deferred item is marked.
+Deferred from the surface this design describes: `html_read_connection()`; `keep_source` and `html_source_position()`; `errors=`; `html_extract_limits()` (folded into `html_limits()`); fragment `namespace=`; `group=` on `html_elements()`; `html_find()`; `html_has_attr()`; `html_write()`; `html_list(mode = "data.frame")`, `nested_text`, `html_lists()`; `html_dl()`; `span = "anchor"`, `col_types`, `name_repair`, `nested=`, `html_table_meta()`; `html_images()`, `html_headings()`, `html_description()`, `html_canonical()`, `html_data()`; `strict=` on `html_url()`; `html_extraction_problems()`. Sections below keep their specifications to guide the architecture; each deferred item is marked.
 
 ### Subsequent releases
 

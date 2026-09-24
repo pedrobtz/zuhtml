@@ -41,7 +41,7 @@ An alternative to the codeberg fork is the Gumbo tree vendored inside Nokogiri, 
 
 The principle: **an argument or export left out now can be added in 0.1.1 without breaking anyone; one shipped is a commitment.** Every helper below the line is pure R over the kept API and can ship in a fast follow-up.
 
-**33 exports.**
+**33 exports**, 42 after Stages 10 to 15 added `html_closest()`, `html_strings()`, `html_title()`, `html_meta()`, `html_json_ld()`, `html_microdata()`, `html_table_cells()`, `html_markdown()` and `html_forms()` (and `pretty =`, `match =`, `convert =`, and encoding sniffing to existing functions).
 
 | Area | Exports | Cut from the design (and why) |
 |---|---|---|
@@ -252,11 +252,83 @@ Also: strings built for R now use an R_alloc-backed buffer (`zuh_buf`), retrofit
 
 ---
 
-## Stage 10 — 0.1.0 release · S
+## Stage 10 — Navigation and text extras · S
 
 **Status:** not started.
 
-- Version to `0.1.0`; tag; submit via `devtools::submit_cran()` or the web form; respond to the CRAN incoming email within the same day; on acceptance, `usethis::use_github_release()`, pkgdown deploy, and open the 0.2.0 tracking issue with the "After 0.1.0" list.
+Added 2026-09-24 with Stages 11 to 15, which surveyed HTML libraries in Python, Java, Go, Rust and Julia for features worth having in the first release (jsoup, Beautiful Soup, lxml, parsel, goquery, pandas, extruct, html2text).
+
+- `html_closest(x, css)`: for each node, the nearest inclusive ancestor element matching `css`, aligned, as the DOM's `closest()`, jsoup's `closest()` and goquery's `Closest()`. The selector engine matches, and the walk goes up parent links.
+- `html_strings(x, trim = FALSE, drop_empty = FALSE)`: a list, one character vector per node, of the text nodes in its subtree in tree order. These are the pieces `html_text()` concatenates, like Beautiful Soup's `.strings`/`.stripped_strings` and parsel's `::text`, skipping script, style and template contents.
+- `html_serialize(x, outer = TRUE, pretty = FALSE)`: `pretty = TRUE` indents block-level elements for reading. It is never a round-trip format; whitespace-sensitive elements (`pre`, `textarea`, `script`, `style`) are left as they are.
+
+**Exit:** tests for alignment and missing nodes, `:scope`-free matching of the node itself, template contents, and a pretty printer that leaves the text of whitespace-sensitive elements byte-identical. The sanitizer driver covers the new C paths.
+
+---
+
+## Stage 11 — Page metadata · M
+
+**Status:** not started.
+
+- `html_title(x)`: the document's `<title>` as cleaned text, `NA` when there is none.
+- `html_meta(x)`: one row per `<meta>` with `name`, `property`, `http_equiv`, `charset` and `content`, duplicates kept, so OpenGraph (`og:*`), Twitter cards and Dublin Core are rows to filter.
+- `html_json_ld(x, parse = FALSE)`: the text of each `script[type="application/ld+json"]`; with `parse = TRUE` and jsonlite installed (`Suggests`), each parsed, with invalid JSON left as `NULL` and the raw text kept.
+- `html_microdata(x)`: top-level `itemscope` items as nested lists (`type`, `id`, `properties`), with values taken per the HTML standard's rules (`content`, `href`/`src` resolved with `html_url()`, `datetime`, `value`, else text) and nested items recursing. There is no RDFa.
+
+**Exit:** fixtures from real markup patterns, including duplicate properties, nested items, `itemref`-free scope, invalid JSON-LD, and a page with none of each.
+
+---
+
+## Stage 12 — Table options · M
+
+**Status:** not started.
+
+- `html_table_cells(x)`: one row per original cell of one table, with `row`, `column`, `rowspan`, `colspan`, `section`, `header` (is `<th>`), `text` and a list-column of resolved link URLs. It reads the Stage 7 grid, so spans are placed exactly as `html_table()` places them. This is what pandas' `extract_links` answers, without folding links into the values.
+- `html_tables(x, css, match = NULL, ...)`: keep tables whose cleaned text matches a regular expression, as pandas' `match=`.
+- `html_table(..., convert = FALSE, decimal = ".", thousands = NULL)`: `convert = TRUE` converts each column only when every non-missing value is a number or logical after removing `thousands` and mapping `decimal`. Leading zeros keep a column character (`"0012"` is an identifier), as a column that does not convert entirely stays character. It is off by default: the design's character-first rule stands.
+
+**Exit:** fixtures for spans in cell coordinates, links per cell, matching, and conversion rules (grouping marks, decimal commas, leading zeros, mixed columns, `na`).
+
+---
+
+## Stage 13 — HTML to Markdown · M
+
+**Status:** not started.
+
+- `html_markdown(x)`: CommonMark text for each node, from one iterative C walk that shares `html_text_clean()`'s skipping and whitespace rules. It emits headings, paragraphs, emphasis and strong, inline code and fenced `pre`, block quotes, ordered and unordered lists (nested), links and images with URLs resolved against the document base, horizontal rules, line breaks, and GFM pipe tables for simple tables (no spans; others fall back to cell text). Markdown-significant characters in text are escaped.
+
+**Exit:** a fixture per construct, escaping, nesting, and Markdown that a CommonMark renderer turns back into the same structure (checked by eye in the pkgdown article, not by a dependency). The sanitizer driver and `fuzz_parse` cover the walk.
+
+---
+
+## Stage 14 — Encoding sniffing · M
+
+**Status:** not started.
+
+- For raw input with no `encoding` argument and no byte-order mark, run the HTML standard's prescan of the first 1024 bytes for `<meta charset>` and `<meta http-equiv="Content-Type" content="...charset=...">`, with the standard's label table mapping names to encodings and the rule that a UTF-16 label means UTF-8. If nothing is found, use UTF-8. Precedence becomes BOM, then `encoding`, then the prescan, then UTF-8, which is the standard's order, with `encoding` as the transport layer's charset.
+- `html_info()` reports the encoding used and where it came from (`"bom"`, `"argument"`, `"meta"`, `"default"`).
+- This changes a contract: design §5 is amended in the same change.
+
+**Exit:** fixtures for each source, each label form, contradictions (a BOM beats the meta), labels iconv does not know (an encoding error, as now), the 1024-byte window, and comments or scripts containing a fake `<meta>` before the real one.
+
+---
+
+## Stage 15 — Forms · S
+
+**Status:** not started.
+
+- `html_forms(x)`: one element per `<form>`: `action` (resolved), `method`, `enctype`, `id`, `name`, and a `fields` data frame of the controls it owns (`input`, `select`, `textarea`, `button`, including controls outside it with a `form=` attribute): `name`, `type`, `value`, `checked`, `disabled`, and `options` as a list-column for `<select>`. Inspection only; nothing is submitted.
+
+**Exit:** fixtures for every control type, `form=` ownership, repeated names, selected options, and a form with no controls.
+
+---
+
+## Stage 16 — 0.1.0 release · S
+
+**Status:** not started. Renumbered from Stage 10 when Stages 10 to 15 were added.
+
+- Refresh the CRAN preparation of Stage 9 for the added exports: `cran-comments.md`, the vignettes and README where they apply, `urlchecker`, `R CMD check --as-cran` on the matrix.
+- Version to `0.1.0`; tag; submit via `devtools::submit_cran()` or the web form (the maintainer's action); respond to the CRAN incoming email within the same day; on acceptance, `usethis::use_github_release()`, pkgdown deploy, and open the 0.2.0 tracking issue with the "After 0.1.0" list.
 
 **Exit:** on CRAN.
 
@@ -273,13 +345,14 @@ Also: strings built for R now use an R_alloc-backed buffer (`zuh_buf`), retrofit
 | CSS engine grows toward a full implementation | 6 | §6's production list is closed; every unsupported form has a rejection test |
 | Table grid diverges from browsers on hostile markup | 7 | Overlap is an error, never a silent overwrite; fixtures from §14 lock behaviour before release |
 | CRAN objects to the `License:` field for bundled Apache-2.0 code | 1, 9 | Follow an existing CRAN precedent exactly; `LICENSE.note`, `inst/COPYRIGHTS`, `Copyright:` field, Apache text in the vendor tree |
-| Scope creep back toward the design's full helper list | all | The 0.1.0 table above is the contract; helpers below the line are 0.1.1 material |
+| Scope creep back toward the design's full helper list | all | The 0.1.0 table above is the contract; helpers below the line are 0.1.1 material. Stages 10 to 15 were a deliberate, recorded widening, each with its own exit criteria |
+| Encoding sniffing changes what existing calls return | 14 | Only raw input with no `encoding` and no BOM is affected; the source is reported in `html_info()`; design §5 amended in the same change |
 
 ---
 
 ## Explicitly not in 0.1.0
 
-Everything in the "Cut" column of the scope table · record extraction (`html_records()`, `html_field()`) · JSON-LD · forms · encoding sniffing from `<meta charset>` · incremental or `feed()` parsing · interrupts inside the parse (bounded instead) · a registered C interface · XPath · `:has()` and other Selectors 4 additions · typed table conversion · any `displayed_only` heuristic.
+Everything in the "Cut" column of the scope table not brought back by Stages 10 to 15 · record extraction (`html_records()`, `html_field()`) · incremental or `feed()` parsing · interrupts inside the parse (bounded instead) · a registered C interface · XPath · `:has()` and other Selectors 4 additions · typed table conversion beyond Stage 12's `convert =` · any `displayed_only` heuristic · RDFa · sanitization · main-content extraction.
 
 None is made harder by shipping first: the arena accommodates new accessors, the selector engine is a closed list that can open, and helpers are R over the kept API.
 
@@ -287,6 +360,6 @@ None is made harder by shipping first: the arena accommodates new accessors, the
 
 ## After 0.1.0
 
-1. **0.1.1 (R only):** `html_images()`, `html_headings()`, `html_meta()`, `html_title()`, `html_dl()`, `html_list(mode = "data.frame")` with `<ol start>`/`reversed`/`<li value>`, `html_table_cells()`, `html_lists()`.
-2. **0.2.0:** `html_records()`/`html_field()` per §11; `col_types` on tables; `html_json_ld()`; fragment `namespace=`; upstream-merged patches replacing the local series.
-3. **Later:** forms inspection; encoding sniffing by the standard algorithm; a registered C interface once ownership and error semantics have survived a release; `zuhttp::resp_html()` on buffered bodies.
+1. **0.1.1 (R only):** `html_images()`, `html_headings()`, `html_dl()`, `html_list(mode = "data.frame")` with `<ol start>`/`reversed`/`<li value>`, `html_lists()`.
+2. **0.2.0:** `html_records()`/`html_field()` per §11; `:has()` with a strict work bound; `html_find(text =)`; fragment `namespace=`; upstream-merged patches replacing the local series.
+3. **Later:** a registered C interface once ownership and error semantics have survived a release; `zuhttp::resp_html()` on buffered bodies.
