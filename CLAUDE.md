@@ -31,15 +31,15 @@ code with it.
 
 ## Current state
 
-Stages 0 to 2 are done. Gumbo 0.14.0 is vendored with a three-patch
-series. The safety seam is in place:
+Stages 0 to 3 are done. Gumbo 0.14.0 is vendored with a three-patch
+series.
 [`html_parse()`](https://pedrobtz.github.io/zuhtml/reference/html_parse.md)/[`html_read()`](https://pedrobtz.github.io/zuhtml/reference/html_parse.md)
 decode input, parse under the allocation ledger with every limit
-enforced, and return a `zuhtml_document` that so far holds only the
-translated parse problems
-([`html_problems()`](https://pedrobtz.github.io/zuhtml/reference/html_problems.md))
-and metadata. There is no node tree yet: Stage 3 (the frozen document)
-is next. The probe harness
+enforced, and convert Gumbo’s tree into a frozen, index-addressed
+document (`src/zuh_document.h`): preorder node IDs, a `subtree_end`
+index, interned element names, one string pool. The document has no
+R-level node API yet; tests reach it through the internal tree dump.
+Stage 4 (the R document and node API) is next. The probe harness
 ([.agents/probe-gumbo.c](https://pedrobtz.github.io/zuhtml/.agents/probe-gumbo.c))
 holds the measurements the roadmap cites.
 
@@ -97,23 +97,25 @@ tools/verify-vendor            # vendor tree == archive + patches   (CI: hardeni
 tools/verify-vendor --canary   # must pass by seeing a dropped patch (CI: hardening)
 tools/run-lint                 # strict warnings; no stdio symbols  (CI: hardening)
 tools/run-lint --canary        # symbol check sees 0002 reversed    (CI: hardening)
+tools/run-conformance          # html5lib tree-construction fixtures vs the tree
+                               # dump; --canary must fail every case (CI: hardening)
 tools/run-sanitizers           # ASan+UBSan seam driver, fault injection at every
                                # allocation index, overflow canary; leak check and
                                # leak canary with ASAN_OPTIONS=detect_leaks=1
                                #                                    (CI: hardening)
 ```
 
-The roadmap adds `run-fuzz`, `run-conformance` and `run-benchmarks` at
-later stages. Add each here when it lands, and say whether CI runs it.
+The roadmap adds `run-fuzz` and `run-benchmarks` at later stages. Add
+each here when it lands, and say whether CI runs it.
 
 ## Architecture
 
-Planned layout, from design §13 and the roadmap. So far
-`R/conditions.R`, `R/info.R`, `R/limits.R`, `R/parse.R`, `src/init.c`,
-`src/r_api.c`, `src/zuh_gumbo.[ch]`, `src/zuh_memory.[ch]`,
-`src/zuh_document.[ch]`, `src/zuh_status.h`, `src/zuh_r.h`,
-`src/vendor/` and the vendoring, lint and sanitizer scripts in `tools/`
-exist.
+Planned layout, from design §13 and the roadmap. The html5lib fixtures
+live in `tools/conformance/`. So far `R/conditions.R`, `R/info.R`,
+`R/limits.R`, `R/parse.R`, `src/init.c`, `src/r_api.c`,
+`src/zuh_gumbo.[ch]`, `src/zuh_memory.[ch]`, `src/zuh_document.[ch]`,
+`src/zuh_status.h`, `src/zuh_r.h`, `src/vendor/` and the vendoring, lint
+and sanitizer scripts in `tools/` exist.
 
     R/                 parse.R, conditions.R, info.R, node.R, nodeset.R, select.R,
                        attributes.R, text.R, write.R, list.R, table.R, links.R
@@ -177,6 +179,13 @@ header.
 - **Template children stay children.** The template node carries a flag
   and descendant traversal skips them unless `html_template_content()`
   asks. There is no separate fragment object.
+- **Node IDs are preorder.** Conversion assigns them in document order
+  and records `subtree_end`, so a node’s descendants are exactly
+  `(id, subtree_end]`, and sorting IDs sorts by document order. Anything
+  that builds or edits the arena must keep that.
+- **Conversion allocations count toward fault injection.** Use
+  `conv_malloc()` in `zuh_gumbo.c` for anything conversion allocates, so
+  “fail every allocation index” keeps covering it.
 - **Errors are classed conditions** under `zuhtml_error`, with the
   subclasses listed in design §12. C returns a status enum
   (`src/zuh_status.h`); R maps the enumerator (`zuh_status_names` in
@@ -219,7 +228,11 @@ header.
   non-fixed-points are listed rather than asserted away.
 - **Never test through Python.** Beautiful Soup and pandas are
   exploratory comparators only; nothing under `tests/` may need them.
-- **Helpers live in `tests/testthat/helper-*.R`.** None yet.
+- **Helpers live in `tests/testthat/helper-*.R`.** `helper-tree.R`
+  renders a document in the html5lib test format (`tree_lines()`)
+  through the internal `C_zuh_doc_dump`, which is also what the
+  conformance gate compares; `doc_meta()` reads the internal document
+  metadata.
 - **Fault injection from R** goes through the internal
   `zuh_parse_bytes(..., fail_at = k)`. The exhaustive run over every
   index, with leak detection, is `tools/run-sanitizers`.

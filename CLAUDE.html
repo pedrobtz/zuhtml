@@ -44,7 +44,7 @@
 </div>
 <div class="section level2">
 <h2 id="current-state">Current state<a class="anchor" aria-label="anchor" href="#current-state"></a></h2>
-<p>Stages 0 to 2 are done. Gumbo 0.14.0 is vendored with a three-patch series. The safety seam is in place: <code><a href="reference/html_parse.html">html_parse()</a></code>/<code><a href="reference/html_parse.html">html_read()</a></code> decode input, parse under the allocation ledger with every limit enforced, and return a <code>zuhtml_document</code> that so far holds only the translated parse problems (<code><a href="reference/html_problems.html">html_problems()</a></code>) and metadata. There is no node tree yet: Stage 3 (the frozen document) is next. The probe harness (<a href=".agents/probe-gumbo.c">.agents/probe-gumbo.c</a>) holds the measurements the roadmap cites.</p>
+<p>Stages 0 to 3 are done. Gumbo 0.14.0 is vendored with a three-patch series. <code><a href="reference/html_parse.html">html_parse()</a></code>/<code><a href="reference/html_parse.html">html_read()</a></code> decode input, parse under the allocation ledger with every limit enforced, and convert Gumbo’s tree into a frozen, index-addressed document (<code>src/zuh_document.h</code>): preorder node IDs, a <code>subtree_end</code> index, interned element names, one string pool. The document has no R-level node API yet; tests reach it through the internal tree dump. Stage 4 (the R document and node API) is next. The probe harness (<a href=".agents/probe-gumbo.c">.agents/probe-gumbo.c</a>) holds the measurements the roadmap cites.</p>
 <p>The roadmap’s <strong>Status:</strong> line under each stage is authoritative for progress; update it there, not here.</p>
 </div>
 <div class="section level2">
@@ -81,15 +81,17 @@
 <span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="ex">tools/verify-vendor</span> <span class="at">--canary</span>   <span class="co"># must pass by seeing a dropped patch (CI: hardening)</span></span>
 <span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="ex">tools/run-lint</span>                 <span class="co"># strict warnings; no stdio symbols  (CI: hardening)</span></span>
 <span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="ex">tools/run-lint</span> <span class="at">--canary</span>        <span class="co"># symbol check sees 0002 reversed    (CI: hardening)</span></span>
-<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="ex">tools/run-sanitizers</span>           <span class="co"># ASan+UBSan seam driver, fault injection at every</span></span>
-<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>                               <span class="co"># allocation index, overflow canary; leak check and</span></span>
-<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>                               <span class="co"># leak canary with ASAN_OPTIONS=detect_leaks=1</span></span>
-<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>                               <span class="co">#                                    (CI: hardening)</span></span></code></pre></div>
-<p>The roadmap adds <code>run-fuzz</code>, <code>run-conformance</code> and <code>run-benchmarks</code> at later stages. Add each here when it lands, and say whether CI runs it.</p>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="ex">tools/run-conformance</span>          <span class="co"># html5lib tree-construction fixtures vs the tree</span></span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>                               <span class="co"># dump; --canary must fail every case (CI: hardening)</span></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="ex">tools/run-sanitizers</span>           <span class="co"># ASan+UBSan seam driver, fault injection at every</span></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>                               <span class="co"># allocation index, overflow canary; leak check and</span></span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a>                               <span class="co"># leak canary with ASAN_OPTIONS=detect_leaks=1</span></span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a>                               <span class="co">#                                    (CI: hardening)</span></span></code></pre></div>
+<p>The roadmap adds <code>run-fuzz</code> and <code>run-benchmarks</code> at later stages. Add each here when it lands, and say whether CI runs it.</p>
 </div>
 <div class="section level2">
 <h2 id="architecture">Architecture<a class="anchor" aria-label="anchor" href="#architecture"></a></h2>
-<p>Planned layout, from design §13 and the roadmap. So far <code>R/conditions.R</code>, <code>R/info.R</code>, <code>R/limits.R</code>, <code>R/parse.R</code>, <code>src/init.c</code>, <code>src/r_api.c</code>, <code>src/zuh_gumbo.[ch]</code>, <code>src/zuh_memory.[ch]</code>, <code>src/zuh_document.[ch]</code>, <code>src/zuh_status.h</code>, <code>src/zuh_r.h</code>, <code>src/vendor/</code> and the vendoring, lint and sanitizer scripts in <code>tools/</code> exist.</p>
+<p>Planned layout, from design §13 and the roadmap. The html5lib fixtures live in <code>tools/conformance/</code>. So far <code>R/conditions.R</code>, <code>R/info.R</code>, <code>R/limits.R</code>, <code>R/parse.R</code>, <code>src/init.c</code>, <code>src/r_api.c</code>, <code>src/zuh_gumbo.[ch]</code>, <code>src/zuh_memory.[ch]</code>, <code>src/zuh_document.[ch]</code>, <code>src/zuh_status.h</code>, <code>src/zuh_r.h</code>, <code>src/vendor/</code> and the vendoring, lint and sanitizer scripts in <code>tools/</code> exist.</p>
 <pre><code>R/                 parse.R, conditions.R, info.R, node.R, nodeset.R, select.R,
                    attributes.R, text.R, write.R, list.R, table.R, links.R
 src/               init.c, r_api.c                       R-facing glue only
@@ -124,6 +126,10 @@ fuzz/              libFuzzer targets over the C core
 <li>
 <strong>Template children stay children.</strong> The template node carries a flag and descendant traversal skips them unless <code>html_template_content()</code> asks. There is no separate fragment object.</li>
 <li>
+<strong>Node IDs are preorder.</strong> Conversion assigns them in document order and records <code>subtree_end</code>, so a node’s descendants are exactly <code>(id, subtree_end]</code>, and sorting IDs sorts by document order. Anything that builds or edits the arena must keep that.</li>
+<li>
+<strong>Conversion allocations count toward fault injection.</strong> Use <code>conv_malloc()</code> in <code>zuh_gumbo.c</code> for anything conversion allocates, so “fail every allocation index” keeps covering it.</li>
+<li>
 <strong>Errors are classed conditions</strong> under <code>zuhtml_error</code>, with the subclasses listed in design §12. C returns a status enum (<code>src/zuh_status.h</code>); R maps the enumerator (<code>zuh_status_names</code> in <code>R/parse.R</code>, same order), never the message text.</li>
 <li>
 <strong>A document is owned by its external pointer from birth.</strong> <code>C_zuh_doc_new()</code> makes the pointer and finalizer before parsing; <code>C_zuh_parse()</code> stores the malloc’d document in it before Gumbo runs. Keep every R allocation outside the window between <code>zuh_doc_new()</code> and that store.</li>
@@ -145,7 +151,7 @@ fuzz/              libFuzzer targets over the C core
 <li>
 <strong>Never test through Python.</strong> Beautiful Soup and pandas are exploratory comparators only; nothing under <code>tests/</code> may need them.</li>
 <li>
-<strong>Helpers live in <code>tests/testthat/helper-*.R</code>.</strong> None yet.</li>
+<strong>Helpers live in <code>tests/testthat/helper-*.R</code>.</strong> <code>helper-tree.R</code> renders a document in the html5lib test format (<code>tree_lines()</code>) through the internal <code>C_zuh_doc_dump</code>, which is also what the conformance gate compares; <code>doc_meta()</code> reads the internal document metadata.</li>
 <li>
 <strong>Fault injection from R</strong> goes through the internal <code>zuh_parse_bytes(..., fail_at = k)</code>. The exhaustive run over every index, with leak detection, is <code>tools/run-sanitizers</code>.</li>
 <li>

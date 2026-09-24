@@ -20,6 +20,11 @@
   byte-order mark or UTF-8; invalid input is an error, never silently
   replaced.
 
+- Parsed documents are converted into a compact immutable tree that
+  holds no reference to the parser or the input. All 1,686 applicable
+  html5lib tree-construction tests that the bundled parser ships produce
+  the expected tree.
+
 - New
   [`html_problems()`](https://pedrobtz.github.io/zuhtml/reference/html_problems.md)
   lists the parse errors the parser repaired, with package-owned codes
