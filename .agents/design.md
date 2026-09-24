@@ -147,7 +147,7 @@ Gumbo is a whole-buffer parser. Reading a connection in chunks does not make par
 
 Character input is normalized with `enc2utf8()`; reject strings marked as bytes. An `encoding` argument on character input must be absent or UTF-8, avoiding accidental double decoding.
 
-Raw input uses a documented initial policy: explicit encoding, otherwise a recognized UTF-8/UTF-16 BOM, otherwise UTF-8. Explicit contradictory BOMs are errors. Strip a matching BOM after decoding. Convert supported non-UTF-8 encodings through R's conversion facilities; report unavailable encodings and invalid byte sequences instead of substituting silently. Reject embedded NUL bytes after decoding because R character values cannot represent them reliably.
+Raw input uses a documented initial policy: explicit encoding, otherwise a recognized UTF-8/UTF-16 BOM, otherwise UTF-8. Explicit contradictory BOMs are errors. Strip a matching BOM after decoding. Convert supported non-UTF-8 encodings through R's conversion facilities; report unavailable encodings and invalid byte sequences instead of substituting silently. R's `iconv()` on raw input does not reliably signal invalid sequences (some builds return the input bytes unchanged), so the conversion runs twice with two different substitution bytes and fails if the results differ. Reject embedded NUL bytes after decoding because R character values cannot represent them reliably. Raw input longer than four times `max_input` is rejected before decoding, and `html_read()` applies the same bound to the file size before reading.
 
 Version 0.1 does not claim browser encoding sniffing from `<meta charset>` or HTTP headers. A fetcher can pass the HTTP charset explicitly. Store selected encoding and any detected declaration separately. A later HTML encoding-sniffing implementation must use the standard algorithm and label aliases, not a regular expression over arbitrary markup.
 
@@ -159,7 +159,9 @@ Gumbo performs normal HTML repair by default, including implied elements and nam
 
 Parsing always collects bounded recoverable diagnostics without warnings. It is not a full HTML conformance validator.
 
-`html_problems()` returns `stage`, `severity`, `code`, `message`, `line`, `column`, and `byte_offset`; absent positions are `NA`. Offsets are zero-based into the decoded UTF-8 input, while line and column numbers follow the documented Gumbo convention. They are not offsets into a transcoded original file. Cap retained diagnostics and expose truncation.
+`html_problems()` returns a data frame with `stage` (`tokenizer` or `parser`), `code`, `line`, `column`, and `byte_offset`; absent positions are `NA`. Offsets are zero-based into the decoded UTF-8 input; line and column are 1-based, as Gumbo counts them. They are not offsets into a transcoded original file. At most `max_errors` are kept, and attribute `truncated` says whether more occurred. There is no `severity` (every entry is a recoverable parse error) and no `message` (Gumbo's message builder needs its internal parser struct, which is gone once parsing returns); both can be added later without breaking anyone.
+
+Codes are package-owned strings. Tokenizer errors take Gumbo's `GumboErrorType` name in kebab case without the prefix (`duplicate-attr`, `named-char-ref-invalid`); tree-construction errors are `unexpected-<token>` after the token type the parser did not expect (`unexpected-end-tag`); an unacknowledged self-closing flag is `non-void-self-closing-tag`. `src/zuh_gumbo.c` holds the table, with compile-time checks that it matches the pinned Gumbo's enums.
 
 Gumbo's detailed error representation is internal: 42 `GumboErrorType` values in the non-public `error.h`. Isolate access in a version-specific adapter (`src/zuh_gumbo.c`) and translate to package-owned codes; `stage` is `tokenizer` or `parser`. Never expose Gumbo structs or numeric enums as a stable R contract.
 
