@@ -3,7 +3,8 @@
 # gate can still see what it guards against. See .agents/roadmap.md.
 #
 # Stage 1 added the vendor and lint gates, Stage 2 the sanitizers, Stage 3
-# the tree-construction conformance gate; fuzzing joins at Stage 8.
+# the tree-construction conformance gate, Stage 6 the selector fuzz target;
+# Stage 8 adds the parse and round-trip targets and a nightly long run.
 #
 # paths-ignore skips the workflow for prose-only changes. GitHub applies it
 # only when every changed file matches, so a commit touching both a .md file
@@ -79,3 +80,29 @@ jobs:
         run: ./tools/run-conformance --canary
       - name: canary - a corrupted serialization must fail the round trip
         run: ./tools/run-conformance --canary-serialize
+
+  fuzz:
+    runs-on: ubuntu-latest
+    name: fuzz
+    steps:
+      - uses: actions/checkout@v6
+      # The corpus libFuzzer grows is cached, not committed. A fresh key per
+      # run, restored from the newest earlier one, lets fuzzing time
+      # accumulate across runs instead of restarting from the seeds.
+      - name: restore the grown corpus
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/zuhtml/fuzz-corpus
+          key: fuzz-corpus-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: fuzz-corpus-
+      - name: fuzz every target for 60 s
+        # tools/run-fuzz first requires fuzz/fuzz_canary.c to crash, and
+        # exits 2 if it does not, so a green step means a crash would have
+        # been seen.
+        run: ZUH_FUZZ_CORPUS="$HOME/.cache/zuhtml/fuzz-corpus" CC=clang ./tools/run-fuzz 60
+      - name: upload any findings
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-artifacts
+          path: fuzz/artifacts/

@@ -24,8 +24,10 @@ OBJECTS = \
 	init.o \
 	r_api.o \
 	r_node.o \
+	r_select.o \
 	zuh_document.o \
 	zuh_gumbo.o \
 	zuh_memory.o \
+	zuh_selector.o \
 	zuh_write.o \
 	$(GUMBO_OBJECTS)
