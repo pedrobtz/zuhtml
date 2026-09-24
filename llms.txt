@@ -106,6 +106,8 @@ From a string, raw bytes or a file to a document, under limits.
   [`html_matches()`](https://pedrobtz.github.io/zuhtml/reference/html_elements.md)
   [`html_filter()`](https://pedrobtz.github.io/zuhtml/reference/html_elements.md)
   : Select elements with CSS selectors
+- [`html_closest()`](https://pedrobtz.github.io/zuhtml/reference/html_closest.md)
+  : Nearest ancestor matching a selector
 - [`html_children()`](https://pedrobtz.github.io/zuhtml/reference/html_children.md)
   [`html_parent()`](https://pedrobtz.github.io/zuhtml/reference/html_children.md)
   [`html_ancestors()`](https://pedrobtz.github.io/zuhtml/reference/html_children.md)
@@ -122,6 +124,8 @@ From a string, raw bytes or a file to a document, under limits.
   : Cleaned text for extraction
 - [`html_text()`](https://pedrobtz.github.io/zuhtml/reference/html_text.md)
   : Text content of nodes
+- [`html_strings()`](https://pedrobtz.github.io/zuhtml/reference/html_strings.md)
+  : Text pieces of nodes
 - [`html_attr()`](https://pedrobtz.github.io/zuhtml/reference/html_attr.md)
   [`html_attrs()`](https://pedrobtz.github.io/zuhtml/reference/html_attr.md)
   [`html_classes()`](https://pedrobtz.github.io/zuhtml/reference/html_attr.md)

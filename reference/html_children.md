@@ -65,6 +65,7 @@ inert: searches and text extraction do not descend into them.
 ## See also
 
 Other navigation:
+[`html_closest()`](https://pedrobtz.github.io/zuhtml/reference/html_closest.md),
 [`html_elements()`](https://pedrobtz.github.io/zuhtml/reference/html_elements.md)
 
 ## Examples

@@ -99,6 +99,15 @@ First release.
   keeps one result per input node, so extracted columns stay aligned.
 
 - New
+  [`html_closest()`](https://pedrobtz.github.io/zuhtml/reference/html_closest.md)
+  finds each node’s nearest ancestor matching a selector, and
+  [`html_strings()`](https://pedrobtz.github.io/zuhtml/reference/html_strings.md)
+  returns the text pieces
+  [`html_text()`](https://pedrobtz.github.io/zuhtml/reference/html_text.md)
+  joins, keeping element boundaries. `html_serialize(pretty = TRUE)`
+  lays block-level elements out on indented lines for reading.
+
+- New
   [`html_serialize()`](https://pedrobtz.github.io/zuhtml/reference/html_serialize.md)
   (and [`as.character()`](https://rdrr.io/r/base/character.html) on
   nodesets) writes nodes as normalized HTML following the WHATWG

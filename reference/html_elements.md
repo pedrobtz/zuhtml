@@ -85,7 +85,8 @@ whitespace does.
 ## See also
 
 Other navigation:
-[`html_children()`](https://pedrobtz.github.io/zuhtml/reference/html_children.md)
+[`html_children()`](https://pedrobtz.github.io/zuhtml/reference/html_children.md),
+[`html_closest()`](https://pedrobtz.github.io/zuhtml/reference/html_closest.md)
 
 ## Examples
 

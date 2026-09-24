@@ -67,7 +67,7 @@ rearranges).</p>
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">html_serialize</span><span class="op">(</span><span class="va">x</span>, outer <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">html_serialize</span><span class="op">(</span><span class="va">x</span>, outer <span class="op">=</span> <span class="cn">TRUE</span>, pretty <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -83,6 +83,15 @@ rearranges).</p>
 <code>outerHTML</code>; if <code>FALSE</code>, only its contents, like <code>innerHTML</code>. A
 document or fragment has no markup of its own, so both give its
 contents.</p></dd>
+
+
+<dt id="arg-pretty">pretty<a class="anchor" aria-label="anchor" href="#arg-pretty"></a></dt>
+<dd><p>If <code>TRUE</code>, lay block-level elements out on their own lines,
+indented two spaces per level, for reading. Inline content stays on its
+line, whitespace-only text between blocks is dropped, and the contents
+of <code>&lt;pre&gt;</code>, <code>&lt;textarea&gt;</code>, <code>&lt;script&gt;</code> and <code>&lt;style&gt;</code> are left exactly as
+they are. The result is for people, not for parsing again: the added
+whitespace becomes text.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -100,6 +109,7 @@ contents.</p></dd>
     <div class="dont-index"><p>Other node values:
 <code><a href="html_attr.html">html_attr()</a></code>,
 <code><a href="html_name.html">html_name()</a></code>,
+<code><a href="html_strings.html">html_strings()</a></code>,
 <code><a href="html_text.html">html_text()</a></code>,
 <code><a href="html_text_clean.html">html_text_clean()</a></code></p></div>
     </div>
@@ -114,6 +124,13 @@ contents.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "&lt;p class=\"x\"&gt;One&lt;br&gt;Two &amp;amp; &lt;b&gt;three&lt;/b&gt;&lt;/p&gt;"</span>
 <span class="r-in"><span><span class="fu">html_serialize</span><span class="op">(</span><span class="va">p</span>, outer <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "One&lt;br&gt;Two &amp;amp; &lt;b&gt;three&lt;/b&gt;"</span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu">html_serialize</span><span class="op">(</span><span class="va">doc</span>, pretty <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;html&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;head&gt;&lt;/head&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;body&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     &lt;p class="x"&gt;One&lt;br&gt;Two &amp;amp; &lt;b&gt;three&lt;/b&gt;&lt;/p&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   &lt;/body&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;/html&gt;</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># To write a document to a file:</span></span></span>
 <span class="r-in"><span><span class="va">path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".html"</span><span class="op">)</span></span></span>

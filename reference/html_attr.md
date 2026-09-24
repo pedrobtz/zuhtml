@@ -55,6 +55,7 @@ once, the first wins, as the HTML parser decides.
 Other node values:
 [`html_name()`](https://pedrobtz.github.io/zuhtml/reference/html_name.md),
 [`html_serialize()`](https://pedrobtz.github.io/zuhtml/reference/html_serialize.md),
+[`html_strings()`](https://pedrobtz.github.io/zuhtml/reference/html_strings.md),
 [`html_text()`](https://pedrobtz.github.io/zuhtml/reference/html_text.md),
 [`html_text_clean()`](https://pedrobtz.github.io/zuhtml/reference/html_text_clean.md)
 

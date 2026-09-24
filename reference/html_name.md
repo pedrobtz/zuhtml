@@ -40,6 +40,7 @@ A character vector as long as `x`.
 Other node values:
 [`html_attr()`](https://pedrobtz.github.io/zuhtml/reference/html_attr.md),
 [`html_serialize()`](https://pedrobtz.github.io/zuhtml/reference/html_serialize.md),
+[`html_strings()`](https://pedrobtz.github.io/zuhtml/reference/html_strings.md),
 [`html_text()`](https://pedrobtz.github.io/zuhtml/reference/html_text.md),
 [`html_text_clean()`](https://pedrobtz.github.io/zuhtml/reference/html_text_clean.md)
 

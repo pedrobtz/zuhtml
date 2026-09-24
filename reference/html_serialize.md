@@ -11,7 +11,7 @@ rearranges).
 ## Usage
 
 ``` r
-html_serialize(x, outer = TRUE)
+html_serialize(x, outer = TRUE, pretty = FALSE)
 ```
 
 ## Arguments
@@ -25,6 +25,15 @@ html_serialize(x, outer = TRUE)
   If `TRUE`, each node with its own markup, like `outerHTML`; if
   `FALSE`, only its contents, like `innerHTML`. A document or fragment
   has no markup of its own, so both give its contents.
+
+- pretty:
+
+  If `TRUE`, lay block-level elements out on their own lines, indented
+  two spaces per level, for reading. Inline content stays on its line,
+  whitespace-only text between blocks is dropped, and the contents of
+  `<pre>`, `<textarea>`, `<script>` and `<style>` are left exactly as
+  they are. The result is for people, not for parsing again: the added
+  whitespace becomes text.
 
 ## Value
 
@@ -43,6 +52,7 @@ is `html_serialize()`.
 Other node values:
 [`html_attr()`](https://pedrobtz.github.io/zuhtml/reference/html_attr.md),
 [`html_name()`](https://pedrobtz.github.io/zuhtml/reference/html_name.md),
+[`html_strings()`](https://pedrobtz.github.io/zuhtml/reference/html_strings.md),
 [`html_text()`](https://pedrobtz.github.io/zuhtml/reference/html_text.md),
 [`html_text_clean()`](https://pedrobtz.github.io/zuhtml/reference/html_text_clean.md)
 
@@ -57,6 +67,13 @@ html_serialize(p)
 #> [1] "<p class=\"x\">One<br>Two &amp; <b>three</b></p>"
 html_serialize(p, outer = FALSE)
 #> [1] "One<br>Two &amp; <b>three</b>"
+cat(html_serialize(doc, pretty = TRUE))
+#> <html>
+#>   <head></head>
+#>   <body>
+#>     <p class="x">One<br>Two &amp; <b>three</b></p>
+#>   </body>
+#> </html>
 
 # To write a document to a file:
 path <- tempfile(fileext = ".html")
