@@ -31,6 +31,12 @@ reference:
       - html_list
       - html_links
       - html_url
+  - title: Page metadata
+    contents:
+      - html_title
+      - html_meta
+      - html_json_ld
+      - html_microdata
   - title: Conditions
     contents:
       - zuhtml-conditions

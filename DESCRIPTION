@@ -23,6 +23,7 @@ BugReports: https://github.com/pedrobtz/zuhtml/issues
 Depends: 
     R (>= 4.1)
 Suggests: 
+    jsonlite,
     knitr,
     rmarkdown,
     testthat (>= 3.0.0),

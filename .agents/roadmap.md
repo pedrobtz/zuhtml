@@ -268,7 +268,7 @@ Added 2026-09-24 with Stages 11 to 15, which surveyed HTML libraries in Python, 
 
 ## Stage 11 — Page metadata · M
 
-**Status:** not started.
+**Status:** done 2026-09-24. All four functions are R over the existing accessors, with no new native code. Microdata collects each item's properties with `html_closest()` and a preorder-ID comparison instead of the standard's crawl loop, so it is vectorized per item. Over the 522-page corpus, 25 pages carry JSON-LD and 107 carry microdata, with no errors and at most 0.2 s a page for all four functions. The corpus changed one decision: 26 of the 27 JSON-LD blocks that failed to parse were wrapped in `<![CDATA[ ]]>`, so `parse = TRUE` strips such a wrapper, or a `<!-- -->` one. The remaining failure (entity-escaped quotes) is genuinely invalid.
 
 - `html_title(x)`: the document's `<title>` as cleaned text, `NA` when there is none.
 - `html_meta(x)`: one row per `<meta>` with `name`, `property`, `http_equiv`, `charset` and `content`, duplicates kept, so OpenGraph (`og:*`), Twitter cards and Dublin Core are rows to filter.
