@@ -86,18 +86,26 @@ for the parse errors that were repaired;
 [zuhtml-conditions](https://pedrobtz.github.io/zuhtml/reference/zuhtml-conditions.md)
 for the errors these functions raise.
 
+Other parsing:
+[`html_fragment()`](https://pedrobtz.github.io/zuhtml/reference/html_fragment.md),
+[`html_info()`](https://pedrobtz.github.io/zuhtml/reference/html_info.md)
+
 ## Examples
 
 ``` r
 doc <- html_parse("<p>Hello <b>world</b>")
 doc
 #> <zuhtml_document>
+#> root:     <html> with <head>, <body>
+#> nodes:    8
 #> input:    21 bytes (UTF-8)
 #> problems: 1
 
 # Raw bytes in a declared encoding:
 html_parse(as.raw(c(0x3c, 0x70, 0x3e, 0xe9)), encoding = "latin1")
 #> <zuhtml_document>
+#> root:     <html> with <head>, <body>
+#> nodes:    6
 #> input:    5 bytes (latin1)
 #> problems: 1
 
@@ -106,6 +114,8 @@ path <- tempfile(fileext = ".html")
 writeLines("<title>Saved page</title><p>Text", path)
 html_read(path)
 #> <zuhtml_document>
+#> root:     <html> with <head>, <body>
+#> nodes:    8
 #> input:    33 bytes (UTF-8)
 #> problems: 1
 ```

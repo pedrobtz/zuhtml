@@ -26,6 +26,34 @@
   the expected tree.
 
 - New
+  [`html_fragment()`](https://pedrobtz.github.io/zuhtml/reference/html_fragment.md)
+  parses markup in the context of a given element, as `innerHTML` does.
+
+- Nodes are `zuhtml_nodeset`s: vectors of nodes tied to their document,
+  with missing nodes where an aligned operation has no answer. Navigate
+  with
+  [`html_children()`](https://pedrobtz.github.io/zuhtml/reference/html_children.md),
+  [`html_parent()`](https://pedrobtz.github.io/zuhtml/reference/html_children.md),
+  [`html_ancestors()`](https://pedrobtz.github.io/zuhtml/reference/html_children.md),
+  [`html_next_sibling()`](https://pedrobtz.github.io/zuhtml/reference/html_children.md),
+  [`html_previous_sibling()`](https://pedrobtz.github.io/zuhtml/reference/html_children.md),
+  [`html_root()`](https://pedrobtz.github.io/zuhtml/reference/html_children.md),
+  [`html_document()`](https://pedrobtz.github.io/zuhtml/reference/html_children.md)
+  and
+  [`html_template_content()`](https://pedrobtz.github.io/zuhtml/reference/html_children.md);
+  read values with
+  [`html_name()`](https://pedrobtz.github.io/zuhtml/reference/html_name.md),
+  [`html_namespace()`](https://pedrobtz.github.io/zuhtml/reference/html_name.md),
+  [`html_type()`](https://pedrobtz.github.io/zuhtml/reference/html_name.md),
+  [`html_attr()`](https://pedrobtz.github.io/zuhtml/reference/html_attr.md),
+  [`html_attrs()`](https://pedrobtz.github.io/zuhtml/reference/html_attr.md),
+  [`html_classes()`](https://pedrobtz.github.io/zuhtml/reference/html_attr.md)
+  and
+  [`html_text()`](https://pedrobtz.github.io/zuhtml/reference/html_text.md).
+  [`html_info()`](https://pedrobtz.github.io/zuhtml/reference/html_info.md)
+  describes a document.
+
+- New
   [`html_problems()`](https://pedrobtz.github.io/zuhtml/reference/html_problems.md)
   lists the parse errors the parser repaired, with package-owned codes
   and positions.

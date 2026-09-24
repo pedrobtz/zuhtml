@@ -15,7 +15,8 @@ html_problems(x)
 
 - x:
 
-  A `zuhtml_document`.
+  A `zuhtml_document`, or a `zuhtml_nodeset` for the document that owns
+  it.
 
 ## Value
 
