@@ -1,0 +1,116 @@
+---
+title: "Getting started with zuhtml"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting started with zuhtml}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+zuhtml turns real-world HTML into ordinary R values: character vectors,
+lists and data frames. It parses the way a browser does, so malformed
+markup is repaired rather than rejected, and it never fetches anything:
+you give it a string, raw bytes or a file.
+
+```{r}
+library(zuhtml)
+```
+
+## A page to work with
+
+A small catalogue page, as it might have been saved from a site. Some
+markup is sloppy on purpose: unclosed `<li>`s, unquoted attributes, a
+stray end tag, and a product card without a price.
+
+```{r}
+page <- '
+<!DOCTYPE html>
+<title>Tea shop</title>
+<nav><ul><li><a href="/">Home</a><li><a href="sale/">Sale</a></ul></nav>
+<p>Free shipping over 30 EUR</span>
+<div class=product>
+  <h2 class=name>Sencha</h2><span class=price>3.50</span>
+  <a href="sencha.html">details</a>
+</div>
+<div class=product>
+  <h2 class=name>Genmaicha</h2>
+  <a href="genmaicha.html">details</a>
+</div>
+<table>
+  <thead><tr><th>Size<th>Grams</thead>
+  <tr><td>Small<td>0100
+  <tr><td>Large<td>0250
+</table>'
+
+doc <- html_parse(page, base_url = "https://example.org/shop/")
+doc
+```
+
+`html_read()` does the same for a file. `base_url` is where the page came
+from; relative links are resolved against it.
+
+## Selecting elements
+
+`html_elements()` finds every element that matches a CSS selector.
+`html_element()` finds the first match below *each* input node, and keeps
+a missing node where there is none. That is what keeps extracted columns
+aligned when some records lack a field:
+
+```{r}
+cards <- html_elements(doc, ".product")
+cards
+
+products <- data.frame(
+  name = html_text_clean(html_element(cards, ".name")),
+  price = html_text_clean(html_element(cards, ".price")),
+  url = html_url(html_element(cards, "a"))
+)
+products
+```
+
+Genmaicha has no price, so it gets `NA` rather than shifting the column.
+
+## Values
+
+`html_text_clean()` gives text as a reader wants it; `html_text()` gives
+it exactly as parsed. `html_attr()` reads attributes, and
+`html_serialize()` writes nodes back as HTML.
+
+```{r}
+html_text_clean(html_element(doc, "title"))
+html_attr(html_elements(doc, "nav a"), "href")
+html_serialize(html_element(doc, "h2"))
+```
+
+## Structures
+
+Links, lists and tables have their own extractors:
+
+```{r}
+html_links(doc, absolute = TRUE)
+lapply(html_elements(doc, "nav ul"), html_list)
+html_tables(doc)
+```
+
+Table columns are character: `"0100"` keeps its leading zero. Convert
+types yourself when you know them, for example with `type.convert()`.
+
+## What the parser repaired
+
+Real pages nearly always have markup errors, which the parser repairs.
+`html_problems()` lists them:
+
+```{r}
+html_problems(doc)
+```
+
+## Where next
+
+* `vignette("selectors")`: the supported CSS subset.
+* `vignette("tables-and-lists")`: how tables and lists are read.
+* `vignette("limits-and-encoding")`: resource limits, encodings, and what
+  zuhtml does not do.

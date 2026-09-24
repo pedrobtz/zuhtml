@@ -11,6 +11,7 @@
 #'   parser builds the expected tree for a fixed document) and
 #'   `depth_limit_ok` (the parse-time nesting limit stops a deeply nested
 #'   document).
+#' @family parsing
 #' @export
 #' @examples
 #' zuhtml_info()

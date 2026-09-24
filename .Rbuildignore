@@ -10,3 +10,4 @@
 ^cran-comments\.md$
 ^src/.*\.o$
 ^src/.*\.(so|dll|dylib|a)$
+^vignettes/articles$

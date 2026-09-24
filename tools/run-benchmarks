@@ -1,0 +1,6 @@
+#!/bin/sh
+# Time parsing, selection and table extraction on inputs of different
+# shapes, and report native memory separately. Run from the package root.
+# Not a CI gate: timings depend on the machine.
+set -eu
+exec Rscript tools/benchmarks.R "$@"

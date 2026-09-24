@@ -25,12 +25,12 @@ scripts and CRAN comments. zuhtml does not depend on it or share code with it.
 
 ## Current state
 
-Stages 0 to 8 are done: every 0.1.0 export exists and the hardening
-gates are in place. Gumbo 0.14.0 is vendored with a six-patch series;
-parsing runs under the allocation ledger with every limit enforced and
-converts into a frozen, index-addressed document (`src/zuh_document.h`).
-On top: the node API, `html_serialize()`, CSS selection and extraction.
-Stage 9 (documentation, benchmarks, CRAN preparation) is next. The probe harness
+Stages 0 to 9 are done: every 0.1.0 export exists, is documented with
+runnable examples and has a family; four vignettes cover the workflow,
+selectors, tables and lists, and limits and encodings; `cran-comments.md`
+is written. Gumbo 0.14.0 is vendored with a six-patch series. Stage 10
+(the 0.1.0 release) is next, and it needs the maintainer: the CRAN
+submission and upstream reports are theirs to make. The probe harness
 ([.agents/probe-gumbo.c](.agents/probe-gumbo.c)) holds the measurements the
 roadmap cites.
 
@@ -103,7 +103,8 @@ tools/run-sanitizers           # ASan+UBSan seam driver, fault injection at ever
                                #                                    (CI: hardening)
 ```
 
-The roadmap adds `run-benchmarks` at Stage 9. Add each here when it lands, and say
+tools/run-benchmarks           # parse, select and table timings with native
+                               # memory, per input shape; not a CI gate Add each here when it lands, and say
 whether CI runs it.
 
 ## Architecture
@@ -269,7 +270,9 @@ tables, serialization) reads the arena and never touches Gumbo. Only
   failed on exactly that.
 - **Stage pull requests carry the `full-ci` label**, so the full R CMD check
   matrix (all three platforms) runs before merge rather than only after.
-- **Keep the suite inside the CRAN time budget.** No runtime to report yet.
+- **Keep the suite inside the CRAN time budget.** About 4 s under
+  `R CMD check` (2026-09-24); the heavy tests (16 MiB inputs, interrupts)
+  are `skip_on_cran()`.
 
 ## Definition of done
 
@@ -285,7 +288,10 @@ fail.
 ## Editing rules
 
 - roxygen comments are the source. Never edit `man/` or `NAMESPACE` by hand.
-- There is no `README.Rmd`; edit `README.md` directly.
+- There is no `README.Rmd`; edit `README.md` directly, and keep its example
+  output in step with the code by running it.
+- Vignettes live in `vignettes/` and run under R CMD check; keep them fast.
+  `_pkgdown.yml` lists every export and article: add new ones there.
 - Keep prose simple and short. One idea per sentence.
 - Wrap roxygen text at 80 characters and run `air format .` on R sources.
 - Use `lower_snake_case`; exported functions are `html_*` plus

@@ -23,3 +23,12 @@ diagnostics and bug reports: in a correct build both \code{parser_ok} and
 \examples{
 zuhtml_info()
 }
+\seealso{
+Other parsing:
+\code{\link[=html_fragment]{html_fragment()}},
+\code{\link[=html_info]{html_info()}},
+\code{\link[=html_limits]{html_limits()}},
+\code{\link[=html_parse]{html_parse()}},
+\code{\link[=html_problems]{html_problems()}}
+}
+\concept{parsing}

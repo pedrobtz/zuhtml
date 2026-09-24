@@ -1,0 +1,97 @@
+---
+title: "CSS selectors"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{CSS selectors}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+zuhtml implements a deliberately small subset of CSS Selectors and
+rejects everything else with an error. A selector either works exactly as
+it would in a browser or fails loudly: it never matches something partly.
+
+```{r}
+library(zuhtml)
+doc <- html_parse('
+<div id=main class="card wide">
+  <h2 class=title>One</h2>
+  <p class="a b" lang=en-US>first</p>
+  <p title="">second</p>
+  <ul><li>1<li>2<li>3<li>4</ul>
+</div>')
+```
+
+## What is supported
+
+| Kind | Examples |
+|---|---|
+| Type and universal | `p`, `*` |
+| ID and class | `#main`, `.card.wide` |
+| Attributes | `[title]`, `[lang=en-US]`, `[class~=a]`, `[lang\|=en]`, `[href^=http]`, `[href$=".pdf"]`, `[href*=shop]`, with an `i` or `s` flag |
+| Combinators | `div p`, `div > p`, `h2 + p`, `h2 ~ p`, and lists: `h2, p` |
+| Pseudo-classes | `:scope`, `:root`, `:empty`, `:first-child`, `:last-child`, `:only-child`, `:nth-child(an+b)`, `:nth-of-type(an+b)`, `:not()` of one compound selector |
+
+```{r}
+html_text(html_elements(doc, "h2 ~ p"))
+html_text(html_elements(doc, "li:nth-child(odd)"))
+html_text(html_elements(doc, "p:not([title])"))
+html_text(html_elements(doc, "[lang|=en]"))
+```
+
+## What is rejected
+
+`:has()`, other pseudo-classes, pseudo-elements (including Scrapy's
+`::text` and `::attr()`), namespace prefixes and the `of S` form of
+`:nth-child()` are errors. The error says where:
+
+```{r}
+try(html_elements(doc, "div:has(> h2)"))
+try(html_elements(doc, "p::text"))
+```
+
+Handle them by class, `zuhtml_selector_error`; the condition carries the
+selector, the position and whether the form is unsupported or malformed.
+
+## Case
+
+As in a browser on an HTML page: element and attribute names match HTML
+elements whatever their case, and SVG or MathML elements exactly. IDs and
+classes are case-sensitive. Attribute values are case-sensitive, except
+for the attributes HTML lists as case-insensitive (`type`, `lang` and
+others); an `i` or `s` flag overrides either.
+
+```{r}
+length(html_elements(doc, "P"))
+length(html_elements(doc, ".CARD"))
+length(html_elements(doc, "[lang=EN-US]"))
+length(html_elements(doc, "[lang=EN-US s]"))
+```
+
+## Where the search looks
+
+Searching a document includes its `<html>` element. Searching below an
+element excludes the element itself, unless `:scope` names it:
+
+```{r}
+main <- html_element(doc, "#main")
+length(html_elements(main, ".card"))
+length(html_elements(main, ":scope.card"))
+html_name(html_elements(main, ":scope > *"))
+```
+
+The rest of a selector may match outside the context, as
+`querySelectorAll()` does: `"body h2"` below `#main` finds the `<h2>`
+even though `<body>` is outside it.
+
+`html_elements()` on several nodes returns the union of their matches,
+without duplicates, in document order. `html_element()` returns one
+result per input node, a missing node where there is no match: use it to
+pull one field out of each of many records.
+
+`<template>` contents are never searched; reach them with
+`html_template_content()`.

@@ -1,0 +1,388 @@
+---
+title: "Real-world pages: long tables, lists and text"
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+```
+
+The other guides use small, made-up snippets. This one works on real,
+plain, old-style pages: CRAN's own package lists and mirror list, the R
+FAQ, Project Gutenberg's top-100 lists, and the directory listings web
+servers write. They are the kind of page
+zuhtml is built for: large, table- and list-shaped, and written long
+before anyone thought of them as data.
+
+This article is built with the package website only, because it fetches
+live pages. The numbers in it are from the day the site was last built.
+
+```{r}
+library(zuhtml)
+```
+
+zuhtml never downloads anything. Each page is fetched once into a
+temporary file, and `html_read()` parses the file:
+
+```{r}
+fetch <- function(url) {
+  path <- tempfile(fileext = ".html")
+  utils::download.file(url, path, quiet = TRUE, mode = "wb")
+  path
+}
+cran <- "https://cran.r-project.org/"
+```
+
+## A long table: every CRAN package
+
+`available_packages_by_name.html` is one table with a row per package,
+about 25,000 rows and several megabytes of HTML.
+
+```{r}
+by_name <- html_read(
+  fetch(paste0(cran, "web/packages/available_packages_by_name.html")),
+  base_url = paste0(cran, "web/packages/available_packages_by_name.html")
+)
+html_info(by_name)[c("nodes", "input_bytes", "native_bytes")]
+
+packages <- html_tables(by_name)[[1]]
+dim(packages)
+head(packages)
+```
+
+The table has no header row, so the columns are `V1` and `V2`, and a few
+rows are empty: they are the targets of the A-to-Z index at the top of
+the page. The markup says so, which makes a more precise extraction
+possible. The index rows carry an `id`, the package rows do not, and each
+package row has a link:
+
+```{r}
+rows <- html_elements(by_name, "table tr:not([id])")
+length(rows)
+
+packages <- data.frame(
+  package = html_text_clean(html_element(rows, "td:first-child")),
+  title = html_text_clean(html_element(rows, "td:nth-child(2)")),
+  url = html_url(html_element(rows, "a"))
+)
+head(packages, 3)
+```
+
+`html_element()` returns one result per row, so the three columns line
+up even if some row lacked a link. `html_url()` resolves the relative
+`../../web/packages/...` links against the page's address.
+
+With a data frame, the rest is ordinary R:
+
+```{r}
+first <- toupper(substr(packages$package, 1, 1))
+head(sort(table(first), decreasing = TRUE))
+head(packages$package[grepl("\\bshiny\\b", packages$title, ignore.case = TRUE)])
+```
+
+## A table with a header: packages by publication date
+
+The same list sorted by date has a header row, so `html_table()` names
+the columns itself:
+
+```{r}
+by_date <- html_read(
+  fetch(paste0(cran, "web/packages/available_packages_by_date.html"))
+)
+recent <- html_tables(by_date)[[1]]
+names(recent)
+head(recent, 3)
+
+year <- substr(recent$Date, 1, 4)
+tail(table(year), 8)
+```
+
+Dates stay character, as every cell does: convert them when you know
+they are dates.
+
+```{r}
+range(as.Date(recent$Date))
+```
+
+## Many small tables: CRAN mirrors
+
+The mirror list is a definition list: each `<dt>` names a country, and
+the `<dd>` after it holds a table of that country's mirrors.
+
+```{r}
+mirrors_page <- html_read(fetch(paste0(cran, "mirrors.html")))
+countries <- html_elements(mirrors_page, "dt")
+length(countries)
+head(html_text_clean(countries))
+```
+
+`html_next_sibling()` is aligned, one result per `<dt>`, so each
+country's table can be read beside its name:
+
+```{r}
+mirrors <- do.call(rbind, lapply(countries, function(dt) {
+  tab <- html_element(html_next_sibling(dt), "table")
+  rows <- html_table(tab, header = FALSE)
+  data.frame(country = html_text_clean(dt), url = rows$V1, host = rows$V2)
+}))
+nrow(mirrors)
+head(mirrors[, c("country", "url")])
+sort(table(mirrors$country), decreasing = TRUE)[1:5]
+```
+
+## Lists of strings: Project Gutenberg's top 100
+
+Project Gutenberg's top-100 page has six ordered lists, each under a
+heading:
+
+```{r}
+top <- html_read(fetch("https://www.gutenberg.org/browse/scores/top"))
+html_text_clean(html_elements(top, "h2"))
+```
+
+`html_list()` reads one list into a character vector, one string per
+item. The lists are the `<ol>`s right after a heading, and
+`html_previous_sibling()`, being aligned, gives each list's heading:
+
+```{r}
+ols <- html_elements(top, "h2 + ol")
+lists <- lapply(ols, html_list)
+names(lists) <- html_text_clean(html_previous_sibling(ols))
+lengths(lists)
+head(lists[["Top 100 EBooks yesterday"]])
+```
+
+Each item is a string of the form "Title by Author (downloads)". Plain
+string handling turns a list into a data frame:
+
+```{r}
+books <- lists[["Top 100 EBooks last 30 days"]]
+m <- regmatches(books, regexec("^(.*) by (.*) \\(([0-9]+)\\)$", books))
+ok <- lengths(m) == 4
+top30 <- data.frame(
+  title = vapply(m[ok], `[`, "", 2),
+  author = vapply(m[ok], `[`, "", 3),
+  downloads = as.integer(vapply(m[ok], `[`, "", 4))
+)
+head(top30)
+```
+
+A few items have no author, and the pattern skips them (`r sum(!ok)`
+this time).
+
+## Text: the R FAQ
+
+The R FAQ is a long page of prose, lists and code. Its headings are the
+table of contents:
+
+```{r}
+faq <- html_read(fetch(paste0(cran, "doc/FAQ/R-FAQ.html")))
+headings <- html_text_clean(html_elements(faq, "h2, h3"))
+length(headings)
+head(sub(" \u00b6$", "", headings), 8)
+```
+
+(The `¶` is the text of the permalink next to each heading.)
+
+Each numbered section is a `div` holding its heading, its paragraphs and
+a navigation bar, which is itself a paragraph, `<p class="nav-panel">`.
+Reading every section into a list of paragraph strings takes one aligned
+call for the titles and one `lapply()` for the bodies.
+`:scope > p:not(.nav-panel)` keeps the section's own paragraphs, not
+those of nested elements, and leaves out the navigation bar:
+
+```{r}
+sections <- html_elements(faq, "div.section-level-extent")
+titles <- sub(" \u00b6$", "", html_text_clean(html_element(sections, "h3")))
+paragraphs <- lapply(sections, function(s) {
+  html_text_clean(html_elements(s, ":scope > p:not(.nav-panel)"))
+})
+names(paragraphs) <- titles
+length(paragraphs)
+paragraphs[["2.1 What is R?"]]
+```
+
+`html_text_clean()` collapses whitespace and drops markup, which suits
+prose. For code, `html_text()` keeps the text exactly as written:
+
+```{r}
+code <- html_elements(faq, "pre.example-preformatted")
+length(code)
+cat(html_text(code[[1]]))
+```
+
+Lists inside the prose come out one string per item:
+
+```{r}
+bullets <- html_elements(faq, "div.section-level-extent ul")
+length(bullets)
+html_list(bullets[[1]])
+```
+
+## Directory listings
+
+Web servers that list a directory's files write the oldest-style pages
+of all: a title "Index of /path", a link to the parent directory at the
+top, then one line per file. There are two common layouts, and both are
+easy to read with the right tool.
+
+### Listings as tables
+
+Apache's fancy index, used by CRAN and by GNU's mirror, is a table: a
+header row, a row holding only a rule (`<hr>`), then one row per entry,
+the first being "Parent Directory".
+
+```{r}
+r4_url <- paste0(cran, "src/base/R-4/")
+r4 <- html_read(fetch(r4_url), base_url = r4_url)
+html_text_clean(html_element(r4, "title"))
+
+listing <- html_tables(r4)[[1]]
+head(listing, 3)
+```
+
+Both leading rows are all `<th>` cells, so `html_table()` takes them as
+the header; the rule row is empty and adds nothing to the names. The
+first column holds only an icon. Its `alt` text says what each entry is,
+which the table's cleaned text cannot see, so read it separately,
+starting from the link in each entry's second cell:
+
+```{r}
+entries <- html_elements(r4, "tr td:nth-child(2) a")
+kind <- html_attr(html_element(html_parent(html_parent(entries)), "img"), "alt")
+table(kind)
+
+files <- data.frame(
+  name = html_text(entries),
+  url = html_url(entries),
+  kind = kind
+)
+files <- files[files$kind != "[PARENTDIR]", ]
+tail(files, 3)
+```
+
+The parent-directory link is an absolute path, `/src/base/`, and
+`html_url()` resolves it against the listing's address, so walking up a
+level is one more `html_read()`:
+
+```{r}
+parent_url <- html_url(html_element(r4, "a:not([href^='?'])"))
+parent_url
+parent <- html_read(fetch(parent_url), base_url = parent_url)
+# Subdirectories end in "/"; the parent link is absolute, the rest are not.
+subdirs <- html_elements(
+  parent, "tr td:nth-child(2) a[href$='/']:not([href^='/'])"
+)
+html_text(subdirs)
+```
+
+The sizes (`32M`) are text. A small helper turns the suffixes into
+bytes:
+
+```{r}
+size_bytes <- function(x) {
+  x <- trimws(x)
+  mult <- c(K = 2^10, M = 2^20, G = 2^30)[substring(x, nchar(x))]
+  num <- suppressWarnings(as.numeric(sub("[KMG]$", "", x)))
+  ifelse(is.na(mult), num, num * mult)
+}
+listing <- listing[grepl("tar\\.gz$", listing$Name), ]
+listing$bytes <- size_bytes(listing$Size)
+head(listing[, c("Name", "Last modified", "bytes")], 3)
+```
+
+### Listings as preformatted text
+
+nginx, which serves kernel.org, writes the listing inside one `<pre>`:
+a link, then plain text with the date and size, then a newline, for
+each file.
+
+```
+<pre><a href="../">../</a>
+<a href="ChangeLog-6.0">ChangeLog-6.0</a>        03-Oct-2022 05:09     14M
+```
+
+There is no cell to select for the date. It is the text node after each
+link, and `html_next_sibling(..., elements_only = FALSE)` returns exactly
+that, one per link, aligned:
+
+```{r}
+kernel_url <- "https://cdn.kernel.org/pub/linux/kernel/v6.x/"
+kernel <- html_read(fetch(kernel_url), base_url = kernel_url)
+links <- html_elements(kernel, "pre > a:not([href='../'])")
+length(links)
+
+after <- html_text(html_next_sibling(links, elements_only = FALSE))
+fields <- strsplit(trimws(after), "[[:space:]]+")
+head(fields, 3)
+
+is_file <- lengths(fields) == 3
+releases <- data.frame(
+  name = html_text(links)[is_file],
+  date = vapply(fields[is_file], `[`, "", 1),
+  size = size_bytes(vapply(fields[is_file], `[`, "", 3)),
+  url = html_url(links[is_file])
+)
+tarballs <- releases[grepl("^linux-6\\.[0-9.]+\\.tar\\.xz$", releases$name), ]
+nrow(tarballs)
+tail(tarballs[, c("name", "date", "size")], 3)
+```
+
+The dates are written like `03-Oct-2022`; month names are English
+whatever the locale, so parse them in the C locale:
+
+```{r}
+old <- Sys.getlocale("LC_TIME")
+invisible(Sys.setlocale("LC_TIME", "C"))
+tarballs$date <- as.Date(tarballs$date, format = "%d-%b-%Y")
+invisible(Sys.setlocale("LC_TIME", old))
+range(tarballs$date)
+```
+
+Apache writes the same preformatted layout when fancy indexing is on
+but tables are off, as on archive.apache.org. The header links there
+sort the listing (`?C=N;O=D`), and an attribute selector leaves them
+out:
+
+```{r}
+httpd_url <- "https://archive.apache.org/dist/httpd/"
+httpd <- html_read(fetch(httpd_url), base_url = httpd_url)
+all_links <- html_elements(httpd, "pre a")
+head(html_text(all_links), 5)
+entries <- html_elements(httpd, "pre a:not([href^='?'])")
+entries <- entries[html_text(entries) != "Parent Directory"]
+head(html_text(entries[grepl("/$", html_attr(entries, "href"))]))
+```
+
+## A very large page, and the limits
+
+CRAN's check summary, with one row per package and one column per check
+flavor, is tens of megabytes of HTML: larger than the default
+`max_input` of 16 MiB.
+
+```{r}
+summary_page <- fetch(paste0(cran, "web/checks/check_summary_by_package.html"))
+file.size(summary_page) / 2^20
+err <- tryCatch(html_read(summary_page), zuhtml_limit_error = function(e) e)
+err$limit
+```
+
+Limits are per call, so a trusted page can simply be given more room:
+
+```{r}
+big <- html_limits(max_input = 128 * 2^20, max_memory = 4 * 2^30)
+checks <- html_read(summary_page, limits = big)
+html_info(checks)[c("nodes", "native_bytes", "parse_peak_bytes")]
+status <- html_tables(checks, limits = big)[[1]]
+dim(status)
+names(status)[1:4]
+```
+
+The flavor names contain line breaks because the header cells do: they
+are written `r-devel<br>Linux<br>...`, and cleaned text turns `<br>`
+into `"\n"`. Replace them if single-line names suit better:
+
+```{r}
+names(status) <- gsub("\n", " ", names(status))
+names(status)[1:4]
+table(status[[3]])[1:5]
+```

@@ -4,10 +4,33 @@
 \name{zuhtml-package}
 \alias{zuhtml}
 \alias{zuhtml-package}
-\title{zuhtml: Parse 'HTML' with a Bundled 'Gumbo' Parser}
+\title{zuhtml: parse HTML with a bundled Gumbo parser}
 \description{
-Parses real-world 'HTML' with a bundled copy of the 'Gumbo' parser (\url{https://codeberg.org/gumbo-parser/gumbo-parser}), which follows the 'WHATWG' parsing algorithm, so that no system library is required. Documents become immutable trees navigated with a documented subset of 'CSS' selectors. Attributes, text, lists, tables and links are extracted into ordinary character vectors, lists and data frames. Parsing is bounded by limits on input size, native memory and nesting depth.
+zuhtml parses real-world HTML the way a browser does, with a bundled copy
+of the 'Gumbo' parser, and extracts ordinary R objects from it: nodes
+selected by a documented subset of CSS, attributes, text, lists, tables
+and links. It needs no system library and has no hard dependencies.
 }
+\details{
+It does not fetch, run JavaScript, sanitize, edit documents or support
+XPath: a fetcher hands it a string.
+}
+\section{Getting started}{
+
+\itemize{
+\item Parse with \code{\link[=html_parse]{html_parse()}}, \code{\link[=html_read]{html_read()}} or \code{\link[=html_fragment]{html_fragment()}}.
+\item Select elements with \code{\link[=html_elements]{html_elements()}} and \code{\link[=html_element]{html_element()}}, or move
+around with \code{\link[=html_children]{html_children()}} and friends.
+\item Read values with \code{\link[=html_text_clean]{html_text_clean()}}, \code{\link[=html_attr]{html_attr()}} and
+\code{\link[=html_serialize]{html_serialize()}}; extract structures with \code{\link[=html_table]{html_table()}},
+\code{\link[=html_list]{html_list()}}, \code{\link[=html_links]{html_links()}} and \code{\link[=html_url]{html_url()}}.
+\item Every call runs under \code{\link[=html_limits]{html_limits()}}, and every error is a classed
+condition: see \link{zuhtml-conditions}.
+}
+
+\code{vignette("zuhtml")} walks through a complete extraction.
+}
+
 \seealso{
 Useful links:
 \itemize{
