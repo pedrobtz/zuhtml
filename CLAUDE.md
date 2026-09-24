@@ -25,10 +25,10 @@ scripts and CRAN comments. zuhtml does not depend on it or share code with it.
 
 ## Current state
 
-Stage 0 is done: the design carries the seven amendments, `DESCRIPTION` is
-real, and `src/init.c` registers one smoke entry point (`C_zuh_loaded`) with
-dynamic lookup off and symbols forced. There is no vendored Gumbo and no
-exported function yet. The probe harness
+Stages 0 and 1 are done. Gumbo 0.14.0 is vendored with a three-patch
+series and builds on all three platforms; `zuhtml_info()` is the one export
+and self-tests the parser and the depth patch. There is no parse entry
+point, ledger or document yet: Stage 2 is next. The probe harness
 ([.agents/probe-gumbo.c](.agents/probe-gumbo.c)) holds the measurements the
 roadmap cites.
 
@@ -76,14 +76,25 @@ Rscript -e 'devtools::check()'                   # R CMD check
 air format .                                     # format R sources
 ```
 
-The gate scripts under `tools/` do not exist yet. The roadmap names them
-stage by stage, in zuxml's shape: `verify-vendor`, `update-gumbo`, `run-lint`,
-`run-sanitizers`, `run-fuzz`, `run-conformance`, `run-benchmarks`. Add each
-to this list when it lands, and say whether CI runs it.
+Gate scripts, each run from the package root:
+
+```sh
+tools/update-gumbo 0.14.0      # re-vendor: download, verify, copy, patch, PROVENANCE
+tools/verify-vendor            # vendor tree == archive + patches   (CI: hardening)
+tools/verify-vendor --canary   # must pass by seeing a dropped patch (CI: hardening)
+tools/run-lint                 # strict warnings; no stdio symbols  (CI: hardening)
+tools/run-lint --canary        # symbol check sees 0002 reversed    (CI: hardening)
+```
+
+The roadmap adds `run-sanitizers`, `run-fuzz`, `run-conformance` and
+`run-benchmarks` at later stages. Add each here when it lands, and say
+whether CI runs it.
 
 ## Architecture
 
-Planned layout, from design §13 and the roadmap. Nothing below exists yet.
+Planned layout, from design §13 and the roadmap. So far `R/info.R`, `src/init.c`,
+`src/zuh_gumbo.[ch]`, `src/Makevars`, `src/vendor/` and the vendoring and lint
+scripts in `tools/` exist.
 
 ```
 R/                 parse.R, conditions.R, info.R, node.R, nodeset.R, select.R,
@@ -204,27 +215,37 @@ fail.
 Workflows come from `pedrobtz/r-actions`, pinned at `@v1`:
 `r-cmd-check.yml` (quick profile on pull requests, full on `main` or with the
 `full-ci` label), `coverage.yml` (writes the badge under `.github/badges/`)
-and `pkgdown.yml`. The hardening and native-check workflows the roadmap
-describes are not set up yet.
+and `pkgdown.yml`. `hardening.yaml` runs the vendor and lint gates with their canaries; later
+stages add sanitizers, fuzzing and conformance to it.
 
 ## Vendored native code
 
-Gumbo, the codeberg fork, **Apache-2.0**, to be pinned at **0.14.0**
+Gumbo, the codeberg fork, **Apache-2.0**, pinned at **0.14.0**
 (tag commit `f7145e6e7700`, archive SHA-256
-`eac82480b916d520e4c7938cbd593ceda34c9241cba04022a078550d0d324cfe`). Not yet
-imported; Stage 1 of the roadmap.
+`eac82480b916d520e4c7938cbd593ceda34c9241cba04022a078550d0d324cfe`), in
+`src/vendor/gumbo/` with provenance in `src/vendor/PROVENANCE`. Re-vendor
+with `tools/update-gumbo <version>`, never by hand.
 
 - Pin a stable upstream release, never `master` or a release candidate.
 - Record the tag, the commit and the checksums in `src/vendor/PROVENANCE`, and
   keep `tools/update-gumbo` mechanical: download, verify, extract the file
   list, apply `tools/patches/` in order.
 - Keep upstream `COPYING` under `src/vendor/gumbo/`, declare every copyright
-  holder found in the vendored file headers as `cph` in `Authors@R`, and write
-  `inst/COPYRIGHTS` and `LICENSE.note`. Do not describe the whole package as
-  MIT. Before writing the `License:` field, find the CRAN precedent for MIT
-  packages bundling Apache-2.0 code and copy it.
-- Only the 11 parser translation units and their headers are vendored: no
-  Python bindings, tests, benchmarks, examples, `visualc/`, Meson or autotools.
+  holder found in the vendored file headers as `cph` in `Authors@R` (Google
+  Inc.; Bjoern Hoehrmann for the UTF-8 decoder in `utf8.c`), and keep
+  `inst/COPYRIGHTS` and `LICENSE.note` current. Do not describe the whole
+  package as MIT. The `License:`/`Copyright:` fields follow the CRAN
+  precedent of `data.sketches` 0.1.1 (MIT package bundling Apache-2.0 code):
+  `MIT + file LICENSE` and `Copyright: file inst/COPYRIGHTS`.
+- Only the 12 parser translation units, their headers and `doc/COPYING` are
+  vendored (`tools/gumbo-files.txt`): no Python bindings, tests, benchmarks,
+  examples, `visualc/`, Meson or autotools.
+- The patch series is `tools/patches/0001-max-tree-depth.patch`,
+  `0002-no-stdio.patch` and `0003-modification-notices.patch`. 0003 is
+  licence-mandated (Apache-2.0 §4(b)), local only, and stays last: extend it
+  whenever an earlier patch touches a new file. `tools/verify-vendor` fails
+  on a modified file without the notice. The patch identifiers are also
+  listed in `src/zuh_gumbo.c` and reported by `zuhtml_info()`.
 
 ## Commits and pull requests
 

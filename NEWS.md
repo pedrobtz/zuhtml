@@ -1,4 +1,9 @@
 # zuhtml 0.0.0.9000
 
-* Package skeleton: native routine registration and the design for the
-  first release. No user-facing functions yet.
+* Bundles the 'Gumbo' HTML5 parser 0.14.0 from the maintained fork at
+  <https://codeberg.org/gumbo-parser/gumbo-parser>, with local patches that
+  add a parse-time nesting-depth limit and remove the library's only
+  `printf()`. No system library is needed.
+
+* New `zuhtml_info()` reports the bundled parser version and patches, and
+  self-tests the compiled parser.

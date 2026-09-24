@@ -25,5 +25,11 @@ Authors:
   \item Pedro Baltazar \email{pedrobtz@gmail.com} [copyright holder]
 }
 
+Other contributors:
+\itemize{
+  \item Google Inc. (Gumbo, bundled in src/vendor/gumbo) [copyright holder]
+  \item Bjoern Hoehrmann (UTF-8 decoder in src/vendor/gumbo/utf8.c) [copyright holder]
+}
+
 }
 \keyword{internal}

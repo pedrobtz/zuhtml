@@ -1,0 +1,41 @@
+The zuhtml package bundles a copy of the Gumbo HTML5 parser. zuhtml is
+distributed under the MIT license and Gumbo under the Apache License,
+Version 2.0. The two licences apply to their respective files; the package
+as a whole is not MIT-licensed.
+
+
+zuhtml
+======
+
+Copyright (c) 2026 Pedro Baltazar
+
+Covers everything in the package except src/vendor/. Full text in
+LICENSE.md in the source repository; CRAN's YEAR/COPYRIGHT HOLDER form is
+in LICENSE.
+
+
+Gumbo
+=====
+
+Bundled in src/vendor/gumbo/.
+
+Copyright 2010, 2011 Google Inc.
+
+Apache License, Version 2.0. Full text in src/vendor/gumbo/COPYING.
+src/vendor/gumbo/utf8.c also contains a UTF-8 decoder copyright (c)
+2008-2009 Bjoern Hoehrmann under the MIT license; its notice is in that
+file and in inst/COPYRIGHTS. Upstream is
+https://codeberg.org/gumbo-parser/gumbo-parser, and the pinned release, its
+commit, its checksum and the import date are recorded in
+src/vendor/PROVENANCE.
+
+The tree is upstream's files plus exactly the local patch series listed in
+src/vendor/PROVENANCE: a parse-time nesting-depth limit, the removal of the
+library's only printf(), and the modification notices Apache-2.0 requires.
+Each modified file says so under its licence header. The script that proves
+the tree is upstream plus those patches, tools/verify-vendor, is not part of
+the distributed package; it and the patches live in the source repository
+at <https://github.com/pedrobtz/zuhtml>.
+
+Only the parser library is bundled. Gumbo's Python bindings, tests,
+benchmarks, examples, fuzzers and build systems are not included.

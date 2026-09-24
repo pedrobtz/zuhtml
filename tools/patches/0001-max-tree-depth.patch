@@ -1,0 +1,93 @@
+From: Pedro Baltazar <pedrobtz@gmail.com>
+Subject: [PATCH 1/2] Add max_tree_depth option to bound parse time
+
+Tree construction is quadratic in nesting depth: 100,000 nested <div>
+(500 KB of input) take about 16 s to parse, and repeated <a><b> is
+quadratic by the same mechanism. There is no option to bound it, and the
+loop_count assertion is compiled out under -DNDEBUG.
+
+Add an unsigned max_tree_depth field to GumboOptions (0 = unlimited, the
+default, so kGumboDefaultOptions keeps its behaviour) and a status field to
+GumboOutput. The main loop of gumbo_parse_with_options() stops once the
+stack of open elements grows beyond the limit, finishes parsing as if the
+input had ended, and sets status to GUMBO_STATUS_TREE_TOO_DEEP.
+
+Ported from the equivalent guard in Nokogiri's copy of Gumbo. Local to
+zuhtml; to be offered upstream at
+https://codeberg.org/gumbo-parser/gumbo-parser.
+---
+--- a/gumbo.h
++++ b/gumbo.h
+@@ -628,11 +628,29 @@
+    * Default: GUMBO_NAMESPACE_HTML
+    */
+   GumboNamespaceEnum fragment_namespace;
++
++  /**
++   * The maximum depth of the stack of open elements. Once the stack grows
++   * beyond it, parsing stops as if the input had ended and the output's
++   * status is GUMBO_STATUS_TREE_TOO_DEEP. Tree construction is quadratic in
++   * nesting depth, so this bounds parse time on deeply nested input.
++   * Set to 0 to disable the limit.
++   * Default: 0
++   */
++  unsigned int max_tree_depth;
+ } GumboOptions;
+ 
+ /** Default options struct; use this with gumbo_parse_with_options. */
+ extern const GumboOptions kGumboDefaultOptions;
+ 
++/** Whether a parse ran to the end of its input. */
++typedef enum {
++  /** The whole input was parsed. */
++  GUMBO_STATUS_OK,
++  /** Parsing stopped early because max_tree_depth was exceeded. */
++  GUMBO_STATUS_TREE_TOO_DEEP
++} GumboOutputStatus;
++
+ /** The output struct containing the results of the parse. */
+ typedef struct GumboInternalOutput {
+   /**
+@@ -655,6 +673,9 @@
+    * reported so we can work out something appropriate for your use-case.
+    */
+   GumboVector /* GumboError */ errors;
++
++  /** Whether the parse ran to the end of its input. */
++  GumboOutputStatus status;
+ } GumboOutput;
+ 
+ /**
+--- a/parser.c
++++ b/parser.c
+@@ -98,7 +98,7 @@
+ static void free_wrapper(void* unused, void* ptr) { free(ptr); }
+ 
+ const GumboOptions kGumboDefaultOptions = {&malloc_wrapper, &free_wrapper, NULL,
+-    8, false, -1, GUMBO_TAG_LAST, GUMBO_NAMESPACE_HTML};
++    8, false, -1, GUMBO_TAG_LAST, GUMBO_NAMESPACE_HTML, 0};
+ 
+ static const GumboStringPiece kDoctypeHtml = GUMBO_STRING("html");
+ static const GumboStringPiece kPublicIdHtml4_0 =
+@@ -508,6 +508,7 @@
+ static void output_init(GumboParser* parser) {
+   GumboOutput* output = gumbo_parser_allocate(parser, sizeof(GumboOutput));
+   output->root = NULL;
++  output->status = GUMBO_STATUS_OK;
+   output->document = new_document_node(parser);
+   parser->_output = output;
+   gumbo_init_errors(parser);
+@@ -4415,6 +4416,13 @@
+ 
+     ++loop_count;
+     assert(loop_count < 1000000000);
++
++    if (options->max_tree_depth > 0 &&
++        state->_open_elements.length > options->max_tree_depth) {
++      parser._output->status = GUMBO_STATUS_TREE_TOO_DEEP;
++      gumbo_debug("Tree depth limit exceeded.\n");
++      break;
++    }
+ 
+   } while ((token.type != GUMBO_TOKEN_EOF || state->_reprocess_current_token) &&
+            !(options->stop_on_first_error && has_error));

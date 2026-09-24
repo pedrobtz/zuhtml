@@ -1,0 +1,40 @@
+# Files imported from the Gumbo release archive into src/vendor/gumbo/,
+# relative to the archive's top-level gumbo-parser/ directory. Each lands
+# under its basename. Read by tools/update-gumbo and tools/verify-vendor.
+#
+# The 12 translation units meson.build compiles, every header they include,
+# and the licence. Not imported: the gperf/tag.in generator inputs (the
+# generated char_ref_gperf.c and tag_*.h are vendored as-is), the Python
+# bindings, tests, benchmarks, examples, fuzzers, visualc/, Meson and
+# autotools.
+doc/COPYING
+src/attribute.c
+src/attribute.h
+src/char_ref_gperf.c
+src/char_ref.c
+src/char_ref.h
+src/error.c
+src/error.h
+src/gumbo.h
+src/insertion_mode.h
+src/parser.c
+src/parser.h
+src/string_buffer.c
+src/string_buffer.h
+src/string_piece.c
+src/string_piece.h
+src/tag_enum.h
+src/tag_gperf.h
+src/tag_sizes.h
+src/tag_strings.h
+src/tag.c
+src/token_type.h
+src/tokenizer_states.h
+src/tokenizer.c
+src/tokenizer.h
+src/utf8.c
+src/utf8.h
+src/util.c
+src/util.h
+src/vector.c
+src/vector.h

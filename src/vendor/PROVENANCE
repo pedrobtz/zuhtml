@@ -1,0 +1,35 @@
+Vendored dependency: Gumbo HTML5 parser (codeberg fork)
+
+  Upstream:      https://codeberg.org/gumbo-parser/gumbo-parser
+  Version:       0.14.0
+  Commit:        f7145e6e770004aa537eba100242c43bc66fe429
+  Archive:       https://codeberg.org/gumbo-parser/gumbo-parser/archive/0.14.0.tar.gz
+  SHA-256:       eac82480b916d520e4c7938cbd593ceda34c9241cba04022a078550d0d324cfe
+  Imported:      2026-09-24
+  License:       Apache-2.0 (see src/vendor/gumbo/COPYING);
+                 src/vendor/gumbo/utf8.c also carries an MIT notice for
+                 Bjoern Hoehrmann's UTF-8 decoder
+  Local patches: applied in this order, from tools/patches/
+                 0001-max-tree-depth.patch
+                 0002-no-stdio.patch
+                 0003-modification-notices.patch
+
+src/vendor/gumbo/ is the files listed in tools/gumbo-files.txt, copied from
+the archive under their basenames, with exactly the patches above applied.
+tools/verify-vendor re-derives the tree from the pinned archive and the
+patch series and fails on any other difference. Every patch but the last is
+minimal and offered upstream; the last adds the modification notice that
+Apache-2.0 section 4(b) requires to each file the others change.
+
+Only the parser library is imported: the 12 C translation units meson.build
+compiles, the headers they include, and the licence (doc/COPYING upstream).
+The generated char_ref_gperf.c and tag_*.h are vendored as-is; their gperf
+and tag.in inputs, the Python bindings, tests, benchmarks, examples,
+fuzzers, visualc/, Meson and autotools are deliberately excluded.
+
+Codeberg publishes no uploaded release asset for this tag, so the archive
+is the one the forge generates from the tag. Hash verification is
+trust-on-first-use: the SHA-256 above was computed at import time and is
+re-checked by tools/verify-vendor. If the forge ever regenerates the archive
+with different bytes, verification fails and the new archive must be
+compared against the recorded commit before the digest is updated.

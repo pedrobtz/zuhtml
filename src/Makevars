@@ -1,0 +1,26 @@
+# Portable make only: no GNU-make conditionals, no $(shell), and no -W*
+# overrides, each of which costs a CRAN rejection or a GNU make requirement.
+#
+# Only src/zuh_gumbo.c includes a Gumbo header; -Ivendor/gumbo is for it and
+# for the vendored units themselves.
+PKG_CPPFLAGS = -Ivendor/gumbo
+
+# The 12 translation units upstream's meson.build compiles.
+GUMBO_OBJECTS = \
+	vendor/gumbo/attribute.o \
+	vendor/gumbo/char_ref.o \
+	vendor/gumbo/char_ref_gperf.o \
+	vendor/gumbo/error.o \
+	vendor/gumbo/parser.o \
+	vendor/gumbo/string_buffer.o \
+	vendor/gumbo/string_piece.o \
+	vendor/gumbo/tag.o \
+	vendor/gumbo/tokenizer.o \
+	vendor/gumbo/utf8.o \
+	vendor/gumbo/util.o \
+	vendor/gumbo/vector.o
+
+OBJECTS = \
+	init.o \
+	zuh_gumbo.o \
+	$(GUMBO_OBJECTS)

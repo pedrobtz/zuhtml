@@ -87,7 +87,7 @@ Kept deliberately even though each is a sub-project: the CSS subset of §6 uncha
 
 ## Stage 1 — Vendor Gumbo 0.14.0, patch series, prove it builds · L
 
-**Status:** not started.
+**Status:** done 2026-09-24. Deviations, each measured against the archive: meson compiles **12** units, not 11 (`char_ref_gperf.c` is separate), and the licence is `doc/COPYING`, not top-level. A third, licence-mandated patch `0003-modification-notices.patch` marks each modified file (Apache-2.0 §4(b)); `verify-vendor` enforces it, and it is never offered upstream. 0002 removes only `gumbo_print_caret_diagnostic()`: the `gumbo_debug()` `vprintf` is compiled only under `-DGUMBO_DEBUG`, and the symbol gate proves the shared object imports no stdio. Codeberg has no uploaded release asset, so the pin is the forge-generated archive (noted in `PROVENANCE`). `zuhtml_info()` reports version, patches and two self-tests; the compiled limits join it at Stage 2 with `html_limits()`. `License:`/`Copyright:` follow the CRAN precedent `data.sketches` 0.1.1. Patches 0001 and 0002 are **not yet submitted upstream**: that needs the maintainer's Codeberg account. Vendored Gumbo draws `-Wall -pedantic` warnings under clang (`-Wvoid-pointer-to-enum-cast`, `-Wunused-variable`, `-Wnewline-eof`), which R CMD check does not escalate; no patch until a check leg does.
 
 The highest-risk stage; do not proceed until Windows is green.
 
