@@ -8,7 +8,8 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 
 The other guides use small, made-up snippets. This one works on real,
 plain, old-style pages: CRAN's own package lists and mirror list, the R
-FAQ, and Project Gutenberg's top-100 lists. They are the kind of page
+FAQ, Project Gutenberg's top-100 lists, and the directory listings web
+servers write. They are the kind of page
 zuhtml is built for: large, table- and list-shaped, and written long
 before anyone thought of them as data.
 
@@ -215,6 +216,141 @@ Lists inside the prose come out one string per item:
 bullets <- html_elements(faq, "div.section-level-extent ul")
 length(bullets)
 html_list(bullets[[1]])
+```
+
+## Directory listings
+
+Web servers that list a directory's files write the oldest-style pages
+of all: a title "Index of /path", a link to the parent directory at the
+top, then one line per file. There are two common layouts, and both are
+easy to read with the right tool.
+
+### Listings as tables
+
+Apache's fancy index, used by CRAN and by GNU's mirror, is a table: a
+header row, a row holding only a rule (`<hr>`), then one row per entry,
+the first being "Parent Directory".
+
+```{r}
+r4_url <- paste0(cran, "src/base/R-4/")
+r4 <- html_read(fetch(r4_url), base_url = r4_url)
+html_text_clean(html_element(r4, "title"))
+
+listing <- html_tables(r4)[[1]]
+head(listing, 3)
+```
+
+Both leading rows are all `<th>` cells, so `html_table()` takes them as
+the header; the rule row is empty and adds nothing to the names. The
+first column holds only an icon. Its `alt` text says what each entry is,
+which the table's cleaned text cannot see, so read it separately,
+starting from the link in each entry's second cell:
+
+```{r}
+entries <- html_elements(r4, "tr td:nth-child(2) a")
+kind <- html_attr(html_element(html_parent(html_parent(entries)), "img"), "alt")
+table(kind)
+
+files <- data.frame(
+  name = html_text(entries),
+  url = html_url(entries),
+  kind = kind
+)
+files <- files[files$kind != "[PARENTDIR]", ]
+tail(files, 3)
+```
+
+The parent-directory link is an absolute path, `/src/base/`, and
+`html_url()` resolves it against the listing's address, so walking up a
+level is one more `html_read()`:
+
+```{r}
+parent_url <- html_url(html_element(r4, "a:not([href^='?'])"))
+parent_url
+parent <- html_read(fetch(parent_url), base_url = parent_url)
+# Subdirectories end in "/"; the parent link is absolute, the rest are not.
+subdirs <- html_elements(
+  parent, "tr td:nth-child(2) a[href$='/']:not([href^='/'])"
+)
+html_text(subdirs)
+```
+
+The sizes (`32M`) are text. A small helper turns the suffixes into
+bytes:
+
+```{r}
+size_bytes <- function(x) {
+  x <- trimws(x)
+  mult <- c(K = 2^10, M = 2^20, G = 2^30)[substring(x, nchar(x))]
+  num <- suppressWarnings(as.numeric(sub("[KMG]$", "", x)))
+  ifelse(is.na(mult), num, num * mult)
+}
+listing <- listing[grepl("tar\\.gz$", listing$Name), ]
+listing$bytes <- size_bytes(listing$Size)
+head(listing[, c("Name", "Last modified", "bytes")], 3)
+```
+
+### Listings as preformatted text
+
+nginx, which serves kernel.org, writes the listing inside one `<pre>`:
+a link, then plain text with the date and size, then a newline, for
+each file.
+
+```
+<pre><a href="../">../</a>
+<a href="ChangeLog-6.0">ChangeLog-6.0</a>        03-Oct-2022 05:09     14M
+```
+
+There is no cell to select for the date. It is the text node after each
+link, and `html_next_sibling(..., elements_only = FALSE)` returns exactly
+that, one per link, aligned:
+
+```{r}
+kernel_url <- "https://cdn.kernel.org/pub/linux/kernel/v6.x/"
+kernel <- html_read(fetch(kernel_url), base_url = kernel_url)
+links <- html_elements(kernel, "pre > a:not([href='../'])")
+length(links)
+
+after <- html_text(html_next_sibling(links, elements_only = FALSE))
+fields <- strsplit(trimws(after), "[[:space:]]+")
+head(fields, 3)
+
+is_file <- lengths(fields) == 3
+releases <- data.frame(
+  name = html_text(links)[is_file],
+  date = vapply(fields[is_file], `[`, "", 1),
+  size = size_bytes(vapply(fields[is_file], `[`, "", 3)),
+  url = html_url(links[is_file])
+)
+tarballs <- releases[grepl("^linux-6\\.[0-9.]+\\.tar\\.xz$", releases$name), ]
+nrow(tarballs)
+tail(tarballs[, c("name", "date", "size")], 3)
+```
+
+The dates are written like `03-Oct-2022`; month names are English
+whatever the locale, so parse them in the C locale:
+
+```{r}
+old <- Sys.getlocale("LC_TIME")
+invisible(Sys.setlocale("LC_TIME", "C"))
+tarballs$date <- as.Date(tarballs$date, format = "%d-%b-%Y")
+invisible(Sys.setlocale("LC_TIME", old))
+range(tarballs$date)
+```
+
+Apache writes the same preformatted layout when fancy indexing is on
+but tables are off, as on archive.apache.org. The header links there
+sort the listing (`?C=N;O=D`), and an attribute selector leaves them
+out:
+
+```{r}
+httpd_url <- "https://archive.apache.org/dist/httpd/"
+httpd <- html_read(fetch(httpd_url), base_url = httpd_url)
+all_links <- html_elements(httpd, "pre a")
+head(html_text(all_links), 5)
+entries <- html_elements(httpd, "pre a:not([href^='?'])")
+entries <- entries[html_text(entries) != "Parent Directory"]
+head(html_text(entries[grepl("/$", html_attr(entries, "href"))]))
 ```
 
 ## A very large page, and the limits
