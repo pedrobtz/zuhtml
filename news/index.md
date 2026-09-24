@@ -145,6 +145,13 @@ First release.
   reports where the encoding came from in `encoding_source`.
 
 - New
+  [`html_forms()`](https://pedrobtz.github.io/zuhtml/reference/html_forms.md)
+  describes each form and the controls it owns, by the HTML standard’s
+  form-owner rules (`form=` references included), with DOM values for
+  every control type and the options of each select. It only inspects:
+  nothing is submitted.
+
+- New
   [`html_serialize()`](https://pedrobtz.github.io/zuhtml/reference/html_serialize.md)
   (and [`as.character()`](https://rdrr.io/r/base/character.html) on
   nodesets) writes nodes as normalized HTML following the WHATWG

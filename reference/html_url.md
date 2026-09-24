@@ -52,6 +52,7 @@ is malformed.
 ## See also
 
 Other extraction:
+[`html_forms()`](https://pedrobtz.github.io/zuhtml/reference/html_forms.md),
 [`html_links()`](https://pedrobtz.github.io/zuhtml/reference/html_links.md),
 [`html_list()`](https://pedrobtz.github.io/zuhtml/reference/html_list.md),
 [`html_table()`](https://pedrobtz.github.io/zuhtml/reference/html_table.md),

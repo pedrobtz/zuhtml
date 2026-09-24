@@ -33,6 +33,7 @@ link's cleaned text, see
 ## See also
 
 Other extraction:
+[`html_forms()`](https://pedrobtz.github.io/zuhtml/reference/html_forms.md),
 [`html_list()`](https://pedrobtz.github.io/zuhtml/reference/html_list.md),
 [`html_table()`](https://pedrobtz.github.io/zuhtml/reference/html_table.md),
 [`html_table_cells()`](https://pedrobtz.github.io/zuhtml/reference/html_table_cells.md),

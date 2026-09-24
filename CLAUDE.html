@@ -54,7 +54,9 @@
 </div>
 <div class="section level2">
 <h2 id="current-state">Current state<a class="anchor" aria-label="anchor" href="#current-state"></a></h2>
-<p>Stages 0 to 9 are done: every 0.1.0 export exists, is documented with runnable examples and has a family; four vignettes cover the workflow, selectors, tables and lists, and limits and encodings; <code>cran-comments.md</code> is written. Gumbo 0.14.0 is vendored with a six-patch series. Stage 10 (the 0.1.0 release) is next, and it needs the maintainer: the CRAN submission and upstream reports are theirs to make. The probe harness (<a href=".agents/probe-gumbo.c">.agents/probe-gumbo.c</a>) holds the measurements the roadmap cites.</p>
+<p>Stages 0 to 15 are done. Stages 10 to 15 widened 0.1.0 after a survey of other languages’ HTML libraries, adding: - <code><a href="reference/html_closest.html">html_closest()</a></code>, <code><a href="reference/html_strings.html">html_strings()</a></code> and <code>pretty =</code>; - page metadata; - table options; - <code><a href="reference/html_markdown.html">html_markdown()</a></code> in <code>src/zuh_markdown.c</code>; - <code>&lt;meta&gt;</code> encoding sniffing; - <code><a href="reference/html_forms.html">html_forms()</a></code>.</p>
+<p>Every export is documented with runnable examples and a family. Four vignettes and a pkgdown-only article of real pages are written, and so is <code>cran-comments.md</code>. Gumbo 0.14.0 is vendored with a six-patch series.</p>
+<p>Stage 16 (the 0.1.0 release) is next. It refreshes the CRAN preparation and needs the maintainer: the CRAN submission and the upstream reports are theirs to make. The probe harness (<a href=".agents/probe-gumbo.c">.agents/probe-gumbo.c</a>) holds the measurements the roadmap cites.</p>
 <p>The roadmap’s <strong>Status:</strong> line under each stage is authoritative for progress; update it there, not here.</p>
 </div>
 <div class="section level2">
@@ -113,7 +115,7 @@
 <p>Planned layout, from design §13 and the roadmap. The html5lib fixtures live in <code>tools/conformance/</code>. So far <code>R/attributes.R</code>, <code>R/conditions.R</code>, <code>R/info.R</code>, <code>R/limits.R</code>, <code>R/node.R</code>, <code>R/nodeset.R</code>, <code>R/parse.R</code>, <code>R/select.R</code>, <code>R/text.R</code>, <code>R/write.R</code>, <code>R/list.R</code>, <code>R/table.R</code>, <code>R/links.R</code>, <code>src/init.c</code>, <code>src/r_api.c</code>, <code>src/r_extract.c</code>, <code>src/r_node.c</code>, <code>src/r_select.c</code>, <code>src/zuh_buf.[ch]</code>, <code>src/zuh_selector.[ch]</code>, <code>src/zuh_table.[ch]</code>, <code>src/zuh_text.[ch]</code>, <code>src/zuh_write.[ch]</code>, <code>fuzz/</code>, <code>src/zuh_gumbo.[ch]</code>, <code>src/zuh_memory.[ch]</code>, <code>src/zuh_document.[ch]</code>, <code>src/zuh_status.h</code>, <code>src/zuh_r.h</code>, <code>src/vendor/</code> and the vendoring, lint and sanitizer scripts in <code>tools/</code> exist.</p>
 <pre><code>R/                 parse.R, conditions.R, info.R, node.R, nodeset.R, select.R,
                    attributes.R, text.R, write.R, list.R, table.R, links.R,
-                   metadata.R, markdown.R
+                   metadata.R, markdown.R, sniff.R, forms.R
 src/               init.c, r_api.c                       R-facing glue only
                    zuh_gumbo.c                            version-specific Gumbo adapter
                    zuh_memory.c                           allocation ledger, abort, limits

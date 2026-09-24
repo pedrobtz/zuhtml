@@ -44,6 +44,7 @@ are `""` and duplicates are kept.
 ## See also
 
 Other extraction:
+[`html_forms()`](https://pedrobtz.github.io/zuhtml/reference/html_forms.md),
 [`html_links()`](https://pedrobtz.github.io/zuhtml/reference/html_links.md),
 [`html_table()`](https://pedrobtz.github.io/zuhtml/reference/html_table.md),
 [`html_table_cells()`](https://pedrobtz.github.io/zuhtml/reference/html_table_cells.md),
