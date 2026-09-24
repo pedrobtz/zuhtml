@@ -23,11 +23,15 @@ GUMBO_OBJECTS = \
 OBJECTS = \
 	init.o \
 	r_api.o \
+	r_extract.o \
 	r_node.o \
 	r_select.o \
+	zuh_buf.o \
 	zuh_document.o \
 	zuh_gumbo.o \
 	zuh_memory.o \
 	zuh_selector.o \
+	zuh_table.o \
+	zuh_text.o \
 	zuh_write.o \
 	$(GUMBO_OBJECTS)

@@ -60,6 +60,7 @@ html_classes(nodes)
 Other node values:
 \code{\link[=html_name]{html_name()}},
 \code{\link[=html_serialize]{html_serialize()}},
-\code{\link[=html_text]{html_text()}}
+\code{\link[=html_text]{html_text()}},
+\code{\link[=html_text_clean]{html_text_clean()}}
 }
 \concept{node values}

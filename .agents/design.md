@@ -235,6 +235,8 @@ Deferred past 0.1.0: `html_has_attr()` (`!is.na(html_attr())`), `html_strings()`
 
 `html_text()` concatenates text in tree order without inserting separators or trimming. With `recursive = FALSE`, it reads direct text children only. Comments and doctype text are excluded; script/style text is retained in this structural accessor; template contents are skipped (a template's text is `""`, as its DOM `textContent` is). An empty element yields `""`; a text, comment or processing-instruction node yields its own content; a doctype or missing node yields `NA_character_`.
 
+*(As built: see the `html_text_clean()` documentation for the fixed block-element list. `<td>`/`<th>` are separated by a space, adjacent block boundaries merge into one line break, consecutive `<br>` give one line break each, and `trim = FALSE` keeps outer whitespace collapsed to a single space. A nested list or table left out of an item's or a cell's text still acts as a block boundary where it stood.)*
+
 `html_text_clean()` is an extraction-oriented alternative. It skips script/style and unentered template content, collapses HTML ASCII whitespace outside preformatted regions, adds line breaks at `<br>` and documented block boundaries, and preserves `<pre>`/`<textarea>` whitespace. `nbsp = TRUE` converts nonbreaking spaces to regular spaces before normalization. It uses a fixed, tested HTML tag list rather than computed CSS. It is not browser `innerText` and makes no claim to visual layout or visibility.
 
 Serialization emits normalized HTML, not a reconstruction of the input bytes. Use HTML void-element and raw-text rules, appropriate escaping, namespaces for foreign content, doctype handling, comments, and explicit template contents. Apply context-aware fragment serialization. Iterative traversal avoids C-stack dependence. Reparse tests compare the representable tree semantics, not original lexical spelling.
@@ -357,6 +359,8 @@ These helpers return base data frames with stable columns, including typed zero-
 URL resolution is its own tested module, not supplied by Gumbo. Initially implement documented RFC 3986 reference resolution for valid URI references, including dot segments, queries, fragments and protocol-relative references. Do not advertise WHATWG browser URL normalization, IDNA handling, or automatic percent-encoding of arbitrary strings. For a malformed reference, `html_url()` returns `NA`; original attributes remain available. Link helpers preserve the original reference in `href`.
 
 Base precedence: an explicit accessor `base_url` overrides document behavior; otherwise resolve the first valid document `<base href>` against the parse-time base URL, then use the parse-time URL alone. Relative references with no usable absolute base yield `NA` from `html_url()`; their original attributes remain accessible. Resolving a URL is pure computation and must not trigger I/O.
+
+URL resolution as built (`R/links.R`): strict RFC 3986 §5.2.2 over the Appendix B split, with the undefined/empty distinction kept for every component. The RFC's own §5.4 normal and abnormal examples are fixtures. Leading and trailing ASCII whitespace is stripped from the attribute; a reference still containing whitespace or a control character, or with an invalid scheme, is malformed (`NA`). A base URL without a scheme cannot resolve relative references. `html_links()` includes matching context nodes themselves, deduplicated in document order.
 
 ### No shared extraction diagnostics
 

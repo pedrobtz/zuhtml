@@ -3,52 +3,20 @@
  *
  * Iterative: the traversal follows the tree's parent and sibling links, so
  * depth costs no C stack. */
-#include <stdlib.h>
 #include <string.h>
 
 #include "zuh_write.h"
 
-typedef struct {
-  char *buf;
-  size_t len;
-  size_t cap;
-  int failed;
-} wbuf;
+typedef zuh_buf wbuf;
 
 static void
 put(wbuf *w, const char *s, size_t n) {
-  if (w->failed || n == 0)
-    return;
-  if (n > (size_t) -1 - w->len - 1) {
-    w->failed = 1;
-    return;
-  }
-  if (w->len + n + 1 > w->cap) {
-    size_t cap = w->cap ? w->cap : 1024;
-    char *grown;
-    while (cap < w->len + n + 1) {
-      if (cap > (size_t) -1 / 2) {
-        w->failed = 1;
-        return;
-      }
-      cap *= 2;
-    }
-    grown = (char *) realloc(w->buf, cap);
-    if (grown == NULL) {
-      w->failed = 1;
-      return;
-    }
-    w->buf = grown;
-    w->cap = cap;
-  }
-  memcpy(w->buf + w->len, s, n);
-  w->len += n;
-  w->buf[w->len] = '\0';
+  zuh_buf_put(w, s, n);
 }
 
 static void
 puts_(wbuf *w, const char *s) {
-  put(w, s, strlen(s));
+  zuh_buf_str(w, s);
 }
 
 /* Escape per "escaping a string": & and U+00A0 always; in attribute mode
@@ -247,29 +215,10 @@ serialize_subtree(wbuf *w, const zuh_doc *doc, zuh_id top, int include_top) {
 }
 
 zuh_status
-zuh_serialize(const zuh_doc *doc, zuh_id id, int outer, char **out,
-              size_t *len) {
-  wbuf w = {NULL, 0, 0, 0};
-  *out = NULL;
-  *len = 0;
-  put(&w, "", 0);
-  if (w.buf == NULL) {
-    w.buf = (char *) malloc(1);
-    if (w.buf == NULL)
-      return ZUH_LIMIT_MEMORY;
-    w.buf[0] = '\0';
-    w.cap = 1;
-  }
+zuh_serialize(const zuh_doc *doc, zuh_id id, int outer, zuh_buf *out) {
   if (id < doc->n_nodes) {
     const zuh_node *n = &doc->nodes[id];
-    serialize_subtree(&w, doc, id,
-                      outer && n->type != ZUH_NODE_DOCUMENT);
+    serialize_subtree(out, doc, id, outer && n->type != ZUH_NODE_DOCUMENT);
   }
-  if (w.failed) {
-    free(w.buf);
-    return ZUH_LIMIT_MEMORY;
-  }
-  *out = w.buf;
-  *len = w.len;
-  return ZUH_OK;
+  return out->failed ? ZUH_LIMIT_MEMORY : ZUH_OK;
 }

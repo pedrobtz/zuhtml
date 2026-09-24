@@ -95,3 +95,16 @@ test_that("as.integer() exposes the document-local IDs", {
   doc <- html_parse("<p>")
   expect_identical(as.integer(html_root(doc)), 2L - 1L)
 })
+
+test_that("lapply() over a nodeset passes single nodes", {
+  doc <- html_parse("<ul><li>a</ul><ul><li>b<li>c</ul>")
+  lists <- html_elements(doc, "ul")
+  expect_identical(lapply(lists, html_list), list("a", c("b", "c")))
+  each <- as.list(lists)
+  expect_length(each, 2L)
+  expect_s3_class(each[[1L]], "zuhtml_nodeset")
+  expect_identical(html_document(each[[2L]]), doc)
+  expect_identical(vapply(lists, function(l) length(html_children(l)),
+                          integer(1)), c(1L, 2L))
+  expect_identical(as.list(lists[0]), list())
+})

@@ -25,13 +25,13 @@ scripts and CRAN comments. zuhtml does not depend on it or share code with it.
 
 ## Current state
 
-Stages 0 to 6 are done. Gumbo 0.14.0 is vendored with a three-patch
-series. `html_parse()`/`html_read()`/`html_fragment()` decode input, parse
-under the allocation ledger with every limit enforced, and convert Gumbo's
-tree into a frozen, index-addressed document (`src/zuh_document.h`). The R
-node API, `html_serialize()` and CSS selection (`html_elements()`,
-`html_element()`, `html_matches()`, `html_filter()`) are in place. Stage 7
-(extraction: clean text, lists, tables, links, URLs) is next. The probe harness
+Stages 0 to 7 are done: every 0.1.0 export exists. Gumbo 0.14.0 is vendored
+with a three-patch series; parsing runs under the allocation ledger with
+every limit enforced and converts into a frozen, index-addressed document
+(`src/zuh_document.h`). On top: the node API, `html_serialize()`, CSS
+selection, and extraction (`html_text_clean()`, `html_list()`,
+`html_table()`/`html_tables()`, `html_links()`, `html_url()`). Stage 8
+(hardening) is next. The probe harness
 ([.agents/probe-gumbo.c](.agents/probe-gumbo.c)) holds the measurements the
 roadmap cites.
 
@@ -108,8 +108,10 @@ whether CI runs it.
 Planned layout, from design §13 and the roadmap. The html5lib fixtures live
 in `tools/conformance/`. So far `R/attributes.R`, `R/conditions.R`,
 `R/info.R`, `R/limits.R`, `R/node.R`, `R/nodeset.R`, `R/parse.R`,
-`R/select.R`, `R/text.R`, `R/write.R`, `src/init.c`, `src/r_api.c`,
-`src/r_node.c`, `src/r_select.c`, `src/zuh_selector.[ch]`,
+`R/select.R`, `R/text.R`, `R/write.R`, `R/list.R`, `R/table.R`,
+`R/links.R`, `src/init.c`, `src/r_api.c`, `src/r_extract.c`,
+`src/r_node.c`, `src/r_select.c`, `src/zuh_buf.[ch]`,
+`src/zuh_selector.[ch]`, `src/zuh_table.[ch]`, `src/zuh_text.[ch]`,
 `src/zuh_write.[ch]`, `fuzz/`,
 `src/zuh_gumbo.[ch]`, `src/zuh_memory.[ch]`, `src/zuh_document.[ch]`,
 `src/zuh_status.h`, `src/zuh_r.h`, `src/vendor/` and the vendoring, lint and
@@ -188,6 +190,13 @@ tables, serialization) reads the arena and never touches Gumbo. Only
   exactly design §6's productions; every other form must fail with
   `ZUH_SEL_UNSUPPORTED` and a position, and `test-select.R` has a rejection
   test per form. Adding a production means amending the design first.
+- **Strings built for R use an R_alloc-backed `zuh_buf`.** Pass
+  `zuh_r_alloc` to `zuh_buf_init()` in R-facing code, so an R allocation
+  failure while a string is being built strands no `malloc` memory. The
+  core's own callers (the sanitizer driver, fuzz targets) pass `NULL` and
+  `zuh_buf_free()`.
+- **`x[0]` drops, it does not give NA.** Table slots are 0-based with -1
+  for a gap; convert to R indices with gaps as `NA` first (`R/table.R`).
 - **Pool strings can move.** In `zuh_selector.c`, anything that copies a
   pool string back into the pool must grow first and address the source
   after (`pool_dup()`); the fuzzer found the use-after-free the naive copy

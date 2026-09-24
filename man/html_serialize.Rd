@@ -47,6 +47,7 @@ writeLines(html_serialize(doc), path)
 Other node values:
 \code{\link[=html_attr]{html_attr()}},
 \code{\link[=html_name]{html_name()}},
-\code{\link[=html_text]{html_text()}}
+\code{\link[=html_text]{html_text()}},
+\code{\link[=html_text_clean]{html_text_clean()}}
 }
 \concept{node values}

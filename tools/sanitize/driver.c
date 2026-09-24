@@ -1,6 +1,6 @@
-/* Drives the parse seam -- ledger, abort, limits, conversion into the
- * frozen document, the tree dump, the serializer -- with no R in the way,
- * for tools/run-sanitizers. Exits non-zero on any failed
+/* Drives the C core -- ledger, abort, limits, conversion into the frozen
+ * document, the tree dump, the serializer, cleaned text and table grids --
+ * with no R in the way, for tools/run-sanitizers. Exits non-zero on any failed
  * expectation; ASan, UBSan and (on Linux) LeakSanitizer report the rest.
  *
  *   driver                 the gate
@@ -13,6 +13,8 @@
 
 #include "zuh_document.h"
 #include "zuh_gumbo.h"
+#include "zuh_table.h"
+#include "zuh_text.h"
 #include "zuh_write.h"
 
 static int failures = 0;
@@ -60,7 +62,13 @@ static const char *const corpus[] = {
   "<ul><li>one<li>two<ul><li>nested</ul></ul><dl><dt>t<dd>d</dl>",
   "<frameset><frame></frameset>",
   "</p></br><br/><img src=x /><input type=hidden><",
-  "<a href=\"http://example.org/?q=1&amp;r=2\">link</a><base href=/x/>"
+  "<a href=\"http://example.org/?q=1&amp;r=2\">link</a><base href=/x/>",
+  "<table><thead><tr><th rowspan=0>h<th colspan=3>k</thead><tr><td>1<td"
+  " rowspan=2 colspan=2>2<tr><td>3<td>4<td>5<tfoot><tr><td colspan=0>f"
+  "</tfoot></table>",
+  "<table><tr><td>a<td rowspan=2>b<tr><td colspan=2>overlap</table>",
+  "<table><tr><td colspan=' +7x'>w<td rowspan=70000>r<tr></table>"
+  "<ul><li>a<div><ul><li>b</ul></div>c<li>d</ul>"
 };
 #define N_CORPUS (sizeof(corpus) / sizeof(corpus[0]))
 
@@ -113,6 +121,85 @@ check_links(const zuh_doc *doc) {
   return reached;
 }
 
+/* An allocator standing in for R_alloc: blocks are recorded and freed
+ * together by arena_release(). */
+typedef struct {
+  void **blocks;
+  size_t n, cap;
+} arena;
+
+static void *
+arena_alloc(void *userdata, size_t size) {
+  arena *a = (arena *) userdata;
+  void *p;
+  if (a->n == a->cap) {
+    size_t cap = a->cap ? a->cap * 2 : 64;
+    void **grown = (void **) realloc(a->blocks, cap * sizeof(void *));
+    if (grown == NULL)
+      return NULL;
+    a->blocks = grown;
+    a->cap = cap;
+  }
+  p = malloc(size ? size : 1);
+  if (p != NULL)
+    a->blocks[a->n++] = p;
+  return p;
+}
+
+static void
+arena_release(arena *a) {
+  size_t i;
+  for (i = 0; i < a->n; i++)
+    free(a->blocks[i]);
+  free(a->blocks);
+  a->blocks = NULL;
+  a->n = a->cap = 0;
+}
+
+/* Cleaned text of every node under each option set, and the grid of every
+ * table, under ASan. */
+static void
+extract_all(const zuh_doc *doc) {
+  zuh_id id;
+  int k;
+  for (id = 0; id < doc->n_nodes; id++) {
+    const zuh_node *n = &doc->nodes[id];
+    for (k = 0; k < 16; k++) {
+      zuh_clean_opts o;
+      zuh_buf b;
+      o.trim = k & 1;
+      o.nbsp = (k >> 1) & 1;
+      o.skip_lists = (k >> 2) & 1;
+      o.skip_tables = (k >> 3) & 1;
+      zuh_buf_init(&b, NULL, NULL);
+      EXPECT(zuh_text_clean(doc, id, &o, &b) == ZUH_OK &&
+                 strlen(b.buf) == b.len,
+             "cleaning node %u failed", id);
+      zuh_buf_free(&b);
+    }
+    if (n->type == ZUH_NODE_ELEMENT && n->ns == ZUH_NS_HTML &&
+        strcmp(zuh_str(doc, n->name), "table") == 0) {
+      static const double caps[] = {1e6, 4, 0};
+      size_t c;
+      for (c = 0; c < sizeof(caps) / sizeof(caps[0]); c++) {
+        arena a = {NULL, 0, 0};
+        zuh_table t;
+        zuh_status st = zuh_table_grid(doc, id, caps[c], arena_alloc, &a, &t);
+        EXPECT(st == ZUH_OK || st == ZUH_LIMIT_TABLE ||
+                   st == ZUH_ERR_TABLE_OVERLAP,
+               "table %u: status %d", id, (int) st);
+        if (st == ZUH_OK) {
+          size_t s2;
+          for (s2 = 0; s2 < (size_t) t.nrows * t.ncols; s2++)
+            EXPECT(t.slot[s2] >= -1 && t.slot[s2] < (int32_t) t.ncells,
+                   "table %u: slot out of range", id);
+        }
+        arena_release(&a);
+      }
+    }
+  }
+}
+
 /* Serialize every node, outer and inner, and parse the document's
  * serialization again: the serializer and a second parse under ASan. Only
  * for small documents, and not recursively. */
@@ -124,28 +211,32 @@ static zuh_status parse(const char *buf, size_t len, const zuh_parse_opts *o,
 static void
 serialize_all(const zuh_doc *doc, const zuh_parse_opts *o) {
   zuh_id id;
-  char *out;
-  size_t len;
   if (doc->n_nodes > 2000 || reparsing)
     return;
   for (id = 0; id < doc->n_nodes; id++) {
     int outer;
     for (outer = 0; outer < 2; outer++) {
-      EXPECT(zuh_serialize(doc, id, outer, &out, &len) == ZUH_OK &&
-                 out != NULL && strlen(out) == len,
+      zuh_buf b;
+      zuh_buf_init(&b, NULL, NULL);
+      EXPECT(zuh_serialize(doc, id, outer, &b) == ZUH_OK && b.buf != NULL &&
+                 strlen(b.buf) == b.len,
              "serializing node %u failed", id);
-      free(out);
+      zuh_buf_free(&b);
     }
   }
-  if (zuh_serialize(doc, 0, 1, &out, &len) == ZUH_OK) {
-    zuh_parse_opts again = *o;
-    zuh_parse_stats stats;
-    again.fail_at = 0;
-    reparsing = 1;
-    EXPECT(parse(out, len, &again, &stats, NULL) == ZUH_OK,
-           "the serialization did not parse again");
-    reparsing = 0;
-    free(out);
+  {
+    zuh_buf b;
+    zuh_buf_init(&b, NULL, NULL);
+    if (zuh_serialize(doc, 0, 1, &b) == ZUH_OK) {
+      zuh_parse_opts again = *o;
+      zuh_parse_stats stats;
+      again.fail_at = 0;
+      reparsing = 1;
+      EXPECT(parse(b.buf, b.len, &again, &stats, NULL) == ZUH_OK,
+             "the serialization did not parse again");
+      reparsing = 0;
+    }
+    zuh_buf_free(&b);
   }
 }
 
@@ -170,6 +261,8 @@ parse(const char *buf, size_t len, const zuh_parse_opts *o,
            "the tree dump failed");
     free(dump);
     serialize_all(doc, o);
+    if (!reparsing && doc->n_nodes <= 2000)
+      extract_all(doc);
   }
   if (n_problems != NULL)
     *n_problems = doc->n_problems;
