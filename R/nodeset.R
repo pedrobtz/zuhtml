@@ -34,6 +34,14 @@ c.zuhtml_nodeset <- function(...) {
 #' @export
 as.integer.zuhtml_nodeset <- function(x, ...) as.vector(unclass(x), "integer")
 
+# One single-node nodeset per node, so that lapply(), sapply() and Map()
+# over a nodeset hand each function a node rather than a bare integer.
+#' @export
+as.list.zuhtml_nodeset <- function(x, ...) {
+  doc <- zuh_owner(x)
+  lapply(unclass(x), new_nodeset, doc = doc)
+}
+
 zuh_trunc <- function(s, width) {
   s <- gsub("\n", "\\\\n", s, fixed = TRUE)
   long <- !is.na(s) & nchar(s) > width

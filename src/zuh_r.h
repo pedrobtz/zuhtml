@@ -10,6 +10,9 @@
 
 zuh_doc *zuh_r_doc(SEXP ptr);
 
+/* A zuh_alloc_fn backed by R_alloc, for zuh_buf. */
+void *zuh_r_alloc(void *userdata, size_t n);
+
 SEXP C_zuh_doc_new(void);
 SEXP C_zuh_doc_alive(SEXP ptr);
 SEXP C_zuh_doc_release(SEXP ptr);
@@ -33,5 +36,8 @@ SEXP C_zuh_node_attrs(SEXP ptr, SEXP ids);
 SEXP C_zuh_node_text(SEXP ptr, SEXP ids, SEXP recursive);
 SEXP C_zuh_node_serialize(SEXP ptr, SEXP ids, SEXP outer);
 SEXP C_zuh_select(SEXP ptr, SEXP ids, SEXP css, SEXP mode, SEXP work_limit);
+SEXP C_zuh_text_clean(SEXP ptr, SEXP ids, SEXP opts);
+SEXP C_zuh_outermost(SEXP ptr, SEXP ids);
+SEXP C_zuh_table(SEXP ptr, SEXP id, SEXP max_cells);
 
 #endif

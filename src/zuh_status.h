@@ -9,8 +9,10 @@ typedef enum {
   ZUH_LIMIT_MEMORY,  /* budget exceeded, allocation failed, or injected */
   ZUH_LIMIT_DEPTH,   /* open-element stack deeper than max_depth */
   ZUH_LIMIT_NODES,   /* more than max_nodes in the tree */
-  ZUH_ERR_INTERNAL   /* an invariant failed, e.g. a free the ledger
+  ZUH_ERR_INTERNAL,  /* an invariant failed, e.g. a free the ledger
                         does not recognise */
+  ZUH_LIMIT_TABLE,   /* a table would expand past max_table_cells */
+  ZUH_ERR_TABLE_OVERLAP /* two table cells cover the same slot */
 } zuh_status;
 
 #endif

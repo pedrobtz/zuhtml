@@ -28,7 +28,19 @@
   `html_document()` and `html_template_content()`; read values with
   `html_name()`, `html_namespace()`, `html_type()`, `html_attr()`,
   `html_attrs()`, `html_classes()` and `html_text()`. `html_info()`
-  describes a document.
+  describes a document. `lapply()` and friends over a nodeset pass one
+  node at a time.
+
+* New extraction functions. `html_text_clean()` gives text as a reader
+  wants it: scripts and styles skipped, whitespace collapsed outside
+  `<pre>`, line breaks at `<br>` and block elements. `html_list()` reads a
+  `<ul>`/`<ol>` as text or a tree, without nested items leaking into their
+  parents. `html_table()` and `html_tables()` read tables into data frames
+  of character columns, with row and column spans, `rowspan="0"`, row
+  groups, header detection and an error rather than a silent overwrite
+  for overlapping cells. `html_url()` resolves URL attributes with RFC
+  3986 reference resolution, honouring `<base href>`, and `html_links()`
+  lists a page's links.
 
 * New `html_elements()`, `html_element()`, `html_matches()` and
   `html_filter()` select elements with a documented subset of CSS

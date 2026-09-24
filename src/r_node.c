@@ -492,6 +492,12 @@ C_zuh_node_text(SEXP ptr, SEXP ids, SEXP recursive) {
   return out;
 }
 
+void *
+zuh_r_alloc(void *userdata, size_t n) {
+  (void) userdata;
+  return R_alloc(n, 1);
+}
+
 /* Aligned: the HTML serialization of each node, NA for missing nodes. */
 SEXP
 C_zuh_node_serialize(SEXP ptr, SEXP ids, SEXP outer) {
@@ -506,23 +512,19 @@ C_zuh_node_serialize(SEXP ptr, SEXP ids, SEXP outer) {
   for (i = 0; i < n; i++) {
     int id = INTEGER(ids)[i];
     const void *vmax = vmaxget();
-    char *buf, *copy;
-    size_t len;
+    zuh_buf b;
     if (id == NA_INTEGER) {
       SET_STRING_ELT(out, i, NA_STRING);
       continue;
     }
-    if (zuh_serialize(doc, (zuh_id) id, out_, &buf, &len) != ZUH_OK)
+    /* R_alloc-backed: an allocation failure long-jumps with nothing to
+     * free. */
+    zuh_buf_init(&b, zuh_r_alloc, NULL);
+    if (zuh_serialize(doc, (zuh_id) id, out_, &b) != ZUH_OK)
       Rf_error("out of memory serializing a node");
-    if (len > (size_t) INT_MAX) {
-      free(buf);
+    if (b.len > (size_t) INT_MAX)
       Rf_error("serialization too long for an R string");
-    }
-    /* Copy into R_alloc memory before any R allocation can long-jump. */
-    copy = R_alloc(len + 1, 1);
-    memcpy(copy, buf, len + 1);
-    free(buf);
-    SET_STRING_ELT(out, i, Rf_mkCharLenCE(copy, (int) len, CE_UTF8));
+    SET_STRING_ELT(out, i, Rf_mkCharLenCE(b.buf, (int) b.len, CE_UTF8));
     vmaxset(vmax);
     R_CheckUserInterrupt();
   }

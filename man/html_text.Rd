@@ -32,6 +32,7 @@ html_text(p, recursive = FALSE)
 Other node values:
 \code{\link[=html_attr]{html_attr()}},
 \code{\link[=html_name]{html_name()}},
-\code{\link[=html_serialize]{html_serialize()}}
+\code{\link[=html_serialize]{html_serialize()}},
+\code{\link[=html_text_clean]{html_text_clean()}}
 }
 \concept{node values}

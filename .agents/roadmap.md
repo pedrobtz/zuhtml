@@ -193,7 +193,13 @@ The stage that makes "untrusted HTML" an honest claim. No tree conversion yet.
 
 ## Stage 7 — Extraction: clean text, lists, tables, links, URLs · L
 
-**Status:** not started.
+**Status:** done 2026-09-24. The §14 extraction fixture list is covered in `test-text-clean.R`, `test-list.R`, `test-table.R` and `test-links.R`. That includes the RFC 3986 §5.4 normal and abnormal examples verbatim, leading zeros, and the §9 example giving `c("0012", "0034")`. Ordered numbering, definition lists, link multiplicity and `html_table_cells()` are 0.1.1 material. `test-workflow.R` runs the §16 workflow end to end. Grid construction (`src/zuh_table.c`) enforces `max_table_cells` incrementally while placing cells, before the grid is allocated. Three decisions were found in testing and recorded in the design:
+- A nested list or table left out of an item's or cell's text still acts as a block boundary where it stood.
+- R's `x[0]` drops elements rather than giving `NA`, which silently misaligned ragged-row gaps until fixed.
+- `character(0)[TRUE]` is `NA`, which produced a header named `"NA"`.
+- The §16 workflow's `lapply(html_elements(...), html_list)` failed, because `lapply()` strips the nodeset class. An `as.list()` method now makes `lapply()` pass single-node nodesets. This matters because the roadmap cut `group=` on the grounds that `lapply()` does it.
+
+Also: strings built for R now use an R_alloc-backed buffer (`zuh_buf`), retrofitted to the Stage 5 serializer, so an R allocation failure strands no malloc memory. The sanitizer driver cleans every node under all option sets and builds every table grid under three cell limits: 4,667 fault-injection sites.
 
 - `src/zuh_text.c` and `R/text.R`: `html_text_clean()` per §7 — skip `script`/`style` and template content, collapse ASCII whitespace outside `pre`/`textarea`, line breaks at `<br>` and a fixed block-tag list, `nbsp` folding. Documented as not `innerText`.
 - `R/list.R`: `html_list()` text and tree modes per §8, minus ordinals and data-frame mode. Nested lists excluded from item text; wrapper elements honoured.
