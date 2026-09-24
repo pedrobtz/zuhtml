@@ -70,7 +70,7 @@ Kept deliberately even though each is a sub-project: the CSS subset of §6 uncha
 
 ## Stage 0 — Repo hygiene and design amendments · S
 
-**Status:** done 2026-09-24. `Suggests: knitr, rmarkdown` and `VignetteBuilder` are in place ahead of the Stage 9 vignettes.
+**Status:** done 2026-09-24. Deviation: `knitr`, `rmarkdown` and `VignetteBuilder: knitr` are left out until Stage 9 adds the vignettes; with no vignette they draw an incoming-feasibility NOTE and a dependency INFO.
 
 - Amend `design.md` per the seven points above; keep §17's evidence section and add the probe measurements.
 - `DESCRIPTION`: real `Title` (title case, under 65 characters, software names quoted, e.g. `Parse 'HTML' with a Bundled 'Gumbo' Parser`), a 3–4 sentence `Description` that does not start with the package name, `Authors@R` with Pedro Baltazar as `aut`/`cre`/`cph`, `Depends: R (>= 4.1)`, `URL` (GitHub and pkgdown), `BugReports`, `Suggests: testthat (>= 3.0.0), knitr, rmarkdown`, `VignetteBuilder: knitr`. Gumbo's copyright holders are added at Stage 1, when the code exists.
