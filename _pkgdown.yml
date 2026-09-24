@@ -41,3 +41,7 @@ articles:
       - selectors
       - tables-and-lists
       - limits-and-encoding
+  - title: Worked examples
+    navbar: Worked examples
+    contents:
+      - articles/real-world-pages
