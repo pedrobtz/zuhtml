@@ -59,7 +59,7 @@ fail=0
 RINC=$(Rscript -e 'cat(R.home("include"))')
 
 # Pure C, no R: held to the strictest standard.
-CORE="src/zuh_gumbo.c src/zuh_memory.c src/zuh_document.c"
+CORE="src/zuh_gumbo.c src/zuh_memory.c src/zuh_document.c src/zuh_write.c"
 # R-facing: the same, plus R's headers, and the one cast R's API requires.
 RSRC="src/init.c src/r_api.c src/r_node.c"
 

@@ -27,4 +27,5 @@ OBJECTS = \
 	zuh_document.o \
 	zuh_gumbo.o \
 	zuh_memory.o \
+	zuh_write.o \
 	$(GUMBO_OBJECTS)

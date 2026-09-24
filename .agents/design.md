@@ -230,6 +230,17 @@ Deferred past 0.1.0: `html_has_attr()` (`!is.na(html_attr())`), `html_strings()`
 
 Serialization emits normalized HTML, not a reconstruction of the input bytes. Use HTML void-element and raw-text rules, appropriate escaping, namespaces for foreign content, doctype handling, comments, and explicit template contents. Apply context-aware fragment serialization. Iterative traversal avoids C-stack dependence. Reparse tests compare the representable tree semantics, not original lexical spelling.
 
+As built (`src/zuh_write.c`), following the WHATWG algorithm:
+- Text escapes `&`, U+00A0, `<` and `>`. Attribute values escape `&`, U+00A0, `"`, `<` and `>`; the last two joined the standard in 2025.
+- Text whose parent is an HTML `style`, `script`, `xmp`, `iframe`, `noembed`, `noframes` or `plaintext` element is written raw. In a fragment, the context element is the parent of top-level text. `noscript` is escaped, because the bundled parser runs with scripting disabled.
+- Void elements have no end tag.
+- Attributes in the XML, XLink and XMLNS namespaces take their prefix.
+- The doctype is written as `<!DOCTYPE name>` only, as the standard says.
+- A processing instruction is written as `<?content?>`.
+- `outer = FALSE` gives a node's children; a document or fragment node gives its children either way.
+
+The round trip is checked against every applicable conformance case: 1,785 of 1,878 are fixed points, and `tools/conformance/roundtrip-deviations.txt` adjudicates the other 93 in six categories. In each, the standard's own serialization rules or tree construction mean the tree cannot survive (doctype identifiers, raw control characters, a leading newline in `<pre>`, `<plaintext>`, unterminated script data, adoption-agency rearrangements).
+
 *(Deferred.)* Source positions are provenance hints of little value in repaired trees: inserted/reconstructed nodes may have no direct source span, and repair can reorder source content. If they return, expose start-tag and end-tag positions separately with `NA` where unavailable, and never a contiguous "original subtree HTML" slice.
 
 ## 8. Lists: `html_list()` and `html_lists()`

@@ -1,5 +1,9 @@
 #!/bin/sh
-# Run the html5lib tree-construction fixtures against zuhtml's tree.
-# Run from the package root. Pass --verbose to print each failing case.
+# Run the html5lib tree-construction fixtures against zuhtml's tree, and
+# round-trip each through html_serialize(). Run from the package root.
+#   --verbose            print each failing case
+#   --canary             corrupt every rendered tree; must fail every case
+#   --canary-serialize   corrupt every serialization; the round trip must
+#                        fail nearly everywhere
 set -eu
 exec Rscript tools/conformance.R "$@"

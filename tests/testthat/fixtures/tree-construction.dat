@@ -1,0 +1,168 @@
+#data
+Test
+#errors
+(1,0): expected-doctype-but-got-chars
+#document
+| <html>
+|   <head>
+|   <body>
+|     "Test"
+
+#data
+<a><p></a></p>
+#errors
+(1,3): expected-doctype-but-got-start-tag
+(1,10): adoption-agency-1.3
+#document
+| <html>
+|   <head>
+|   <body>
+|     <a>
+|     <p>
+|       <a>
+
+#data
+<table><th>
+#errors
+(1,7): expected-doctype-but-got-start-tag
+(1,11): unexpected-cell-in-table-body
+(1,11): expected-closing-tag-but-got-eof
+#document
+| <html>
+|   <head>
+|   <body>
+|     <table>
+|       <tbody>
+|         <tr>
+|           <th>
+
+#data
+<body><template>Hello</template>
+#errors
+no doctype
+#document
+| <html>
+|   <head>
+|   <body>
+|     <template>
+|       content
+|         "Hello"
+
+#data
+<svg><tr><td><title><tr>
+#errors
+(1:21) Unexpected <tr> tag
+(1:25) Unexpected EOF
+#document-fragment
+td
+#document
+| <svg svg>
+|   <svg tr>
+|     <svg td>
+|       <svg title>
+
+#data
+<math><tr><td><mo><tr>
+#errors
+(1,22): unexpected-start-tag
+(1,23): expected-closing-tag-but-got-eof
+#document-fragment
+td
+#document
+| <math math>
+|   <math tr>
+|     <math td>
+|       <math mo>
+
+#data
+FOO&gt;BAR
+#errors
+(1,3): expected-doctype-but-got-chars
+#document
+| <html>
+|   <head>
+|   <body>
+|     "FOO>BAR"
+
+#data
+FOO<!-- BAR -->BAZ
+#errors
+(1,3): expected-doctype-but-got-chars
+#document
+| <html>
+|   <head>
+|   <body>
+|     "FOO"
+|     <!--  BAR  -->
+|     "BAZ"
+
+#data
+<!DOCTYPE html>Hello
+#errors
+#document
+| <!DOCTYPE html>
+| <html>
+|   <head>
+|   <body>
+|     "Hello"
+
+#data
+<body><span>
+#errors
+(1,6): unexpected-start-tag
+(1,12): expected-closing-tag-but-got-eof
+#document-fragment
+body
+#document
+| <span>
+
+#data
+<body><?something>
+#errors
+#document
+| <html>
+|   <head>
+|   <body>
+|     <?something ?>
+
+#data
+<!DOCTYPE html><body><a href='#1'><nobr>1<nobr></a><br><a href='#2'><nobr>2<nobr></a><br><a href='#3'><nobr>3<nobr></a>
+#errors
+(1,47): unexpected-start-tag-implies-end-tag
+(1,51): adoption-agency-1.3
+(1,74): unexpected-start-tag-implies-end-tag
+(1,74): adoption-agency-1.3
+(1,81): unexpected-start-tag-implies-end-tag
+(1,85): adoption-agency-1.3
+(1,108): unexpected-start-tag-implies-end-tag
+(1,108): adoption-agency-1.3
+(1,115): unexpected-start-tag-implies-end-tag
+(1,119): adoption-agency-1.3
+#document
+| <!DOCTYPE html>
+| <html>
+|   <head>
+|   <body>
+|     <a>
+|       href="#1"
+|       <nobr>
+|         "1"
+|       <nobr>
+|     <nobr>
+|       <br>
+|       <a>
+|         href="#2"
+|     <a>
+|       href="#2"
+|       <nobr>
+|         "2"
+|       <nobr>
+|     <nobr>
+|       <br>
+|       <a>
+|         href="#3"
+|     <a>
+|       href="#3"
+|       <nobr>
+|         "3"
+|       <nobr>

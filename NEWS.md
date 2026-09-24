@@ -30,6 +30,10 @@
   `html_attrs()`, `html_classes()` and `html_text()`. `html_info()`
   describes a document.
 
+* New `html_serialize()` (and `as.character()` on nodesets) writes nodes
+  as normalized HTML following the WHATWG serialization algorithm, outer
+  or inner.
+
 * New `html_problems()` lists the parse errors the parser repaired, with
   package-owned codes and positions.
 
