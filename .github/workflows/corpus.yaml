@@ -1,0 +1,54 @@
+# The external HTML corpus: real pages from other projects, read to find
+# what the parser and extractors get wrong. See tools/corpus/README.md.
+#
+# Separate from R-CMD-check.yaml on purpose: it fetches 52 MB of other
+# projects' fixtures over the network, which the package's own checks must
+# never depend on. Nothing here ships: tools/ is excluded by .Rbuildignore.
+# One platform is enough; what the parser makes of a page does not vary by
+# operating system.
+on:
+  push:
+    branches: [main, master]
+    paths-ignore:
+      - '**.md'
+      - '_pkgdown.yml'
+      - '.agents/**'
+      - 'vignettes/**'
+  pull_request:
+    paths-ignore:
+      - '**.md'
+      - '_pkgdown.yml'
+      - '.agents/**'
+      - 'vignettes/**'
+
+name: corpus
+
+permissions: read-all
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  corpus:
+    runs-on: ubuntu-latest
+    name: external HTML corpus
+    steps:
+      - uses: actions/checkout@v6
+      - uses: r-lib/actions/setup-r@v2
+      # checksums.sha256 determines files/ exactly, so it is the cache key.
+      # restore-keys lets an older corpus come back as a starting point,
+      # which is safe because fetch re-downloads any file whose checksum
+      # does not match.
+      - name: cache the corpus
+        uses: actions/cache@v4
+        with:
+          path: tools/corpus/files
+          key: html-corpus-${{ hashFiles('tools/corpus/checksums.sha256') }}
+          restore-keys: html-corpus-
+      - name: fetch and verify
+        run: tools/corpus/fetch
+      - name: every outcome matches the recorded baseline
+        run: tools/corpus/run
+      - name: canary - an altered baseline must be reported
+        run: tools/corpus/run --canary

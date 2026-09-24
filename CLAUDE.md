@@ -103,6 +103,10 @@ tools/run-sanitizers           # ASan+UBSan seam driver, fault injection at ever
                                #                                    (CI: hardening)
 ```
 
+tools/corpus/fetch             # fetch the external HTML corpus: 522 real pages
+                               # from Readability, htmlparser-benchmark, pandas
+tools/corpus/run [--record]    # compare what zuhtml makes of each page with
+                               # expected.tsv; --canary must fail   (CI: corpus)
 tools/run-benchmarks           # parse, select and table timings with native
                                # memory, per input shape; not a CI gate Add each here when it lands, and say
 whether CI runs it.
@@ -249,6 +253,20 @@ tables, serialization) reads the arena and never touches Gumbo. Only
   verbatim, read by `read_dat()` in `helper-dat.R`. They are WPT material
   (3-Clause BSD): `inst/COPYRIGHTS` carries the notice, and any new fixture
   from elsewhere needs its own entry there.
+- **The external corpus records outcomes, not passes.** `tools/corpus/`
+  pins 522 real pages from other projects by commit and checksum (not
+  committed) and records, per page, nodes, problems, table cells, list
+  items, links, a hash of the cleaned text and the round-trip result.
+  Any change in any column fails `tools/corpus/run`: understand it, then
+  `--record`. A page that exposes a bug becomes a small fixture in
+  `tests/testthat/`, never the page itself.
+- **Real-world fixtures must be redistributable.** `tests/testthat/fixtures/
+  realworld/` ships pandas' public-domain (FDIC, USDA) and synthetic tables
+  and Readability's synthetic pages with its expected output, which serves
+  as an oracle for `html_text_clean()` and `html_url()`. Saved news
+  articles and site front pages stay in `tools/corpus/`: their content is
+  the sites' copyright, whatever licence the collecting project uses.
+  Add a notice to `inst/COPYRIGHTS` with any new fixture source.
 - **Round-trip non-fixed-points are adjudicated, not asserted away.**
   `tools/conformance/roundtrip-deviations.txt` lists each with its category
   and reason; the gate fails if the list and the results disagree either
