@@ -505,9 +505,10 @@ zuh_r_alloc(void *userdata, size_t n) {
 
 /* Aligned: the HTML serialization of each node, NA for missing nodes. */
 SEXP
-C_zuh_node_serialize(SEXP ptr, SEXP ids, SEXP outer) {
+C_zuh_node_serialize(SEXP ptr, SEXP ids, SEXP outer, SEXP pretty) {
   const zuh_doc *doc = checked(ptr, ids);
   int out_ = Rf_asLogical(outer) == TRUE;
+  int pretty_ = Rf_asLogical(pretty) == TRUE;
   R_xlen_t i, n;
   SEXP out;
   if (doc == NULL)
@@ -525,13 +526,77 @@ C_zuh_node_serialize(SEXP ptr, SEXP ids, SEXP outer) {
     /* R_alloc-backed: an allocation failure long-jumps with nothing to
      * free. */
     zuh_buf_init(&b, zuh_r_alloc, NULL);
-    if (zuh_serialize(doc, (zuh_id) id, out_, &b) != ZUH_OK)
+    if (zuh_serialize(doc, (zuh_id) id, out_, pretty_, &b) != ZUH_OK)
       Rf_error("out of memory serializing a node");
     if (b.len > (size_t) INT_MAX)
       Rf_error("serialization too long for an R string");
     SET_STRING_ELT(out, i, Rf_mkCharLenCE(b.buf, (int) b.len, CE_UTF8));
     vmaxset(vmax);
     R_CheckUserInterrupt();
+  }
+  UNPROTECT(1);
+  return out;
+}
+
+static int
+skipped_container(const zuh_doc *doc, const zuh_node *n) {
+  const char *name;
+  if (n->type != ZUH_NODE_ELEMENT)
+    return 0;
+  if ((n->flags & ZUH_FLAG_TEMPLATE) != 0)
+    return 1;
+  if (n->ns != ZUH_NS_HTML)
+    return 0;
+  name = zuh_str(doc, n->name);
+  return strcmp(name, "script") == 0 || strcmp(name, "style") == 0;
+}
+
+/* A list: for each node, the text nodes of its subtree in tree order, as a
+ * character vector, skipping script, style and template contents. A text
+ * node is its own single piece; a missing node is NA_character_. */
+SEXP
+C_zuh_node_strings(SEXP ptr, SEXP ids) {
+  const zuh_doc *doc = checked(ptr, ids);
+  R_xlen_t i, n;
+  SEXP out;
+  if (doc == NULL)
+    return R_NilValue;
+  n = XLENGTH(ids);
+  out = PROTECT(Rf_allocVector(VECSXP, n));
+  for (i = 0; i < n; i++) {
+    int id = INTEGER(ids)[i];
+    const zuh_node *nd;
+    zuh_id c, end;
+    R_xlen_t count = 0, k = 0;
+    SEXP v;
+    if (id == NA_INTEGER) {
+      SET_VECTOR_ELT(out, i, Rf_ScalarString(NA_STRING));
+      continue;
+    }
+    nd = &doc->nodes[id];
+    if (nd->type == ZUH_NODE_TEXT) {
+      SET_VECTOR_ELT(out, i, Rf_ScalarString(utf8(zuh_str(doc, nd->value))));
+      continue;
+    }
+    end = skipped_container(doc, nd) ? (zuh_id) id : nd->subtree_end;
+    for (c = (zuh_id) id + 1; c <= end && c != ZUH_NONE; c++) {
+      const zuh_node *m = &doc->nodes[c];
+      if (m->type == ZUH_NODE_TEXT)
+        count++;
+      else if (skipped_container(doc, m))
+        c = m->subtree_end;
+    }
+    v = PROTECT(Rf_allocVector(STRSXP, count));
+    for (c = (zuh_id) id + 1; c <= end && c != ZUH_NONE; c++) {
+      const zuh_node *m = &doc->nodes[c];
+      if (m->type == ZUH_NODE_TEXT)
+        SET_STRING_ELT(v, k++, utf8(zuh_str(doc, m->value)));
+      else if (skipped_container(doc, m))
+        c = m->subtree_end;
+    }
+    SET_VECTOR_ELT(out, i, v);
+    UNPROTECT(1);
+    poll(i);
   }
   UNPROTECT(1);
   return out;

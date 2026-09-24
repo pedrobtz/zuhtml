@@ -149,3 +149,30 @@ zuh_selector_failure <- function(res, css, call) {
     call = call
   )
 }
+
+#' Nearest ancestor matching a selector
+#'
+#' For each node, the node itself if it matches `css`, otherwise its nearest
+#' ancestor element that does, as the DOM's `closest()` and jQuery's
+#' `.closest()`. Use it to go from a cell or a link to the row, card or
+#' section that contains it. `:scope` is the node itself.
+#'
+#' @inheritParams html_elements
+#'
+#' @return A `zuhtml_nodeset` as long as `x`: for each node, the matching
+#'   element, or a missing node where there is none (and for missing nodes).
+#' @family navigation
+#' @export
+#' @examples
+#' doc <- html_parse(paste0(
+#'   "<table><tr id=a><td>1<td><b>x</b></tr>",
+#'   "<tr id=b><td>2<td><b>y</b></tr></table>"
+#' ))
+#' bold <- html_elements(doc, "b")
+#' html_attr(html_closest(bold, "tr"), "id")
+#' html_closest(bold, "ul")
+html_closest <- function(x, css) {
+  call <- sys.call()
+  n <- zuh_nodes(x, call = call)
+  new_nodeset(zuh_select(n, css, 3L, call), n$doc)
+}

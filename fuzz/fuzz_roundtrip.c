@@ -55,7 +55,7 @@ LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     return 0;
   runs++;
   zuh_buf_init(&s1, NULL, NULL);
-  if (zuh_serialize(d1, 0, 1, &s1) != ZUH_OK)
+  if (zuh_serialize(d1, 0, 1, 0, &s1) != ZUH_OK)
     abort();
   /* The serialization can be larger than the input; allow it. */
   o.max_input = s1.len + 1;
@@ -71,7 +71,7 @@ LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
       (l1 != l2 || memcmp(t1, t2, l1) != 0))
     changed++;
   zuh_buf_init(&s2, NULL, NULL);
-  (void) zuh_serialize(d2, 0, 1, &s2);
+  (void) zuh_serialize(d2, 0, 1, 0, &s2);
   zuh_buf_free(&s2);
   free(t1);
   free(t2);

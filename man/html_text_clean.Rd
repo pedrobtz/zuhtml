@@ -58,6 +58,7 @@ Other node values:
 \code{\link[=html_attr]{html_attr()}},
 \code{\link[=html_name]{html_name()}},
 \code{\link[=html_serialize]{html_serialize()}},
+\code{\link[=html_strings]{html_strings()}},
 \code{\link[=html_text]{html_text()}}
 }
 \concept{node values}

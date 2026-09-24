@@ -254,7 +254,7 @@ Also: strings built for R now use an R_alloc-backed buffer (`zuh_buf`), retrofit
 
 ## Stage 10 — Navigation and text extras · S
 
-**Status:** not started.
+**Status:** done 2026-09-24. `html_closest()` is a fourth mode of the selector entry point, and `html_strings()` a node accessor. `pretty =` lays out from counters on descend and climb, so it adds no stack and stays linear. One rule changed in testing: whitespace-only text is dropped only where its parent has block-level children, because a space between two inline elements in a `<p>` matters. The sanitizer driver serializes every node pretty and not, and `fuzz_parse` does too.
 
 Added 2026-09-24 with Stages 11 to 15, which surveyed HTML libraries in Python, Java, Go, Rust and Julia for features worth having in the first release (jsoup, Beautiful Soup, lxml, parsel, goquery, pandas, extruct, html2text).
 

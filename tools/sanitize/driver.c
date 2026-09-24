@@ -210,7 +210,7 @@ buffer_fault_injection(const zuh_doc *doc) {
           zuh_buf b;
           zuh_clean_opts o = {1, 1, 0, 0};
           zuh_buf_init(&b, failing_alloc, &f);
-          st = kind == 0 ? zuh_serialize(doc, id, 1, &b)
+          st = kind == 0 ? zuh_serialize(doc, id, 1, 0, &b)
                          : zuh_text_clean(doc, id, &o, &b);
         }
         arena_release(&f.a);
@@ -290,10 +290,11 @@ serialize_all(const zuh_doc *doc, const zuh_parse_opts *o) {
     return;
   for (id = 0; id < doc->n_nodes; id++) {
     int outer;
-    for (outer = 0; outer < 2; outer++) {
+    for (outer = 0; outer < 4; outer++) {
       zuh_buf b;
       zuh_buf_init(&b, NULL, NULL);
-      EXPECT(zuh_serialize(doc, id, outer, &b) == ZUH_OK && b.buf != NULL &&
+      EXPECT(zuh_serialize(doc, id, outer & 1, outer >> 1, &b) == ZUH_OK &&
+                 b.buf != NULL &&
                  strlen(b.buf) == b.len,
              "serializing node %u failed", id);
       zuh_buf_free(&b);
@@ -302,7 +303,7 @@ serialize_all(const zuh_doc *doc, const zuh_parse_opts *o) {
   {
     zuh_buf b;
     zuh_buf_init(&b, NULL, NULL);
-    if (zuh_serialize(doc, 0, 1, &b) == ZUH_OK) {
+    if (zuh_serialize(doc, 0, 1, 0, &b) == ZUH_OK) {
       zuh_parse_opts again = *o;
       zuh_parse_stats stats;
       again.fail_at = 0;

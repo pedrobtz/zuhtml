@@ -115,6 +115,8 @@ visit_first(zuh_match_ctx *m, zuh_id id, zuh_id scope, void *data) {
  *           none or a missing context)
  *   mode 2: whether each node itself matches (logical, aligned, NA for a
  *           missing node)
+ *   mode 3: the nearest inclusive ancestor of each node that matches
+ *           (integer, aligned, NA for none or a missing node)
  *
  * Returns NULL for a dead pointer or an out-of-range ID, and a list with
  * an `error` element for a selector that does not compile ("syntax",
@@ -189,6 +191,24 @@ C_zuh_select(SEXP ptr, SEXP ids, SEXP css, SEXP mode, SEXP work_limit) {
       if (c != NA_INTEGER)
         walk(&m, (zuh_id) c, visit_first, &found, &polled);
       INTEGER(out)[i] = found == ZUH_NONE ? NA_INTEGER : (int) found;
+    }
+  } else if (md == 3) {
+    /* The nearest inclusive ancestor element that matches, with :scope
+     * the node itself, as the DOM's closest(). */
+    out = PROTECT(Rf_allocVector(INTSXP, n));
+    for (i = 0; i < n && !m.exceeded; i++) {
+      int c = INTEGER(ids)[i];
+      zuh_id cur = c == NA_INTEGER ? ZUH_NONE : (zuh_id) c, found = ZUH_NONE;
+      while (cur != ZUH_NONE && doc->nodes[cur].type != ZUH_NODE_DOCUMENT) {
+        if (zuh_selector_matches(&m, cur, (zuh_id) c)) {
+          found = cur;
+          break;
+        }
+        cur = doc->nodes[cur].parent;
+      }
+      INTEGER(out)[i] = found == ZUH_NONE ? NA_INTEGER : (int) found;
+      if ((i & 0x3FFF) == 0x3FFF)
+        R_CheckUserInterrupt();
     }
   } else {
     out = PROTECT(Rf_allocVector(LGLSXP, n));
