@@ -149,6 +149,17 @@ From a string, raw bytes or a file to a document, under limits.
 - [`html_url()`](https://pedrobtz.github.io/zuhtml/reference/html_url.md)
   : Resolve URLs in attributes
 
+## Page metadata
+
+- [`html_title()`](https://pedrobtz.github.io/zuhtml/reference/html_title.md)
+  : Document title
+- [`html_meta()`](https://pedrobtz.github.io/zuhtml/reference/html_meta.md)
+  : Meta tags
+- [`html_json_ld()`](https://pedrobtz.github.io/zuhtml/reference/html_json_ld.md)
+  : JSON-LD blocks
+- [`html_microdata()`](https://pedrobtz.github.io/zuhtml/reference/html_microdata.md)
+  : Microdata items
+
 ## Conditions
 
 - [`zuhtml-conditions`](https://pedrobtz.github.io/zuhtml/reference/zuhtml-conditions.md)

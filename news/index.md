@@ -108,6 +108,17 @@ First release.
   lays block-level elements out on indented lines for reading.
 
 - New
+  [`html_title()`](https://pedrobtz.github.io/zuhtml/reference/html_title.md),
+  [`html_meta()`](https://pedrobtz.github.io/zuhtml/reference/html_meta.md),
+  [`html_json_ld()`](https://pedrobtz.github.io/zuhtml/reference/html_json_ld.md)
+  and
+  [`html_microdata()`](https://pedrobtz.github.io/zuhtml/reference/html_microdata.md)
+  read page metadata: the document title, every `<meta>` tag (OpenGraph,
+  Twitter cards and Dublin Core included), JSON-LD blocks (parsed with
+  jsonlite if asked) and microdata items per the HTML standard,
+  `itemref` included.
+
+- New
   [`html_serialize()`](https://pedrobtz.github.io/zuhtml/reference/html_serialize.md)
   (and [`as.character()`](https://rdrr.io/r/base/character.html) on
   nodesets) writes nodes as normalized HTML following the WHATWG
