@@ -106,7 +106,7 @@
 <span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a>                               <span class="co"># allocation index, overflow canary; leak check and</span></span>
 <span id="cb2-19"><a href="#cb2-19" tabindex="-1"></a>                               <span class="co"># leak canary with ASAN_OPTIONS=detect_leaks=1</span></span>
 <span id="cb2-20"><a href="#cb2-20" tabindex="-1"></a>                               <span class="co">#                                    (CI: hardening)</span></span></code></pre></div>
-<p>tools/run-benchmarks # parse, select and table timings with native # memory, per input shape; not a CI gate Add each here when it lands, and say whether CI runs it.</p>
+<p>tools/corpus/fetch # fetch the external HTML corpus: 522 real pages # from Readability, htmlparser-benchmark, pandas tools/corpus/run [–record] # compare what zuhtml makes of each page with # expected.tsv; –canary must fail (CI: corpus) tools/run-benchmarks # parse, select and table timings with native # memory, per input shape; not a CI gate Add each here when it lands, and say whether CI runs it.</p>
 </div>
 <div class="section level2">
 <h2 id="architecture">Architecture<a class="anchor" aria-label="anchor" href="#architecture"></a></h2>
@@ -181,6 +181,10 @@ fuzz/              libFuzzer targets over the C core
 <strong>Never test through Python.</strong> Beautiful Soup and pandas are exploratory comparators only; nothing under <code>tests/</code> may need them.</li>
 <li>
 <strong>The CRAN-sized conformance subset</strong> is <code>tests/testthat/fixtures/tree-construction.dat</code>: twelve cases copied verbatim, read by <code>read_dat()</code> in <code>helper-dat.R</code>. They are WPT material (3-Clause BSD): <code>inst/COPYRIGHTS</code> carries the notice, and any new fixture from elsewhere needs its own entry there.</li>
+<li>
+<strong>The external corpus records outcomes, not passes.</strong> <code>tools/corpus/</code> pins 522 real pages from other projects by commit and checksum (not committed) and records, per page, nodes, problems, table cells, list items, links, a hash of the cleaned text and the round-trip result. Any change in any column fails <code>tools/corpus/run</code>: understand it, then <code>--record</code>. A page that exposes a bug becomes a small fixture in <code>tests/testthat/</code>, never the page itself.</li>
+<li>
+<strong>Real-world fixtures must be redistributable.</strong> <code>tests/testthat/fixtures/ realworld/</code> ships pandas’ public-domain (FDIC, USDA) and synthetic tables and Readability’s synthetic pages with its expected output, which serves as an oracle for <code><a href="reference/html_text_clean.html">html_text_clean()</a></code> and <code><a href="reference/html_url.html">html_url()</a></code>. Saved news articles and site front pages stay in <code>tools/corpus/</code>: their content is the sites’ copyright, whatever licence the collecting project uses. Add a notice to <code>inst/COPYRIGHTS</code> with any new fixture source.</li>
 <li>
 <strong>Round-trip non-fixed-points are adjudicated, not asserted away.</strong> <code>tools/conformance/roundtrip-deviations.txt</code> lists each with its category and reason; the gate fails if the list and the results disagree either way.</li>
 <li>

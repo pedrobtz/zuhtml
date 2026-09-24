@@ -148,7 +148,7 @@ year <- substr(recent$Date, 1, 4)
 tail(table(year), 8)
 #> year
 #> 2019 2020 2021 2022 2023 2024 2025 2026 
-#>  611  919 1152 1640 2278 2769 5282 8959
+#>  611  919 1152 1640 2278 2769 5281 8960
 ```
 
 Dates stay character, as every cell does: convert them when you know
