@@ -78,4 +78,9 @@ html_read(path)
 \code{\link[=html_problems]{html_problems()}} for the parse errors that were repaired;
 \code{\link[=html_limits]{html_limits()}}; \link{zuhtml-conditions} for the errors these functions
 raise.
+
+Other parsing:
+\code{\link[=html_fragment]{html_fragment()}},
+\code{\link[=html_info]{html_info()}}
 }
+\concept{parsing}

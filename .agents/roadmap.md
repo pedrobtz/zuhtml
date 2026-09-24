@@ -154,7 +154,7 @@ The stage that makes "untrusted HTML" an honest claim. No tree conversion yet.
 
 ## Stage 4 — R document and node API · M
 
-**Status:** not started.
+**Status:** done 2026-09-24. Forced GC with reachable nodes, repeated finalization (through an internal release hook), dead pointers after `unserialize()`, out-of-range IDs and cross-document `c()` are all tested. `html_info()` landed here too. The §16 workflow's non-selector lines that exist so far run (`html_read()`, `html_problems()`, navigation); links and tables arrive at Stage 7. Fragments reach conformance: all 1,878 applicable cases pass, 192 of the 196 fragment cases among them (4 are rejected by the input contract). The runner may pass foreign-namespace and unknown contexts, as upstream's harness does; the public `html_fragment()` accepts only HTML contexts Gumbo knows. Choices recorded in the design: `html_type()` names the PI type `"processing_instruction"` and reports a template as `"element"`; `html_namespace()` returns URIs; `html_ancestors()` stops below the document node; `html_text()` skips template contents.
 
 - `R/parse.R`, `R/conditions.R`, `R/info.R`, `R/node.R`, `R/nodeset.R`, `R/attributes.R`, `R/text.R` as in §13.
 - `zuhtml_document` and `zuhtml_nodeset` per §4: integer IDs plus owner; `NA_integer_` is a missing node; `[`, `[[`, `length`, `rev`, `c` preserve class and refuse cross-document concatenation; bounded `print`. Every native entry validates the pointer tag, liveness and node bounds; a dead pointer raises `zuhtml_pointer_error`.

@@ -150,6 +150,14 @@ translate_code(const GumboError *e) {
   return (unsigned int) e->type;
 }
 
+int
+zuh_gumbo_tag_lookup(const char *name, int allow_unknown) {
+  GumboTag t = gumbo_tag_enum(name);
+  if (t == GUMBO_TAG_LAST || (t == GUMBO_TAG_UNKNOWN && !allow_unknown))
+    return -1;
+  return (int) t;
+}
+
 /* ---- the abortable region ------------------------------------------- */
 
 /* Runs on a complete Gumbo tree, before bulk free, with the abort
@@ -180,6 +188,14 @@ parse_core(const char *buf, size_t len, const zuh_parse_opts *opts,
   go.deallocator = zuh_ledger_free;
   go.userdata = lg;
   go.max_tree_depth = opts->max_depth;
+  if (opts->fragment_tag >= 0 && opts->fragment_tag <= (int) GUMBO_TAG_UNKNOWN) {
+    go.fragment_context = (GumboTag) opts->fragment_tag;
+    go.fragment_namespace = opts->fragment_ns == ZUH_NS_SVG
+                                ? GUMBO_NAMESPACE_SVG
+                                : opts->fragment_ns == ZUH_NS_MATHML
+                                      ? GUMBO_NAMESPACE_MATHML
+                                      : GUMBO_NAMESPACE_HTML;
+  }
   /* One more than kept, so that truncation is detectable. */
   go.max_errors = opts->max_errors < INT_MAX ? opts->max_errors + 1 : -1;
 
@@ -332,10 +348,18 @@ stack_push(zuh_ledger *lg, conv_frame **st, size_t *cap, size_t *sp,
   return 1;
 }
 
+/* The node whose children become node 0's children: the document, or for
+ * a fragment the <html> element Gumbo wraps the fragment's nodes in. */
+static const GumboNode *
+top_of(const conv_ctx *c, const GumboOutput *out) {
+  return c->opts->fragment_tag >= 0 ? out->root : out->document;
+}
+
 static zuh_status
 count_tree(conv_ctx *c, const GumboOutput *out, zuh_ledger *lg,
            zuh_parse_stats *stats) {
   const GumboDocument *d = &out->document->v.document;
+  int is_fragment = c->opts->fragment_tag >= 0;
   unsigned char *seen;
   conv_frame *st = NULL;
   size_t cap = 0, sp = 0;
@@ -349,7 +373,7 @@ count_tree(conv_ctx *c, const GumboOutput *out, zuh_ledger *lg,
   c->n_nodes = 1; /* the document */
   c->n_attrs = 0;
   c->pool_len = 1; /* offset 0 is "" */
-  if (d->has_doctype) {
+  if (d->has_doctype && !is_fragment) {
     c->n_nodes++;
     if (!add_bytes(&c->pool_len, strlen(d->name)) ||
         !add_bytes(&c->pool_len, strlen(d->public_identifier)) ||
@@ -358,7 +382,7 @@ count_tree(conv_ctx *c, const GumboOutput *out, zuh_ledger *lg,
   }
 
   if (status == ZUH_OK &&
-      !stack_push(lg, &st, &cap, &sp, out->document, ZUH_NONE))
+      !stack_push(lg, &st, &cap, &sp, top_of(c, out), ZUH_NONE))
     status = ZUH_LIMIT_MEMORY;
   while (status == ZUH_OK && sp > 0) {
     conv_frame *f = &st[sp - 1];
@@ -524,7 +548,8 @@ fill_tree(conv_ctx *c, const GumboOutput *out, zuh_ledger *lg) {
   doc->n_attrs = 0;
 
   id = new_node(doc, ZUH_NODE_DOCUMENT, ZUH_NS_HTML);
-  if (d->has_doctype) {
+  doc->is_fragment = c->opts->fragment_tag >= 0;
+  if (d->has_doctype && !doc->is_fragment) {
     zuh_id dt = new_node(doc, ZUH_NODE_DOCTYPE, ZUH_NS_HTML);
     doc->nodes[dt].name = pool_add(c, d->name, strlen(d->name));
     doc->doctype_public = pool_add(c, d->public_identifier,
@@ -539,7 +564,7 @@ fill_tree(conv_ctx *c, const GumboOutput *out, zuh_ledger *lg) {
     link_child(doc, id, dt);
   }
 
-  if (!stack_push(lg, &st, &cap, &sp, out->document, id))
+  if (!stack_push(lg, &st, &cap, &sp, top_of(c, out), id))
     return ZUH_LIMIT_MEMORY;
   while (sp > 0) {
     conv_frame *f = &st[sp - 1];
@@ -571,7 +596,8 @@ fill_tree(conv_ctx *c, const GumboOutput *out, zuh_ledger *lg) {
         za->ns = attr_ns(a->attr_namespace);
       }
       link_child(doc, parent, kid);
-      if (e->tag == GUMBO_TAG_HTML && parent == 0 && doc->root == ZUH_NONE)
+      if (e->tag == GUMBO_TAG_HTML && parent == 0 && !doc->is_fragment &&
+          doc->root == ZUH_NONE)
         doc->root = kid;
       /* Cannot fail for want of memory the count did not foresee, but can
        * for the stack itself. */
@@ -722,6 +748,8 @@ static const zuh_parse_opts selftest_opts = {
   100,      /* max_errors */
   1000,     /* max_nodes */
   1,        /* keep_comments */
+  -1,       /* fragment_tag */
+  0,        /* fragment_ns */
   0         /* fail_at */
 };
 

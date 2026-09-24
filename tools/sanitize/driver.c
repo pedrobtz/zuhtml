@@ -33,6 +33,8 @@ static const zuh_parse_opts defaults = {
   100,                /* max_errors */
   1000000,            /* max_nodes */
   1,                  /* keep_comments */
+  -1,                 /* fragment_tag */
+  0,                  /* fragment_ns */
   0                   /* fail_at */
 };
 
@@ -160,7 +162,36 @@ fault_injection(void) {
     }
     total += n;
   }
-  printf("    fault injection: %zu allocation sites over %zu documents\n",
+  /* The same, parsing each document as a fragment in a table context and
+   * in a foreign one. */
+  for (i = 0; i < N_CORPUS; i++) {
+    static const char *const contexts[] = {"tbody", "svg"};
+    size_t c;
+    for (c = 0; c < 2; c++) {
+      const char *s = corpus[i];
+      zuh_parse_opts o = defaults;
+      zuh_parse_stats stats;
+      size_t k, n;
+      zuh_status st;
+      o.fragment_tag = zuh_gumbo_tag_lookup(contexts[c], 0);
+      o.fragment_ns = c == 1 ? ZUH_NS_SVG : ZUH_NS_HTML;
+      EXPECT(o.fragment_tag >= 0, "no tag for context %s", contexts[c]);
+      st = parse(s, strlen(s), &o, &stats, NULL);
+      EXPECT(st == ZUH_OK, "corpus[%zu] as a %s fragment: status %d", i,
+             contexts[c], (int) st);
+      n = stats.n_allocs;
+      for (k = 1; k <= n; k++) {
+        o.fail_at = k;
+        st = parse(s, strlen(s), &o, &stats, NULL);
+        EXPECT(st == ZUH_LIMIT_MEMORY,
+               "corpus[%zu] as a %s fragment, failing allocation %zu: %d", i,
+               contexts[c], k, (int) st);
+      }
+      total += n;
+    }
+  }
+  printf("    fault injection: %zu allocation sites over %zu documents, "
+         "each also as two fragments\n",
          total, (size_t) N_CORPUS);
 }
 

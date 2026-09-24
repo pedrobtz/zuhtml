@@ -4,7 +4,9 @@
 #
 # Cases are read as upstream Gumbo's own harness reads them
 # (tests/tree_construction.cc in the pinned archive): #script-on cases are
-# skipped, since Gumbo parses with scripting disabled; everything else runs.
+# skipped, since Gumbo parses with scripting disabled; everything else runs,
+# fragment cases included ("fragment" in the tally counts those, which are
+# also counted as passed, failed or rejected).
 # A case whose input zuhtml's input contract rejects (a NUL character,
 # invalid UTF-8) is counted as rejected, not failed.
 #
@@ -72,9 +74,22 @@ read_dat <- function(path) {
   cases
 }
 
-dump_tree <- function(input) {
+# Parse a case as upstream's harness does: a fragment context is
+# "[svg |math ]<name>", looked up in Gumbo's tag table, unknown names
+# included.
+dump_tree <- function(input, fragment = "") {
+  ctx <- NULL
+  if (nzchar(fragment)) {
+    parts <- strsplit(fragment, " ", fixed = TRUE)[[1L]]
+    ns <- if (length(parts) == 2L) {
+      if (parts[[1L]] == "svg") 1L else 2L
+    } else 0L
+    ctx <- zuh_fragment_context(parts[[length(parts)]], NULL, ns,
+                                allow_unknown = TRUE)
+  }
   doc <- tryCatch(
-    html_parse(input),
+    zuh_parse(input, NULL, NULL, TRUE, html_limits(), fragment = ctx,
+              call = NULL),
     zuhtml_input_error = function(e) "rejected",
     zuhtml_encoding_error = function(e) "rejected"
   )
@@ -102,8 +117,8 @@ for (f in files) {
   for (c in read_dat(f)) {
     id <- sprintf("%s:%d", c$file, c$index)
     if (c$script_on) { tally[["script_on"]] <- tally[["script_on"]] + 1L; next }
-    if (nzchar(c$fragment)) { tally[["fragment"]] <- tally[["fragment"]] + 1L; next }
-    got <- dump_tree(c$input)
+    if (nzchar(c$fragment)) tally[["fragment"]] <- tally[["fragment"]] + 1L
+    got <- dump_tree(c$input, c$fragment)
     if (is.null(got)) { tally[["rejected"]] <- tally[["rejected"]] + 1L; next }
     ok <- identical(got, c$expected)
     listed <- id %in% deviations

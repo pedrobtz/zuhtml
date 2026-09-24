@@ -40,10 +40,22 @@ static const R_CallMethodDef call_methods[] = {
   {"C_zuhtml_info", (DL_FUNC) &C_zuhtml_info, 0},
   {"C_zuh_doc_new", (DL_FUNC) &C_zuh_doc_new, 0},
   {"C_zuh_doc_alive", (DL_FUNC) &C_zuh_doc_alive, 1},
-  {"C_zuh_parse", (DL_FUNC) &C_zuh_parse, 5},
+  {"C_zuh_doc_release", (DL_FUNC) &C_zuh_doc_release, 1},
+  {"C_zuh_parse", (DL_FUNC) &C_zuh_parse, 6},
+  {"C_zuh_tag_lookup", (DL_FUNC) &C_zuh_tag_lookup, 2},
   {"C_zuh_doc_problems", (DL_FUNC) &C_zuh_doc_problems, 1},
   {"C_zuh_doc_meta", (DL_FUNC) &C_zuh_doc_meta, 1},
   {"C_zuh_doc_dump", (DL_FUNC) &C_zuh_doc_dump, 1},
+  {"C_zuh_node_type", (DL_FUNC) &C_zuh_node_type, 2},
+  {"C_zuh_node_name", (DL_FUNC) &C_zuh_node_name, 2},
+  {"C_zuh_node_namespace", (DL_FUNC) &C_zuh_node_namespace, 2},
+  {"C_zuh_node_parent", (DL_FUNC) &C_zuh_node_parent, 2},
+  {"C_zuh_node_sibling", (DL_FUNC) &C_zuh_node_sibling, 4},
+  {"C_zuh_node_children", (DL_FUNC) &C_zuh_node_children, 4},
+  {"C_zuh_node_ancestors", (DL_FUNC) &C_zuh_node_ancestors, 2},
+  {"C_zuh_node_attr", (DL_FUNC) &C_zuh_node_attr, 4},
+  {"C_zuh_node_attrs", (DL_FUNC) &C_zuh_node_attrs, 2},
+  {"C_zuh_node_text", (DL_FUNC) &C_zuh_node_text, 3},
   {NULL, NULL, 0}
 };
 
