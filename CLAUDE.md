@@ -31,12 +31,15 @@ code with it.
 
 ## Current state
 
-Stages 0 and 1 are done. Gumbo 0.14.0 is vendored with a three-patch
-series and builds on all three platforms;
-[`zuhtml_info()`](https://pedrobtz.github.io/zuhtml/reference/zuhtml_info.md)
-is the one export and self-tests the parser and the depth patch. There
-is no parse entry point, ledger or document yet: Stage 2 is next. The
-probe harness
+Stages 0 to 2 are done. Gumbo 0.14.0 is vendored with a three-patch
+series. The safety seam is in place:
+[`html_parse()`](https://pedrobtz.github.io/zuhtml/reference/html_parse.md)/[`html_read()`](https://pedrobtz.github.io/zuhtml/reference/html_parse.md)
+decode input, parse under the allocation ledger with every limit
+enforced, and return a `zuhtml_document` that so far holds only the
+translated parse problems
+([`html_problems()`](https://pedrobtz.github.io/zuhtml/reference/html_problems.md))
+and metadata. There is no node tree yet: Stage 3 (the frozen document)
+is next. The probe harness
 ([.agents/probe-gumbo.c](https://pedrobtz.github.io/zuhtml/.agents/probe-gumbo.c))
 holds the measurements the roadmap cites.
 
@@ -94,17 +97,23 @@ tools/verify-vendor            # vendor tree == archive + patches   (CI: hardeni
 tools/verify-vendor --canary   # must pass by seeing a dropped patch (CI: hardening)
 tools/run-lint                 # strict warnings; no stdio symbols  (CI: hardening)
 tools/run-lint --canary        # symbol check sees 0002 reversed    (CI: hardening)
+tools/run-sanitizers           # ASan+UBSan seam driver, fault injection at every
+                               # allocation index, overflow canary; leak check and
+                               # leak canary with ASAN_OPTIONS=detect_leaks=1
+                               #                                    (CI: hardening)
 ```
 
-The roadmap adds `run-sanitizers`, `run-fuzz`, `run-conformance` and
-`run-benchmarks` at later stages. Add each here when it lands, and say
-whether CI runs it.
+The roadmap adds `run-fuzz`, `run-conformance` and `run-benchmarks` at
+later stages. Add each here when it lands, and say whether CI runs it.
 
 ## Architecture
 
-Planned layout, from design §13 and the roadmap. So far `R/info.R`,
-`src/init.c`, `src/zuh_gumbo.[ch]`, `src/Makevars`, `src/vendor/` and
-the vendoring and lint scripts in `tools/` exist.
+Planned layout, from design §13 and the roadmap. So far
+`R/conditions.R`, `R/info.R`, `R/limits.R`, `R/parse.R`, `src/init.c`,
+`src/r_api.c`, `src/zuh_gumbo.[ch]`, `src/zuh_memory.[ch]`,
+`src/zuh_document.[ch]`, `src/zuh_status.h`, `src/zuh_r.h`,
+`src/vendor/` and the vendoring, lint and sanitizer scripts in `tools/`
+exist.
 
     R/                 parse.R, conditions.R, info.R, node.R, nodeset.R, select.R,
                        attributes.R, text.R, write.R, list.R, table.R, links.R
@@ -169,8 +178,20 @@ header.
   and descendant traversal skips them unless `html_template_content()`
   asks. There is no separate fragment object.
 - **Errors are classed conditions** under `zuhtml_error`, with the
-  subclasses listed in design §12. C returns a status enum; R maps the
-  enumerator, never the message text.
+  subclasses listed in design §12. C returns a status enum
+  (`src/zuh_status.h`); R maps the enumerator (`zuh_status_names` in
+  `R/parse.R`, same order), never the message text.
+- **A document is owned by its external pointer from birth.**
+  `C_zuh_doc_new()` makes the pointer and finalizer before parsing;
+  `C_zuh_parse()` stores the malloc’d document in it before Gumbo runs.
+  Keep every R allocation outside the window between `zuh_doc_new()` and
+  that store.
+- **Do not trust [`iconv()`](https://rdrr.io/r/base/iconv.html)’s
+  failure signal on raw input.** It can return the input unchanged
+  (macOS) or with a NUL in it (Windows). UTF-16 is decoded in R
+  (`zuh_utf16()`); for the ASCII-compatible rest, `zuh_iconv()` converts
+  twice with different `sub=` bytes and rejects unchanged non-ASCII
+  output, any NUL, and invalid UTF-8.
 
 ## Testing conventions
 
@@ -199,6 +220,11 @@ header.
 - **Never test through Python.** Beautiful Soup and pandas are
   exploratory comparators only; nothing under `tests/` may need them.
 - **Helpers live in `tests/testthat/helper-*.R`.** None yet.
+- **Fault injection from R** goes through the internal
+  `zuh_parse_bytes(..., fail_at = k)`. The exhaustive run over every
+  index, with leak detection, is `tools/run-sanitizers`.
+- **Timing assertions run on CI only** (`CI=true` and not under covr):
+  the local R may be emulated (x86_64 under Rosetta is about 4× slower).
 - **Stage pull requests carry the `full-ci` label**, so the full R CMD
   check matrix (all three platforms) runs before merge rather than only
   after.

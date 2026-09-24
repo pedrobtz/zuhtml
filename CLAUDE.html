@@ -44,7 +44,7 @@
 </div>
 <div class="section level2">
 <h2 id="current-state">Current state<a class="anchor" aria-label="anchor" href="#current-state"></a></h2>
-<p>Stages 0 and 1 are done. Gumbo 0.14.0 is vendored with a three-patch series and builds on all three platforms; <code><a href="reference/zuhtml_info.html">zuhtml_info()</a></code> is the one export and self-tests the parser and the depth patch. There is no parse entry point, ledger or document yet: Stage 2 is next. The probe harness (<a href=".agents/probe-gumbo.c">.agents/probe-gumbo.c</a>) holds the measurements the roadmap cites.</p>
+<p>Stages 0 to 2 are done. Gumbo 0.14.0 is vendored with a three-patch series. The safety seam is in place: <code><a href="reference/html_parse.html">html_parse()</a></code>/<code><a href="reference/html_parse.html">html_read()</a></code> decode input, parse under the allocation ledger with every limit enforced, and return a <code>zuhtml_document</code> that so far holds only the translated parse problems (<code><a href="reference/html_problems.html">html_problems()</a></code>) and metadata. There is no node tree yet: Stage 3 (the frozen document) is next. The probe harness (<a href=".agents/probe-gumbo.c">.agents/probe-gumbo.c</a>) holds the measurements the roadmap cites.</p>
 <p>The roadmap’s <strong>Status:</strong> line under each stage is authoritative for progress; update it there, not here.</p>
 </div>
 <div class="section level2">
@@ -80,12 +80,16 @@
 <span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="ex">tools/verify-vendor</span>            <span class="co"># vendor tree == archive + patches   (CI: hardening)</span></span>
 <span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="ex">tools/verify-vendor</span> <span class="at">--canary</span>   <span class="co"># must pass by seeing a dropped patch (CI: hardening)</span></span>
 <span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="ex">tools/run-lint</span>                 <span class="co"># strict warnings; no stdio symbols  (CI: hardening)</span></span>
-<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="ex">tools/run-lint</span> <span class="at">--canary</span>        <span class="co"># symbol check sees 0002 reversed    (CI: hardening)</span></span></code></pre></div>
-<p>The roadmap adds <code>run-sanitizers</code>, <code>run-fuzz</code>, <code>run-conformance</code> and <code>run-benchmarks</code> at later stages. Add each here when it lands, and say whether CI runs it.</p>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="ex">tools/run-lint</span> <span class="at">--canary</span>        <span class="co"># symbol check sees 0002 reversed    (CI: hardening)</span></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="ex">tools/run-sanitizers</span>           <span class="co"># ASan+UBSan seam driver, fault injection at every</span></span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>                               <span class="co"># allocation index, overflow canary; leak check and</span></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>                               <span class="co"># leak canary with ASAN_OPTIONS=detect_leaks=1</span></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>                               <span class="co">#                                    (CI: hardening)</span></span></code></pre></div>
+<p>The roadmap adds <code>run-fuzz</code>, <code>run-conformance</code> and <code>run-benchmarks</code> at later stages. Add each here when it lands, and say whether CI runs it.</p>
 </div>
 <div class="section level2">
 <h2 id="architecture">Architecture<a class="anchor" aria-label="anchor" href="#architecture"></a></h2>
-<p>Planned layout, from design §13 and the roadmap. So far <code>R/info.R</code>, <code>src/init.c</code>, <code>src/zuh_gumbo.[ch]</code>, <code>src/Makevars</code>, <code>src/vendor/</code> and the vendoring and lint scripts in <code>tools/</code> exist.</p>
+<p>Planned layout, from design §13 and the roadmap. So far <code>R/conditions.R</code>, <code>R/info.R</code>, <code>R/limits.R</code>, <code>R/parse.R</code>, <code>src/init.c</code>, <code>src/r_api.c</code>, <code>src/zuh_gumbo.[ch]</code>, <code>src/zuh_memory.[ch]</code>, <code>src/zuh_document.[ch]</code>, <code>src/zuh_status.h</code>, <code>src/zuh_r.h</code>, <code>src/vendor/</code> and the vendoring, lint and sanitizer scripts in <code>tools/</code> exist.</p>
 <pre><code>R/                 parse.R, conditions.R, info.R, node.R, nodeset.R, select.R,
                    attributes.R, text.R, write.R, list.R, table.R, links.R
 src/               init.c, r_api.c                       R-facing glue only
@@ -120,7 +124,11 @@ fuzz/              libFuzzer targets over the C core
 <li>
 <strong>Template children stay children.</strong> The template node carries a flag and descendant traversal skips them unless <code>html_template_content()</code> asks. There is no separate fragment object.</li>
 <li>
-<strong>Errors are classed conditions</strong> under <code>zuhtml_error</code>, with the subclasses listed in design §12. C returns a status enum; R maps the enumerator, never the message text.</li>
+<strong>Errors are classed conditions</strong> under <code>zuhtml_error</code>, with the subclasses listed in design §12. C returns a status enum (<code>src/zuh_status.h</code>); R maps the enumerator (<code>zuh_status_names</code> in <code>R/parse.R</code>, same order), never the message text.</li>
+<li>
+<strong>A document is owned by its external pointer from birth.</strong> <code>C_zuh_doc_new()</code> makes the pointer and finalizer before parsing; <code>C_zuh_parse()</code> stores the malloc’d document in it before Gumbo runs. Keep every R allocation outside the window between <code>zuh_doc_new()</code> and that store.</li>
+<li>
+<strong>Do not trust <code><a href="https://rdrr.io/r/base/iconv.html" class="external-link">iconv()</a></code>’s failure signal on raw input.</strong> It can return the input unchanged (macOS) or with a NUL in it (Windows). UTF-16 is decoded in R (<code>zuh_utf16()</code>); for the ASCII-compatible rest, <code>zuh_iconv()</code> converts twice with different <code>sub=</code> bytes and rejects unchanged non-ASCII output, any NUL, and invalid UTF-8.</li>
 </ul></div>
 <div class="section level2">
 <h2 id="testing-conventions">Testing conventions<a class="anchor" aria-label="anchor" href="#testing-conventions"></a></h2>
@@ -138,6 +146,10 @@ fuzz/              libFuzzer targets over the C core
 <strong>Never test through Python.</strong> Beautiful Soup and pandas are exploratory comparators only; nothing under <code>tests/</code> may need them.</li>
 <li>
 <strong>Helpers live in <code>tests/testthat/helper-*.R</code>.</strong> None yet.</li>
+<li>
+<strong>Fault injection from R</strong> goes through the internal <code>zuh_parse_bytes(..., fail_at = k)</code>. The exhaustive run over every index, with leak detection, is <code>tools/run-sanitizers</code>.</li>
+<li>
+<strong>Timing assertions run on CI only</strong> (<code>CI=true</code> and not under covr): the local R may be emulated (x86_64 under Rosetta is about 4× slower).</li>
 <li>
 <strong>Stage pull requests carry the <code>full-ci</code> label</strong>, so the full R CMD check matrix (all three platforms) runs before merge rather than only after.</li>
 <li>
