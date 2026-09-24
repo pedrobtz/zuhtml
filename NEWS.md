@@ -69,6 +69,13 @@ First release.
   jsonlite if asked) and microdata items per the HTML standard, `itemref`
   included.
 
+* New `html_table_cells()` returns one row per table cell with its grid
+  position, spans, section, whether it is a header, and its links.
+  `html_tables()` gains `match =` to keep tables whose text matches a
+  regular expression. `html_table()` gains `convert =`, `decimal =` and
+  `thousands =` to convert columns that are entirely numbers or logicals,
+  keeping identifiers with leading zeros as text.
+
 * New `html_serialize()` (and `as.character()` on nodesets) writes nodes
   as normalized HTML following the WHATWG serialization algorithm, outer
   or inner.
