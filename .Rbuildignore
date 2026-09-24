@@ -4,3 +4,9 @@
 ^docs$
 ^pkgdown$
 ^\.agents$
+^CLAUDE\.md$
+^tools$
+^fuzz$
+^cran-comments\.md$
+^src/.*\.o$
+^src/.*\.(so|dll|dylib|a)$

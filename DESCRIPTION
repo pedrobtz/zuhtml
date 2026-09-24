@@ -1,14 +1,25 @@
 Package: zuhtml
-Title: What the Package Does (One Line, Title Case)
+Title: Parse 'HTML' with a Bundled 'Gumbo' Parser
 Version: 0.0.0.9000
 Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"))
-Description: What the package does (one paragraph).
+    person("Pedro", "Baltazar", , "pedrobtz@gmail.com",
+           role = c("aut", "cre", "cph"))
+Description: Parses real-world 'HTML' with a bundled copy of the 'Gumbo'
+    parser (<https://codeberg.org/gumbo-parser/gumbo-parser>), which
+    follows the 'WHATWG' parsing algorithm, so that no system library is
+    required. Documents become immutable trees navigated with a documented
+    subset of 'CSS' selectors. Attributes, text, lists, tables and links
+    are extracted into ordinary character vectors, lists and data frames.
+    Parsing is bounded by limits on input size, native memory and nesting
+    depth.
 License: MIT + file LICENSE
-Encoding: UTF-8
-Roxygen: list(markdown = TRUE)
-RoxygenNote: 8.0.0
+URL: https://github.com/pedrobtz/zuhtml, https://pedrobtz.github.io/zuhtml/
+BugReports: https://github.com/pedrobtz/zuhtml/issues
+Depends: 
+    R (>= 4.1)
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
-URL: https://pedrobtz.github.io/zuhtml/
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+Config/roxygen2/version: 8.1.0
