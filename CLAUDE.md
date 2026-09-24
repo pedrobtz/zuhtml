@@ -31,16 +31,20 @@ code with it.
 
 ## Current state
 
-Stages 0 to 5 are done. Gumbo 0.14.0 is vendored with a three-patch
+Stages 0 to 6 are done. Gumbo 0.14.0 is vendored with a three-patch
 series.
 [`html_parse()`](https://pedrobtz.github.io/zuhtml/reference/html_parse.md)/[`html_read()`](https://pedrobtz.github.io/zuhtml/reference/html_parse.md)/[`html_fragment()`](https://pedrobtz.github.io/zuhtml/reference/html_fragment.md)
 decode input, parse under the allocation ledger with every limit
 enforced, and convert Gumbo’s tree into a frozen, index-addressed
-document (`src/zuh_document.h`). The R node API and
+document (`src/zuh_document.h`). The R node API,
 [`html_serialize()`](https://pedrobtz.github.io/zuhtml/reference/html_serialize.md)
-are in place, and every applicable conformance case parses correctly and
-either round-trips or is an adjudicated non-fixed-point. There is no
-selector engine yet: Stage 6 is next. The probe harness
+and CSS selection
+([`html_elements()`](https://pedrobtz.github.io/zuhtml/reference/html_elements.md),
+[`html_element()`](https://pedrobtz.github.io/zuhtml/reference/html_elements.md),
+[`html_matches()`](https://pedrobtz.github.io/zuhtml/reference/html_elements.md),
+[`html_filter()`](https://pedrobtz.github.io/zuhtml/reference/html_elements.md))
+are in place. Stage 7 (extraction: clean text, lists, tables, links,
+URLs) is next. The probe harness
 ([.agents/probe-gumbo.c](https://pedrobtz.github.io/zuhtml/.agents/probe-gumbo.c))
 holds the measurements the roadmap cites.
 
@@ -102,25 +106,29 @@ tools/run-conformance          # html5lib tree-construction fixtures vs the tree
                                # dump, plus a serialize-reparse round trip;
                                # --canary and --canary-serialize must fail
                                #                                    (CI: hardening)
+tools/run-fuzz [secs]          # libFuzzer targets in fuzz/ (standalone mutation
+                               # loop where libFuzzer is missing, e.g. macOS);
+                               # fuzz_canary must crash first    (CI: hardening)
 tools/run-sanitizers           # ASan+UBSan seam driver, fault injection at every
                                # allocation index, overflow canary; leak check and
                                # leak canary with ASAN_OPTIONS=detect_leaks=1
                                #                                    (CI: hardening)
 ```
 
-The roadmap adds `run-fuzz` and `run-benchmarks` at later stages. Add
-each here when it lands, and say whether CI runs it.
+The roadmap adds more fuzz targets and `run-benchmarks` at later stages.
+Add each here when it lands, and say whether CI runs it.
 
 ## Architecture
 
 Planned layout, from design §13 and the roadmap. The html5lib fixtures
 live in `tools/conformance/`. So far `R/attributes.R`, `R/conditions.R`,
 `R/info.R`, `R/limits.R`, `R/node.R`, `R/nodeset.R`, `R/parse.R`,
-`R/text.R`, `R/write.R`, `src/init.c`, `src/r_api.c`, `src/r_node.c`,
-`src/zuh_write.[ch]`, `src/zuh_gumbo.[ch]`, `src/zuh_memory.[ch]`,
-`src/zuh_document.[ch]`, `src/zuh_status.h`, `src/zuh_r.h`,
-`src/vendor/` and the vendoring, lint and sanitizer scripts in `tools/`
-exist.
+`R/select.R`, `R/text.R`, `R/write.R`, `src/init.c`, `src/r_api.c`,
+`src/r_node.c`, `src/r_select.c`, `src/zuh_selector.[ch]`,
+`src/zuh_write.[ch]`, `fuzz/`, `src/zuh_gumbo.[ch]`,
+`src/zuh_memory.[ch]`, `src/zuh_document.[ch]`, `src/zuh_status.h`,
+`src/zuh_r.h`, `src/vendor/` and the vendoring, lint and sanitizer
+scripts in `tools/` exist.
 
     R/                 parse.R, conditions.R, info.R, node.R, nodeset.R, select.R,
                        attributes.R, text.R, write.R, list.R, table.R, links.R
@@ -177,11 +185,12 @@ header.
   `SystemRequirements: GNU make`.
 - **Node IDs are document-local and an `NA_integer_` ID is a missing
   node**, distinct from a zero-length nodeset. Aligned operations
-  (`html_element()`,
+  ([`html_element()`](https://pedrobtz.github.io/zuhtml/reference/html_elements.md),
   [`html_parent()`](https://pedrobtz.github.io/zuhtml/reference/html_children.md))
   preserve length and return missing nodes; set operations
-  (`html_elements()`) deduplicate in document order. Mixing the two
-  conventions silently misaligns extracted columns.
+  ([`html_elements()`](https://pedrobtz.github.io/zuhtml/reference/html_elements.md))
+  deduplicate in document order. Mixing the two conventions silently
+  misaligns extracted columns.
 - **Template children stay children.** The template node carries a flag
   and descendant traversal skips them unless
   [`html_template_content()`](https://pedrobtz.github.io/zuhtml/reference/html_children.md)
@@ -198,6 +207,15 @@ header.
   and records `subtree_end`, so a node’s descendants are exactly
   `(id, subtree_end]`, and sorting IDs sorts by document order. Anything
   that builds or edits the arena must keep that.
+- **The selector subset is a closed list.** `zuh_selector.c` accepts
+  exactly design §6’s productions; every other form must fail with
+  `ZUH_SEL_UNSUPPORTED` and a position, and `test-select.R` has a
+  rejection test per form. Adding a production means amending the design
+  first.
+- **Pool strings can move.** In `zuh_selector.c`, anything that copies a
+  pool string back into the pool must grow first and address the source
+  after (`pool_dup()`); the fuzzer found the use-after-free the naive
+  copy had.
 - **Conversion allocations count toward fault injection.** Use
   `conv_malloc()` in `zuh_gumbo.c` for anything conversion allocates, so
   “fail every allocation index” keeps covering it.

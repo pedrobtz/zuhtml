@@ -54,6 +54,21 @@
   describes a document.
 
 - New
+  [`html_elements()`](https://pedrobtz.github.io/zuhtml/reference/html_elements.md),
+  [`html_element()`](https://pedrobtz.github.io/zuhtml/reference/html_elements.md),
+  [`html_matches()`](https://pedrobtz.github.io/zuhtml/reference/html_elements.md)
+  and
+  [`html_filter()`](https://pedrobtz.github.io/zuhtml/reference/html_elements.md)
+  select elements with a documented subset of CSS selectors: type,
+  universal, ID, class and attribute selectors (with the `i` and `s`
+  flags), the four combinators, selector lists, `:scope`, `:root`,
+  `:empty`, `:first-child`, `:last-child`, `:only-child`,
+  `:nth-child()`, `:nth-of-type()` and `:not()`. Anything else is a
+  `zuhtml_selector_error` pointing at the offending position.
+  [`html_element()`](https://pedrobtz.github.io/zuhtml/reference/html_elements.md)
+  keeps one result per input node, so extracted columns stay aligned.
+
+- New
   [`html_serialize()`](https://pedrobtz.github.io/zuhtml/reference/html_serialize.md)
   (and [`as.character()`](https://rdrr.io/r/base/character.html) on
   nodesets) writes nodes as normalized HTML following the WHATWG

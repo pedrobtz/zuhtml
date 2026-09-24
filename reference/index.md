@@ -15,6 +15,11 @@
   [`html_root()`](https://pedrobtz.github.io/zuhtml/reference/html_children.md)
   [`html_document()`](https://pedrobtz.github.io/zuhtml/reference/html_children.md)
   : Navigate a document tree
+- [`html_elements()`](https://pedrobtz.github.io/zuhtml/reference/html_elements.md)
+  [`html_element()`](https://pedrobtz.github.io/zuhtml/reference/html_elements.md)
+  [`html_matches()`](https://pedrobtz.github.io/zuhtml/reference/html_elements.md)
+  [`html_filter()`](https://pedrobtz.github.io/zuhtml/reference/html_elements.md)
+  : Select elements with CSS selectors
 - [`html_fragment()`](https://pedrobtz.github.io/zuhtml/reference/html_fragment.md)
   : Parse an HTML fragment
 - [`html_info()`](https://pedrobtz.github.io/zuhtml/reference/html_info.md)
