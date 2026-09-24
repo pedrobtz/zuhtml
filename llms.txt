@@ -55,6 +55,8 @@ library(zuhtml)
   : Parse HTML
 - [`html_problems()`](https://pedrobtz.github.io/zuhtml/reference/html_problems.md)
   : Parse problems recorded for a document
+- [`html_serialize()`](https://pedrobtz.github.io/zuhtml/reference/html_serialize.md)
+  : Serialize nodes as HTML
 - [`html_text()`](https://pedrobtz.github.io/zuhtml/reference/html_text.md)
   : Text content of nodes
 - [`zuhtml-conditions`](https://pedrobtz.github.io/zuhtml/reference/zuhtml-conditions.md)

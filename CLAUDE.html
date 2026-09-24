@@ -44,7 +44,7 @@
 </div>
 <div class="section level2">
 <h2 id="current-state">Current state<a class="anchor" aria-label="anchor" href="#current-state"></a></h2>
-<p>Stages 0 to 4 are done. Gumbo 0.14.0 is vendored with a three-patch series. <code><a href="reference/html_parse.html">html_parse()</a></code>/<code><a href="reference/html_parse.html">html_read()</a></code>/<code><a href="reference/html_fragment.html">html_fragment()</a></code> decode input, parse under the allocation ledger with every limit enforced, and convert Gumbo’s tree into a frozen, index-addressed document (<code>src/zuh_document.h</code>). The R node API is in place: <code>zuhtml_nodeset</code> (IDs plus owner), navigation, names/types/namespaces, attributes, <code><a href="reference/html_text.html">html_text()</a></code>, <code><a href="reference/html_info.html">html_info()</a></code>. There is no serializer or selector engine yet: Stage 5 (the serializer) is next. The probe harness (<a href=".agents/probe-gumbo.c">.agents/probe-gumbo.c</a>) holds the measurements the roadmap cites.</p>
+<p>Stages 0 to 5 are done. Gumbo 0.14.0 is vendored with a three-patch series. <code><a href="reference/html_parse.html">html_parse()</a></code>/<code><a href="reference/html_parse.html">html_read()</a></code>/<code><a href="reference/html_fragment.html">html_fragment()</a></code> decode input, parse under the allocation ledger with every limit enforced, and convert Gumbo’s tree into a frozen, index-addressed document (<code>src/zuh_document.h</code>). The R node API and <code><a href="reference/html_serialize.html">html_serialize()</a></code> are in place, and every applicable conformance case parses correctly and either round-trips or is an adjudicated non-fixed-point. There is no selector engine yet: Stage 6 is next. The probe harness (<a href=".agents/probe-gumbo.c">.agents/probe-gumbo.c</a>) holds the measurements the roadmap cites.</p>
 <p>The roadmap’s <strong>Status:</strong> line under each stage is authoritative for progress; update it there, not here.</p>
 </div>
 <div class="section level2">
@@ -82,16 +82,18 @@
 <span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="ex">tools/run-lint</span>                 <span class="co"># strict warnings; no stdio symbols  (CI: hardening)</span></span>
 <span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="ex">tools/run-lint</span> <span class="at">--canary</span>        <span class="co"># symbol check sees 0002 reversed    (CI: hardening)</span></span>
 <span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="ex">tools/run-conformance</span>          <span class="co"># html5lib tree-construction fixtures vs the tree</span></span>
-<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>                               <span class="co"># dump; --canary must fail every case (CI: hardening)</span></span>
-<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="ex">tools/run-sanitizers</span>           <span class="co"># ASan+UBSan seam driver, fault injection at every</span></span>
-<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>                               <span class="co"># allocation index, overflow canary; leak check and</span></span>
-<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a>                               <span class="co"># leak canary with ASAN_OPTIONS=detect_leaks=1</span></span>
-<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a>                               <span class="co">#                                    (CI: hardening)</span></span></code></pre></div>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>                               <span class="co"># dump, plus a serialize-reparse round trip;</span></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>                               <span class="co"># --canary and --canary-serialize must fail</span></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>                               <span class="co">#                                    (CI: hardening)</span></span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a><span class="ex">tools/run-sanitizers</span>           <span class="co"># ASan+UBSan seam driver, fault injection at every</span></span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a>                               <span class="co"># allocation index, overflow canary; leak check and</span></span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a>                               <span class="co"># leak canary with ASAN_OPTIONS=detect_leaks=1</span></span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a>                               <span class="co">#                                    (CI: hardening)</span></span></code></pre></div>
 <p>The roadmap adds <code>run-fuzz</code> and <code>run-benchmarks</code> at later stages. Add each here when it lands, and say whether CI runs it.</p>
 </div>
 <div class="section level2">
 <h2 id="architecture">Architecture<a class="anchor" aria-label="anchor" href="#architecture"></a></h2>
-<p>Planned layout, from design §13 and the roadmap. The html5lib fixtures live in <code>tools/conformance/</code>. So far <code>R/attributes.R</code>, <code>R/conditions.R</code>, <code>R/info.R</code>, <code>R/limits.R</code>, <code>R/node.R</code>, <code>R/nodeset.R</code>, <code>R/parse.R</code>, <code>R/text.R</code>, <code>src/init.c</code>, <code>src/r_api.c</code>, <code>src/r_node.c</code>, <code>src/zuh_gumbo.[ch]</code>, <code>src/zuh_memory.[ch]</code>, <code>src/zuh_document.[ch]</code>, <code>src/zuh_status.h</code>, <code>src/zuh_r.h</code>, <code>src/vendor/</code> and the vendoring, lint and sanitizer scripts in <code>tools/</code> exist.</p>
+<p>Planned layout, from design §13 and the roadmap. The html5lib fixtures live in <code>tools/conformance/</code>. So far <code>R/attributes.R</code>, <code>R/conditions.R</code>, <code>R/info.R</code>, <code>R/limits.R</code>, <code>R/node.R</code>, <code>R/nodeset.R</code>, <code>R/parse.R</code>, <code>R/text.R</code>, <code>R/write.R</code>, <code>src/init.c</code>, <code>src/r_api.c</code>, <code>src/r_node.c</code>, <code>src/zuh_write.[ch]</code>, <code>src/zuh_gumbo.[ch]</code>, <code>src/zuh_memory.[ch]</code>, <code>src/zuh_document.[ch]</code>, <code>src/zuh_status.h</code>, <code>src/zuh_r.h</code>, <code>src/vendor/</code> and the vendoring, lint and sanitizer scripts in <code>tools/</code> exist.</p>
 <pre><code>R/                 parse.R, conditions.R, info.R, node.R, nodeset.R, select.R,
                    attributes.R, text.R, write.R, list.R, table.R, links.R
 src/               init.c, r_api.c                       R-facing glue only
@@ -152,6 +154,10 @@ fuzz/              libFuzzer targets over the C core
 <strong>Borrow a conformance suite before writing one.</strong> Gumbo 0.14.0 ships 61 html5lib/WPT tree-construction <code>.dat</code> files under <code>tests/tree_construction/</code>; they become <code>tools/conformance/</code> and the <code>run-conformance</code> gate, with a hand-picked dozen copied into <code>tests/testthat/fixtures/</code> for CRAN. They cover tree construction only, not selectors, text cleaning, tables or URLs. For URL resolution, RFC 3986 §5.4 lists the normal and abnormal examples verbatim; use them as-is. Serialization round-trip is an adjudicated oracle, not an axiom: the HTML spec does not guarantee it, so known non-fixed-points are listed rather than asserted away.</li>
 <li>
 <strong>Never test through Python.</strong> Beautiful Soup and pandas are exploratory comparators only; nothing under <code>tests/</code> may need them.</li>
+<li>
+<strong>The CRAN-sized conformance subset</strong> is <code>tests/testthat/fixtures/tree-construction.dat</code>: twelve cases copied verbatim, read by <code>read_dat()</code> in <code>helper-dat.R</code>. They are WPT material (3-Clause BSD): <code>inst/COPYRIGHTS</code> carries the notice, and any new fixture from elsewhere needs its own entry there.</li>
+<li>
+<strong>Round-trip non-fixed-points are adjudicated, not asserted away.</strong> <code>tools/conformance/roundtrip-deviations.txt</code> lists each with its category and reason; the gate fails if the list and the results disagree either way.</li>
 <li>
 <strong>Helpers live in <code>tests/testthat/helper-*.R</code>.</strong> <code>helper-tree.R</code> renders a document in the html5lib test format (<code>tree_lines()</code>) through the internal <code>C_zuh_doc_dump</code>, which is also what the conformance gate compares; <code>doc_meta()</code> reads the internal document metadata.</li>
 <li>

@@ -54,6 +54,12 @@
   describes a document.
 
 - New
+  [`html_serialize()`](https://pedrobtz.github.io/zuhtml/reference/html_serialize.md)
+  (and [`as.character()`](https://rdrr.io/r/base/character.html) on
+  nodesets) writes nodes as normalized HTML following the WHATWG
+  serialization algorithm, outer or inner.
+
+- New
   [`html_problems()`](https://pedrobtz.github.io/zuhtml/reference/html_problems.md)
   lists the parse errors the parser repaired, with package-owned codes
   and positions.

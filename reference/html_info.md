@@ -58,7 +58,7 @@ html_info(html_parse("<!DOCTYPE html><title>t</title><p>Hello"))
 #>   context            NA
 #>   nodes              9
 #>   attributes         0
-#>   native_bytes       555
+#>   native_bytes       579
 #>   parse_peak_bytes   2,307
 #>   input_bytes        39
 #>   encoding           UTF-8
