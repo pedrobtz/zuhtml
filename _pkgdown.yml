@@ -33,6 +33,7 @@ reference:
       - html_list
       - html_links
       - html_url
+      - html_forms
   - title: Page metadata
     contents:
       - html_title

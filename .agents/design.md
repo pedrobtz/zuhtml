@@ -436,6 +436,12 @@ Zero records return a zero-row frame with the schema-defined column types. Field
 
 JSON-LD and microdata as built (roadmap Stage 11), simpler than the records above: `html_json_ld(x)` is a character vector of block texts, found by matching `type` as a MIME type (case-insensitive, whitespace and parameters ignored). `parse = TRUE` uses jsonlite from Suggests (`simplifyVector = FALSE`) and returns a list with `NULL` for invalid JSON and the texts in attribute `"json"`. It first removes a `<![CDATA[ ]]>` or `<!-- -->` wrapper around the whole block, because 26 of 27 blocks that failed across the 522-page corpus had one. `html_microdata(x)` implements the HTML standard's "properties of an item", `itemref` included, and needs no crawl loop in R. Node IDs are preorder, so "the property's nearest `itemscope` ancestor is the item" is `html_closest()` plus an integer comparison. Values follow the standard, except that text is `html_text_clean()`, not the raw `textContent`. A nested item that is its own ancestor through `itemref` is `NULL`. There is no source ID and no diagnostics, per §10. RDFa stays outside scope.
 
+`html_forms(x)` as built (roadmap Stage 15, `R/forms.R`) is inspection only. It returns one list per form: `action` resolved (the base URL when absent, as browsers submit to the page), `method` and `enctype` normalized to their valid values, `id`, `name`, and a `fields` data frame of `input`/`select`/`textarea`/`button` with `name`, `type`, `value`, `checked`, `disabled` and an `options` list-column of per-select data frames.
+- **Ownership** follows the standard: `form=` names the owner by ID and only a `<form>` counts, else the nearest ancestor form.
+- **Old-page approximation:** the parser's form-element pointer is invisible after parsing, so a form left empty directly inside a table owns the unowned controls that follow it in that table, up to the next form. This covers old pages' `<table><form><tr>...`.
+- **Values** are the DOM's: `.type`, `.value` with `"on"` for checkables, select-one's implicit first enabled option and last-selected-wins, and fieldset disabling with the first-legend exception.
+- **Successful controls** and request building remain out of scope.
+
 ## 12. Safety, failure, and resource limits
 
 ### Verified concerns in Gumbo 0.14.0

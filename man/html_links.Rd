@@ -33,6 +33,7 @@ html_links(doc, absolute = TRUE)
 }
 \seealso{
 Other extraction:
+\code{\link[=html_forms]{html_forms()}},
 \code{\link[=html_list]{html_list()}},
 \code{\link[=html_table]{html_table()}},
 \code{\link[=html_table_cells]{html_table_cells()}},

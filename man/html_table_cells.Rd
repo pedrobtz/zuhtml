@@ -53,6 +53,7 @@ cells$links[[7]]
 }
 \seealso{
 Other extraction:
+\code{\link[=html_forms]{html_forms()}},
 \code{\link[=html_links]{html_links()}},
 \code{\link[=html_list]{html_list()}},
 \code{\link[=html_table]{html_table()}},
