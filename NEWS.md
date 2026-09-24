@@ -76,6 +76,12 @@ First release.
   `thousands =` to convert columns that are entirely numbers or logicals,
   keeping identifiers with leading zeros as text.
 
+* New `html_markdown()` converts nodes to CommonMark: headings,
+  paragraphs, emphasis, code, fenced code blocks, block quotes, nested
+  lists, links and images with resolved URLs, and GFM pipe tables for data
+  tables. Markdown-significant characters in text are escaped, and only
+  emphasis that CommonMark parses back is written.
+
 * New `html_serialize()` (and `as.character()` on nodesets) writes nodes
   as normalized HTML following the WHATWG serialization algorithm, outer
   or inner.

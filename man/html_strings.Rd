@@ -36,6 +36,7 @@ html_strings(p, trim = TRUE, drop_empty = TRUE)
 \seealso{
 Other node values:
 \code{\link[=html_attr]{html_attr()}},
+\code{\link[=html_markdown]{html_markdown()}},
 \code{\link[=html_name]{html_name()}},
 \code{\link[=html_serialize]{html_serialize()}},
 \code{\link[=html_text]{html_text()}},

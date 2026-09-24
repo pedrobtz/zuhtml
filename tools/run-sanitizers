@@ -24,7 +24,7 @@ GUMBO="src/vendor/gumbo/attribute.c src/vendor/gumbo/char_ref.c
   src/vendor/gumbo/tokenizer.c src/vendor/gumbo/utf8.c
   src/vendor/gumbo/util.c src/vendor/gumbo/vector.c"
 CORE="src/zuh_buf.c src/zuh_gumbo.c src/zuh_memory.c src/zuh_document.c src/zuh_write.c
-  src/zuh_selector.c src/zuh_table.c src/zuh_text.c"
+  src/zuh_markdown.c src/zuh_selector.c src/zuh_table.c src/zuh_text.c"
 
 echo "==> building the driver"
 # -DNDEBUG as R builds it: the same code paths the package ships.

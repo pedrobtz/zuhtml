@@ -29,6 +29,7 @@ OBJECTS = \
 	zuh_buf.o \
 	zuh_document.o \
 	zuh_gumbo.o \
+	zuh_markdown.o \
 	zuh_memory.o \
 	zuh_selector.o \
 	zuh_table.o \

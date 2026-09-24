@@ -293,7 +293,15 @@ Added 2026-09-24 with Stages 11 to 15, which surveyed HTML libraries in Python, 
 
 ## Stage 13 — HTML to Markdown · M
 
-**Status:** not started.
+**Status:** done 2026-09-24. `src/zuh_markdown.c` is one iterative walk that writes separators, prefixes and inline openers lazily, with URLs resolved in R and passed in by node ID. The corpus was the test bed. Over its 522 pages, each page was rendered back with commonmark, a local check and not a dependency. Headings, images and non-empty list items survive on all but 3 pages; the losses are SVG-only items, and heading text whose blocks are flattened. Words survive on all but 1 page (an SVG title). Getting there changed six rules:
+- Pipe tables only for inline-only cells, because layout tables had become one giant cell.
+- Heading markers before a wrapping link's `[`.
+- Empty list items dropped, because they read as setext underlines.
+- No-break spaces collapsed.
+- Emphasis that CommonMark's flanking rules would not parse is left out or merged, never written as stray `*`.
+- `<br>` and nested blocks inside `<pre>` as line breaks.
+
+The sanitizer driver injects faults into every allocation of the walk, and `fuzz_parse` calls it on every node.
 
 - `html_markdown(x)`: CommonMark text for each node, from one iterative C walk that shares `html_text_clean()`'s skipping and whitespace rules. It emits headings, paragraphs, emphasis and strong, inline code and fenced `pre`, block quotes, ordered and unordered lists (nested), links and images with URLs resolved against the document base, horizontal rules, line breaks, and GFM pipe tables for simple tables (no spans; others fall back to cell text). Markdown-significant characters in text are escaped.
 

@@ -70,7 +70,7 @@ RINC=$(Rscript -e 'cat(R.home("include"))')
 
 # Pure C, no R: held to the strictest standard.
 CORE="src/zuh_buf.c src/zuh_gumbo.c src/zuh_memory.c src/zuh_document.c src/zuh_write.c
-  src/zuh_selector.c src/zuh_table.c src/zuh_text.c"
+  src/zuh_markdown.c src/zuh_selector.c src/zuh_table.c src/zuh_text.c"
 # R-facing: the same, plus R's headers, and the one cast R's API requires.
 RSRC="src/init.c src/r_api.c src/r_extract.c src/r_node.c src/r_select.c"
 

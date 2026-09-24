@@ -4,6 +4,7 @@
  * rendered, serialized and cleaned, every table's grid is built, and a
  * few selectors are matched. */
 #include "fuzz_common.h"
+#include "zuh_markdown.h"
 #include "zuh_selector.h"
 #include "zuh_table.h"
 #include "zuh_text.h"
@@ -49,6 +50,9 @@ LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     zuh_buf_free(&b);
     zuh_buf_init(&b, NULL, NULL);
     (void) zuh_text_clean(doc, id, &co, &b);
+    zuh_buf_free(&b);
+    zuh_buf_init(&b, NULL, NULL);
+    (void) zuh_markdown(doc, id, NULL, &b);
     zuh_buf_free(&b);
     if (doc->nodes[id].type == ZUH_NODE_ELEMENT &&
         strcmp(zuh_str(doc, doc->nodes[id].name), "table") == 0) {

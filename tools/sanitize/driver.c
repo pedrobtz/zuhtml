@@ -13,6 +13,7 @@
 
 #include "zuh_document.h"
 #include "zuh_gumbo.h"
+#include "zuh_markdown.h"
 #include "zuh_table.h"
 #include "zuh_text.h"
 #include "zuh_write.h"
@@ -193,7 +194,7 @@ buffer_fault_injection(const zuh_doc *doc) {
   for (id = 0; id < doc->n_nodes; id++) {
     const zuh_node *n = &doc->nodes[id];
     int kind;
-    for (kind = 0; kind < 3; kind++) {
+    for (kind = 0; kind < 4; kind++) {
       size_t k;
       if (kind == 2 && !(n->type == ZUH_NODE_ELEMENT &&
                          strcmp(zuh_str(doc, n->name), "table") == 0))
@@ -210,8 +211,9 @@ buffer_fault_injection(const zuh_doc *doc) {
           zuh_buf b;
           zuh_clean_opts o = {1, 1, 0, 0};
           zuh_buf_init(&b, failing_alloc, &f);
-          st = kind == 0 ? zuh_serialize(doc, id, 1, 0, &b)
-                         : zuh_text_clean(doc, id, &o, &b);
+          st = kind == 0   ? zuh_serialize(doc, id, 1, 0, &b)
+               : kind == 1 ? zuh_text_clean(doc, id, &o, &b)
+                           : zuh_markdown(doc, id, NULL, &b);
         }
         arena_release(&f.a);
         if (f.calls < k) {
@@ -250,6 +252,14 @@ extract_all(const zuh_doc *doc) {
       EXPECT(zuh_text_clean(doc, id, &o, &b) == ZUH_OK &&
                  strlen(b.buf) == b.len,
              "cleaning node %u failed", id);
+      zuh_buf_free(&b);
+    }
+    {
+      zuh_buf b;
+      zuh_buf_init(&b, NULL, NULL);
+      EXPECT(zuh_markdown(doc, id, NULL, &b) == ZUH_OK &&
+                 strlen(b.buf) == b.len,
+             "Markdown of node %u failed", id);
       zuh_buf_free(&b);
     }
     if (n->type == ZUH_NODE_ELEMENT && n->ns == ZUH_NS_HTML &&
