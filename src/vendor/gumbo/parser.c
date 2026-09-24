@@ -505,6 +505,9 @@ static GumboNode* new_document_node(GumboParser* parser) {
   document->name = NULL;
   document->public_identifier = NULL;
   document->system_identifier = NULL;
+  // A fragment parse never sees a doctype token, but the table start-tag
+  // handler still reads the quirks mode.
+  document->doc_type_quirks_mode = GUMBO_DOCTYPE_NO_QUIRKS;
   return document_node;
 }
 
@@ -1048,6 +1051,15 @@ static void maybe_clone_option_into_selectedcontent(GumboParser* parser, GumboPa
   GumboNode* selectedcontent = state->_selectedcontent_target;
   if (!selectedcontent) {
     return;
+  }
+  // An option inside the selectedcontent element is not an option of the
+  // select it mirrors, and cloning it would first destroy selectedcontent's
+  // children: the option itself, and any open element between the two,
+  // while they are still in use.
+  for (const GumboNode* n = option_node->parent; n; n = n->parent) {
+    if (n == selectedcontent) {
+      return;
+    }
   }
   if (option_node->type != GUMBO_NODE_ELEMENT && option_node->type != GUMBO_NODE_TEMPLATE) {
     return;
@@ -2867,6 +2879,13 @@ static bool handle_in_body(GumboParser* parser, GumboToken* token) {
     state->_selectedcontent_state = GUMBO_SELECTEDCONTENT_EMPTY;
     return true;
   } else if (tag_is(token, kEndTag, GUMBO_TAG_SELECTEDCONTENT)) {
+    // Without a selectedcontent element in scope, implicitly_close_tags()
+    // would pop every open element looking for one.
+    if (!has_an_element_in_scope(parser, GUMBO_TAG_SELECTEDCONTENT)) {
+      parser_add_parse_error(parser, token);
+      ignore_token(parser);
+      return false;
+    }
     implicitly_close_tags(parser, token, GUMBO_NAMESPACE_HTML, token->v.end_tag);
     state->_selectedcontent_target = NULL;
     return true;

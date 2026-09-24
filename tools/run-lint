@@ -11,8 +11,9 @@
 #     canary for tools/patches/0002-no-stdio.patch.
 #
 #   tools/run-lint            both gates
-#   tools/run-lint --canary   gate 2 on a copy with patch 0002 reversed;
-#                             it must FAIL there, or it cannot see anything
+#   tools/run-lint --canary   both canaries: gate 1's flags must reject a
+#                             deliberate warning, and gate 2 must FAIL on a
+#                             copy with patch 0002 reversed
 set -eu
 CC=${CC:-clang}
 ROOT=$(pwd)
@@ -40,6 +41,15 @@ check_symbols() {
 }
 
 if [ "${1:-}" = "--canary" ]; then
+  echo "==> canary: a deliberate warning must fail the strict flags"
+  printf 'unsigned f(int x);\nunsigned f(int x) { return x; }\n' > "$WORK/warn.c"
+  if "$CC" -std=c99 -Werror -Wall -Wextra -Wpedantic -Wshadow -Wconversion \
+    -Wstrict-prototypes -Wmissing-prototypes -Wcast-qual -Wwrite-strings \
+    -fsyntax-only "$WORK/warn.c" 2>/dev/null; then
+    echo "CANARY FAILED: the strict flags accepted a sign conversion" >&2
+    exit 1
+  fi
+  echo "    rejected"
   echo "==> canary: installing with patch 0002 reversed"
   mkdir "$WORK/pkg"
   (cd "$ROOT" && tar cf - --exclude='*.o' --exclude='*.so' DESCRIPTION NAMESPACE R src) |

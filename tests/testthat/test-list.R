@@ -67,3 +67,10 @@ test_that("html_list() needs exactly one list element", {
   expect_error(html_list(html_element(doc, "ul"), mode = "data.frame"),
                class = "zuhtml_input_error")
 })
+
+test_that("printing a long list is bounded", {
+  doc <- html_parse(paste0("<ul>", strrep("<li>item", 100), "</ul>"))
+  out <- capture.output(print(html_list(html_element(doc, "ul"), "tree")))
+  expect_length(out, 22L)
+  expect_identical(out[[22L]], "... and 80 more")
+})

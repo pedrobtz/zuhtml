@@ -1,0 +1,21 @@
+# Valgrind suppressions for the valgrind job in native-checks.yaml. tools/
+# is .Rbuildignore'd, so nothing here reaches the tarball.
+#
+# One entry, and the block is R's. do_iconv() (src/main/sysutils.c) fills a
+# local R_StringBuffer with R_AllocStringBuffer() and frees it as its last
+# statement. When Riconv_open() cannot honour the requested encoding it
+# raises error("unsupported conversion ...") from inside its loop, and the
+# long jump skips the free. test-parse.R asserts that html_parse(...,
+# encoding = "no-such-encoding") is a clean zuhtml_encoding_error, which is
+# what provokes it. The same entry is in zuxml, for the same reason.
+#
+# Matched on the whole call path, so a real leak from any other caller is
+# still reported.
+{
+   R-do_iconv-error-path-skips-R_FreeStringBuffer
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:malloc
+   fun:R_AllocStringBuffer
+   fun:do_iconv
+}

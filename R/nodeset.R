@@ -15,6 +15,17 @@ length.zuhtml_nodeset <- function(x) length(unclass(x))
 rev.zuhtml_nodeset <- function(x) new_nodeset(rev(unclass(x)), zuh_owner(x))
 
 #' @export
+rep.zuhtml_nodeset <- function(x, ...) {
+  new_nodeset(rep(unclass(x), ...), zuh_owner(x))
+}
+
+#' @export
+unique.zuhtml_nodeset <- function(x, incomparables = FALSE, ...) {
+  new_nodeset(unique(unclass(x), incomparables = incomparables, ...),
+              zuh_owner(x))
+}
+
+#' @export
 c.zuhtml_nodeset <- function(...) {
   parts <- list(...)
   ok <- vapply(parts, inherits, logical(1), "zuhtml_nodeset")

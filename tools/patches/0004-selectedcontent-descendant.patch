@@ -1,0 +1,40 @@
+From: Pedro Baltazar <pedrobtz@gmail.com>
+Subject: [PATCH 4/4] Do not clone an option inside selectedcontent into it
+
+maybe_clone_option_into_selectedcontent() runs whenever an option element
+is popped while a <selectedcontent> start tag has been seen. In the
+automatic state it first destroys selectedcontent's children. When the
+option being popped is itself inside selectedcontent, that destroys the
+option (and any open element between the two) and then reads it: a
+heap use-after-free, reachable from untrusted input such as
+
+  <selectedcontent><option>a<option selected>b
+
+and a dangling pointer on the stack of open elements when an element
+between the two is still open.
+
+The standard clones into the selectedcontent of the option's own select;
+an option inside that selectedcontent is not one of its options. Return
+early when the option is a descendant of the target.
+
+Found by fuzzing zuhtml's copy under AddressSanitizer. To be offered
+upstream at https://codeberg.org/gumbo-parser/gumbo-parser.
+---
+--- a/parser.c
++++ b/parser.c
+@@ -1049,6 +1049,15 @@
+   if (!selectedcontent) {
+     return;
+   }
++  // An option inside the selectedcontent element is not an option of the
++  // select it mirrors, and cloning it would first destroy selectedcontent's
++  // children: the option itself, and any open element between the two,
++  // while they are still in use.
++  for (const GumboNode* n = option_node->parent; n; n = n->parent) {
++    if (n == selectedcontent) {
++      return;
++    }
++  }
+   if (option_node->type != GUMBO_NODE_ELEMENT && option_node->type != GUMBO_NODE_TEMPLATE) {
+     return;
+   }

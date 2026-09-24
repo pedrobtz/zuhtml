@@ -31,7 +31,8 @@ src/vendor/PROVENANCE.
 
 The tree is upstream's files plus exactly the local patch series listed in
 src/vendor/PROVENANCE: a parse-time nesting-depth limit, the removal of the
-library's only printf(), and the modification notices Apache-2.0 requires.
+library's only printf(), the modification notices Apache-2.0 requires, and
+fixes for two memory-safety bugs in the <selectedcontent> support.
 Each modified file says so under its licence header. The script that proves
 the tree is upstream plus those patches, tools/verify-vendor, is not part of
 the distributed package; it and the patches live in the source repository

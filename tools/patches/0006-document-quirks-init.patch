@@ -1,0 +1,28 @@
+From: Pedro Baltazar <pedrobtz@gmail.com>
+Subject: [PATCH 6/6] Initialize the document's quirks mode
+
+new_document_node() initializes every field of GumboDocument except
+doc_type_quirks_mode. A document parse sets it when it sees (or misses)
+the doctype, but a fragment parse never does, and the "in body" handler
+for a <table> start tag reads it to decide whether to close an open <p>.
+Fragment parses therefore depend on uninitialized memory, and so does
+any caller reading the mode afterwards. Valgrind reports it.
+
+Initialize it to no-quirks, the mode of the document a fragment's context
+element is assumed to be in.
+
+Found by running zuhtml's test suite under valgrind. To be offered
+upstream at https://codeberg.org/gumbo-parser/gumbo-parser.
+---
+--- a/parser.c
++++ b/parser.c
+@@ -505,6 +505,9 @@
+   document->name = NULL;
+   document->public_identifier = NULL;
+   document->system_identifier = NULL;
++  // A fragment parse never sees a doctype token, but the table start-tag
++  // handler still reads the quirks mode.
++  document->doc_type_quirks_mode = GUMBO_DOCTYPE_NO_QUIRKS;
+   return document_node;
+ }
+ 

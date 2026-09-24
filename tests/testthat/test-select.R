@@ -275,7 +275,7 @@ test_that("matching stays fast on deep documents with long selectors", {
   s <- paste(rep("div", 60), collapse = " ")
   elapsed <- system.time(res <- html_elements(doc, paste(s, "span")))
   expect_length(res, 0L)
-  expect_lt(elapsed[["elapsed"]], 5)
+  if (timing_asserted()) expect_lt(elapsed[["elapsed"]], 5)
 })
 
 test_that("long type names compile (regression: pool use-after-free)", {

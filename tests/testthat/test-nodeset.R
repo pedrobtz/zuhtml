@@ -108,3 +108,14 @@ test_that("lapply() over a nodeset passes single nodes", {
                           integer(1)), c(1L, 2L))
   expect_identical(as.list(lists[0]), list())
 })
+
+test_that("rep() and unique() keep the class and the owner", {
+  doc <- html_parse("<p>1</p><p>2</p>")
+  p <- html_elements(doc, "p")
+  r <- rep(p, 2)
+  expect_s3_class(r, "zuhtml_nodeset")
+  expect_identical(html_text(r), c("1", "2", "1", "2"))
+  expect_identical(html_text(rep(p, each = 2)), c("1", "1", "2", "2"))
+  expect_identical(html_text(unique(r)), c("1", "2"))
+  expect_identical(html_document(unique(r)), doc)
+})

@@ -7,10 +7,12 @@
 #' (see [zuhtml-conditions]) after all native memory is released.
 #'
 #' The memory limit is the real guard; the input limit is a cheap check
-#' before parsing starts. The parser needs about 17 bytes of native memory
-#' per input byte on ordinary markup and up to about 47 on markup dense with
-#' formatting elements, so a large enough page can reach `max_memory` before
-#' `max_input`.
+#' before parsing starts. Parsing and conversion together need about 26
+#' bytes of native memory per input byte on ordinary markup, and 40 to 90 on
+#' markup dense with small elements, tables or formatting, so a large enough
+#' page reaches `max_memory` before `max_input` or `max_nodes`: a
+#' `zuhtml_limit_error`, not a crash. At the defaults, 16 MiB of ordinary
+#' markup (about 1.5 million nodes, 450 MB) parses.
 #'
 #' @param max_input Largest input, in bytes of UTF-8 after decoding.
 #' @param max_memory Largest native memory the parser may hold at once, in
@@ -36,7 +38,7 @@
 html_limits <- function(max_input = 16 * 1024^2,
                         max_memory = 512 * 1024^2,
                         max_depth = 512,
-                        max_nodes = 1e6,
+                        max_nodes = 4e6,
                         max_errors = 100,
                         max_table_cells = 1e6,
                         max_selector_length = 16 * 1024) {

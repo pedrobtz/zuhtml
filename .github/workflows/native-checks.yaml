@@ -1,0 +1,62 @@
+# Native-code checks through R: the package as R loads it, instrumented.
+# hardening.yaml compiles the C core into standalone drivers with no R in
+# the way; this is the only place the .Call entry points, the external
+# pointer finalizers and R-level long jumps out of C run under
+# instrumentation. Reusable workflows from pedrobtz/r-actions.
+#
+# paths-ignore skips prose-only changes. vignettes/ and man/ are not
+# ignored: R CMD check executes both, and these jobs run R CMD check.
+on:
+  push:
+    branches: [main, master]
+    paths-ignore:
+      - '**.md'
+      - '_pkgdown.yml'
+      - '.agents/**'
+      - 'docs/**'
+  pull_request:
+    paths-ignore:
+      - '**.md'
+      - '_pkgdown.yml'
+      - '.agents/**'
+      - 'docs/**'
+
+name: native-checks
+
+permissions: read-all
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  # UBSan over R CMD check under R-devel, and ASan in the R-hub containers
+  # whose R is itself built for it.
+  sanitizers:
+    uses: pedrobtz/r-actions/.github/workflows/sanitizers.yml@v1
+    with:
+      asan: true
+
+  # --leak-check=full, so a leak arrives with a stack; only definite and
+  # indirect leaks count, since "possibly lost" includes interior pointers
+  # into live blocks.
+  valgrind:
+    uses: pedrobtz/r-actions/.github/workflows/valgrind.yml@v1
+    with:
+      valgrind-opts: >-
+        --leak-check=full
+        --show-leak-kinds=definite,indirect
+        --errors-for-leak-kinds=definite,indirect
+      # R's own do_iconv() leaks a buffer when it errors on an unknown
+      # encoding, which a test provokes; the file has the mechanism.
+      suppressions: "tools/valgrind.supp"
+
+  gctorture:
+    uses: pedrobtz/r-actions/.github/workflows/gctorture.yml@v1
+
+  # Hard-failing: an unprotected SEXP is the class of bug that ships green
+  # and corrupts memory in someone else's session.
+  rchk:
+    uses: pedrobtz/r-actions/.github/workflows/rchk.yml@v1
+    with:
+      fail-on-findings: true

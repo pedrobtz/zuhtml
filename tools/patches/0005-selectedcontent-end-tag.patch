@@ -1,0 +1,35 @@
+From: Pedro Baltazar <pedrobtz@gmail.com>
+Subject: [PATCH 5/5] Ignore </selectedcontent> with no selectedcontent in scope
+
+The in-body handler for a </selectedcontent> end tag calls
+implicitly_close_tags() unconditionally. With no selectedcontent element
+open, that pops every element on the stack of open elements looking for
+one, then dereferences the NULL current node: an assertion failure in
+debug builds and a NULL dereference in release builds, from input as
+small as
+
+  <p>x</selectedcontent>
+
+Every other end tag handled this way first checks that a matching
+element is in scope, records a parse error and ignores the token when it
+is not. Do the same here.
+
+Found by fuzzing zuhtml's copy under UndefinedBehaviorSanitizer. To be
+offered upstream at https://codeberg.org/gumbo-parser/gumbo-parser.
+---
+--- a/parser.c
++++ b/parser.c
+@@ -2876,6 +2876,13 @@
+     state->_selectedcontent_state = GUMBO_SELECTEDCONTENT_EMPTY;
+     return true;
+   } else if (tag_is(token, kEndTag, GUMBO_TAG_SELECTEDCONTENT)) {
++    // Without a selectedcontent element in scope, implicitly_close_tags()
++    // would pop every open element looking for one.
++    if (!has_an_element_in_scope(parser, GUMBO_TAG_SELECTEDCONTENT)) {
++      parser_add_parse_error(parser, token);
++      ignore_token(parser);
++      return false;
++    }
+     implicitly_close_tags(parser, token, GUMBO_NAMESPACE_HTML, token->v.end_tag);
+     state->_selectedcontent_target = NULL;
+     return true;

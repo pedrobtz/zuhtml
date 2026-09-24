@@ -141,3 +141,14 @@ test_that("the document reports its own memory", {
   expect_gt(m$frozen_bytes, 0)
   expect_gt(m$parse_peak_bytes, m$frozen_bytes)
 })
+
+test_that("stray and nested <selectedcontent> markup is safe (patches 0004, 0005)", {
+  # Gumbo 0.14.0 dereferenced NULL on the first and read freed memory on
+  # the second; both crashed the R session.
+  doc <- html_parse("<!DOCTYPE html><p>x</selectedcontent>y")
+  expect_identical(html_text(body_of(doc)), "xy")
+  expect_true("unexpected-end-tag" %in% html_problems(doc)$code)
+  doc <- html_parse("<selectedcontent><option>a<option selected>b")
+  expect_identical(html_name(html_elements(doc, "selectedcontent option")),
+                   c("option", "option"))
+})

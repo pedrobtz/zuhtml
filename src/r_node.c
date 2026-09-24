@@ -81,6 +81,7 @@ C_zuh_node_type(SEXP ptr, SEXP ids) {
     int id = INTEGER(ids)[i];
     const char *t = id == NA_INTEGER ? NULL : type_name(doc, (zuh_id) id);
     SET_STRING_ELT(out, i, t == NULL ? NA_STRING : utf8(t));
+    poll(i);
   }
   UNPROTECT(1);
   return out;
@@ -108,6 +109,7 @@ C_zuh_node_name(SEXP ptr, SEXP ids) {
                    nd->type == ZUH_NODE_ELEMENT || nd->type == ZUH_NODE_DOCTYPE
                        ? utf8(zuh_str(doc, nd->name))
                        : NA_STRING);
+    poll(i);
   }
   UNPROTECT(1);
   return out;
@@ -132,6 +134,7 @@ C_zuh_node_namespace(SEXP ptr, SEXP ids) {
                    nd != NULL && nd->type == ZUH_NODE_ELEMENT && nd->ns <= 2
                        ? utf8(uris[nd->ns])
                        : NA_STRING);
+    poll(i);
   }
   UNPROTECT(1);
   return out;
@@ -152,6 +155,7 @@ C_zuh_node_parent(SEXP ptr, SEXP ids) {
     int id = INTEGER(ids)[i];
     zuh_id p = id == NA_INTEGER ? ZUH_NONE : doc->nodes[id].parent;
     INTEGER(out)[i] = p == ZUH_NONE ? NA_INTEGER : (int) p;
+    poll(i);
   }
   UNPROTECT(1);
   return out;
@@ -179,6 +183,7 @@ C_zuh_node_sibling(SEXP ptr, SEXP ids, SEXP next, SEXP elements_only) {
         s = fwd ? doc->nodes[s].next_sibling : doc->nodes[s].prev_sibling;
     }
     INTEGER(out)[i] = s == ZUH_NONE ? NA_INTEGER : (int) s;
+    poll(i);
   }
   UNPROTECT(1);
   return out;

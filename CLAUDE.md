@@ -25,13 +25,12 @@ scripts and CRAN comments. zuhtml does not depend on it or share code with it.
 
 ## Current state
 
-Stages 0 to 7 are done: every 0.1.0 export exists. Gumbo 0.14.0 is vendored
-with a three-patch series; parsing runs under the allocation ledger with
-every limit enforced and converts into a frozen, index-addressed document
-(`src/zuh_document.h`). On top: the node API, `html_serialize()`, CSS
-selection, and extraction (`html_text_clean()`, `html_list()`,
-`html_table()`/`html_tables()`, `html_links()`, `html_url()`). Stage 8
-(hardening) is next. The probe harness
+Stages 0 to 8 are done: every 0.1.0 export exists and the hardening
+gates are in place. Gumbo 0.14.0 is vendored with a six-patch series;
+parsing runs under the allocation ledger with every limit enforced and
+converts into a frozen, index-addressed document (`src/zuh_document.h`).
+On top: the node API, `html_serialize()`, CSS selection and extraction.
+Stage 9 (documentation, benchmarks, CRAN preparation) is next. The probe harness
 ([.agents/probe-gumbo.c](.agents/probe-gumbo.c)) holds the measurements the
 roadmap cites.
 
@@ -86,21 +85,25 @@ tools/update-gumbo 0.14.0      # re-vendor: download, verify, copy, patch, PROVE
 tools/verify-vendor            # vendor tree == archive + patches   (CI: hardening)
 tools/verify-vendor --canary   # must pass by seeing a dropped patch (CI: hardening)
 tools/run-lint                 # strict warnings; no stdio symbols  (CI: hardening)
-tools/run-lint --canary        # symbol check sees 0002 reversed    (CI: hardening)
+tools/run-lint --canary        # flags reject a planted warning; symbol
+                               # check sees 0002 reversed        (CI: hardening)
 tools/run-conformance          # html5lib tree-construction fixtures vs the tree
                                # dump, plus a serialize-reparse round trip;
                                # --canary and --canary-serialize must fail
                                #                                    (CI: hardening)
-tools/run-fuzz [secs]          # libFuzzer targets in fuzz/ (standalone mutation
-                               # loop where libFuzzer is missing, e.g. macOS);
-                               # fuzz_canary must crash first    (CI: hardening)
+tools/run-fuzz [secs]          # fuzz_selector, fuzz_parse, fuzz_roundtrip under
+                               # ASan+UBSan: libFuzzer, or a standalone mutation
+                               # loop where it is missing (macOS); seeds include
+                               # every conformance #data block; fuzz_canary must
+                               # crash first. 60 s per push, 30 min nightly
+                               #                                    (CI: hardening)
 tools/run-sanitizers           # ASan+UBSan seam driver, fault injection at every
                                # allocation index, overflow canary; leak check and
                                # leak canary with ASAN_OPTIONS=detect_leaks=1
                                #                                    (CI: hardening)
 ```
 
-The roadmap adds more fuzz targets and `run-benchmarks` at later stages. Add each here when it lands, and say
+The roadmap adds `run-benchmarks` at Stage 9. Add each here when it lands, and say
 whether CI runs it.
 
 ## Architecture
@@ -256,8 +259,14 @@ tables, serialization) reads the arena and never touches Gumbo. Only
 - **Fault injection from R** goes through the internal
   `zuh_parse_bytes(..., fail_at = k)`. The exhaustive run over every index,
   with leak detection, is `tools/run-sanitizers`.
-- **Timing assertions run on CI only** (`CI=true` and not under covr): the
-  local R may be emulated (x86_64 under Rosetta is about 4× slower).
+- **Interrupts are tested with `setTimeLimit()`**, which R enforces where
+  the C loops poll `R_CheckUserInterrupt()` (`test-interrupt.R`). Every
+  R-facing loop over the frozen document polls.
+- **Timing assertions are opt-in**: wrap them in `timing_asserted()`
+  (`helper-timing.R`), true only where `ZUHTML_TIMING_TESTS=true`, which
+  only `R-CMD-check.yaml` sets. Sanitizer, valgrind, gctorture, coverage
+  and emulated builds are many times slower; the first native-checks run
+  failed on exactly that.
 - **Stage pull requests carry the `full-ci` label**, so the full R CMD check
   matrix (all three platforms) runs before merge rather than only after.
 - **Keep the suite inside the CRAN time budget.** No runtime to report yet.
@@ -291,8 +300,11 @@ fail.
 Workflows come from `pedrobtz/r-actions`, pinned at `@v1`:
 `r-cmd-check.yml` (quick profile on pull requests, full on `main` or with the
 `full-ci` label), `coverage.yml` (writes the badge under `.github/badges/`)
-and `pkgdown.yml`. `hardening.yaml` runs the vendor and lint gates with their canaries; later
-stages add sanitizers, fuzzing and conformance to it.
+and `pkgdown.yml`. `hardening.yaml` runs every gate above with its canary, plus a nightly
+long fuzz run. `native-checks.yaml` runs R CMD check instrumented, through
+r-actions: UBSan and ASan, valgrind with leak checking, gctorture and
+rchk (hard-failing). The R CMD check matrix adds Windows on R-devel to
+r-actions' defaults.
 
 ## Vendored native code
 
@@ -317,11 +329,17 @@ with `tools/update-gumbo <version>`, never by hand.
   vendored (`tools/gumbo-files.txt`): no Python bindings, tests, benchmarks,
   examples, `visualc/`, Meson or autotools.
 - The patch series is `tools/patches/0001-max-tree-depth.patch`,
-  `0002-no-stdio.patch` and `0003-modification-notices.patch`. 0003 is
-  licence-mandated (Apache-2.0 §4(b)), local only, and stays last: extend it
-  whenever an earlier patch touches a new file. `tools/verify-vendor` fails
-  on a modified file without the notice. The patch identifiers are also
-  listed in `src/zuh_gumbo.c` and reported by `zuhtml_info()`.
+  `0002-no-stdio.patch`, `0003-modification-notices.patch`,
+  `0004-selectedcontent-descendant.patch`,
+  `0005-selectedcontent-end-tag.patch` and
+  `0006-document-quirks-init.patch`. 0003 is licence-mandated
+  (Apache-2.0 §4(b)) and local only; it must mark every file the series
+  touches, so extend it when a new patch touches a new file.
+  `tools/verify-vendor` fails on a modified file without the notice.
+  0004 and 0005 fix upstream memory-safety bugs the fuzzer found, and 0006
+  an uninitialized read valgrind found (issue #22). Every patch identifier is also listed in `src/zuh_gumbo.c`,
+  reported by `zuhtml_info()` and asserted in `test-info.R`: update all
+  three together.
 
 ## Commits and pull requests
 

@@ -9,7 +9,7 @@ test_that("html_limits() has the documented defaults", {
   expect_identical(lim$max_input, 16 * 1024^2)
   expect_identical(lim$max_memory, 512 * 1024^2)
   expect_identical(lim$max_depth, 512)
-  expect_identical(lim$max_nodes, 1e6)
+  expect_identical(lim$max_nodes, 4e6)
   expect_identical(lim$max_errors, 100)
   expect_identical(lim$max_table_cells, 1e6)
   expect_identical(lim$max_selector_length, 16 * 1024)
