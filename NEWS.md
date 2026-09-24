@@ -63,6 +63,12 @@ First release.
   joins, keeping element boundaries. `html_serialize(pretty = TRUE)` lays
   block-level elements out on indented lines for reading.
 
+* New `html_title()`, `html_meta()`, `html_json_ld()` and `html_microdata()`
+  read page metadata: the document title, every `<meta>` tag (OpenGraph,
+  Twitter cards and Dublin Core included), JSON-LD blocks (parsed with
+  jsonlite if asked) and microdata items per the HTML standard, `itemref`
+  included.
+
 * New `html_serialize()` (and `as.character()` on nodesets) writes nodes
   as normalized HTML following the WHATWG serialization algorithm, outer
   or inner.
