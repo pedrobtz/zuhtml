@@ -25,3 +25,10 @@ Useful links:
 Authors:
 
 - Pedro Baltazar <pedrobtz@gmail.com> \[copyright holder\]
+
+Other contributors:
+
+- Google Inc. (Gumbo, bundled in src/vendor/gumbo) \[copyright holder\]
+
+- Bjoern Hoehrmann (UTF-8 decoder in src/vendor/gumbo/utf8.c)
+  \[copyright holder\]

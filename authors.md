@@ -4,6 +4,12 @@
 
 - **Pedro Baltazar**. Author, maintainer, copyright holder.
 
+- **Google Inc.**. Copyright holder.  
+  Gumbo, bundled in src/vendor/gumbo
+
+- **Bjoern Hoehrmann**. Copyright holder.  
+  UTF-8 decoder in src/vendor/gumbo/utf8.c
+
 ## Citation
 
 Source:

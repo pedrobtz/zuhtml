@@ -44,7 +44,7 @@
 </div>
 <div class="section level2">
 <h2 id="current-state">Current state<a class="anchor" aria-label="anchor" href="#current-state"></a></h2>
-<p>Stage 0 is done: the design carries the seven amendments, <code>DESCRIPTION</code> is real, and <code>src/init.c</code> registers one smoke entry point (<code>C_zuh_loaded</code>) with dynamic lookup off and symbols forced. There is no vendored Gumbo and no exported function yet. The probe harness (<a href=".agents/probe-gumbo.c">.agents/probe-gumbo.c</a>) holds the measurements the roadmap cites.</p>
+<p>Stages 0 and 1 are done. Gumbo 0.14.0 is vendored with a three-patch series and builds on all three platforms; <code><a href="reference/zuhtml_info.html">zuhtml_info()</a></code> is the one export and self-tests the parser and the depth patch. There is no parse entry point, ledger or document yet: Stage 2 is next. The probe harness (<a href=".agents/probe-gumbo.c">.agents/probe-gumbo.c</a>) holds the measurements the roadmap cites.</p>
 <p>The roadmap’s <strong>Status:</strong> line under each stage is authoritative for progress; update it there, not here.</p>
 </div>
 <div class="section level2">
@@ -75,11 +75,17 @@
 <span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a><span class="ex">Rscript</span> <span class="at">-e</span> <span class="st">'devtools::test(shuffle = TRUE)'</span>      <span class="co"># order independence</span></span>
 <span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a><span class="ex">Rscript</span> <span class="at">-e</span> <span class="st">'devtools::check()'</span>                   <span class="co"># R CMD check</span></span>
 <span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a><span class="ex">air</span> format .                                     <span class="co"># format R sources</span></span></code></pre></div>
-<p>The gate scripts under <code>tools/</code> do not exist yet. The roadmap names them stage by stage, in zuxml’s shape: <code>verify-vendor</code>, <code>update-gumbo</code>, <code>run-lint</code>, <code>run-sanitizers</code>, <code>run-fuzz</code>, <code>run-conformance</code>, <code>run-benchmarks</code>. Add each to this list when it lands, and say whether CI runs it.</p>
+<p>Gate scripts, each run from the package root:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="ex">tools/update-gumbo</span> 0.14.0      <span class="co"># re-vendor: download, verify, copy, patch, PROVENANCE</span></span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="ex">tools/verify-vendor</span>            <span class="co"># vendor tree == archive + patches   (CI: hardening)</span></span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="ex">tools/verify-vendor</span> <span class="at">--canary</span>   <span class="co"># must pass by seeing a dropped patch (CI: hardening)</span></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="ex">tools/run-lint</span>                 <span class="co"># strict warnings; no stdio symbols  (CI: hardening)</span></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="ex">tools/run-lint</span> <span class="at">--canary</span>        <span class="co"># symbol check sees 0002 reversed    (CI: hardening)</span></span></code></pre></div>
+<p>The roadmap adds <code>run-sanitizers</code>, <code>run-fuzz</code>, <code>run-conformance</code> and <code>run-benchmarks</code> at later stages. Add each here when it lands, and say whether CI runs it.</p>
 </div>
 <div class="section level2">
 <h2 id="architecture">Architecture<a class="anchor" aria-label="anchor" href="#architecture"></a></h2>
-<p>Planned layout, from design §13 and the roadmap. Nothing below exists yet.</p>
+<p>Planned layout, from design §13 and the roadmap. So far <code>R/info.R</code>, <code>src/init.c</code>, <code>src/zuh_gumbo.[ch]</code>, <code>src/Makevars</code>, <code>src/vendor/</code> and the vendoring and lint scripts in <code>tools/</code> exist.</p>
 <pre><code>R/                 parse.R, conditions.R, info.R, node.R, nodeset.R, select.R,
                    attributes.R, text.R, write.R, list.R, table.R, links.R
 src/               init.c, r_api.c                       R-facing glue only
@@ -147,21 +153,22 @@ fuzz/              libFuzzer targets over the C core
 <li>There is no <code>README.Rmd</code>; edit <code>README.md</code> directly.</li>
 <li>Keep prose simple and short. One idea per sentence.</li>
 <li>Wrap roxygen text at 80 characters and run <code>air format .</code> on R sources.</li>
-<li>Use <code>lower_snake_case</code>; exported functions are <code>html_*</code> plus <code>zuhtml_info()</code>; native symbols are prefixed <code>zuh_</code>.</li>
+<li>Use <code>lower_snake_case</code>; exported functions are <code>html_*</code> plus <code><a href="reference/zuhtml_info.html">zuhtml_info()</a></code>; native symbols are prefixed <code>zuh_</code>.</li>
 <li>Keep hard runtime dependencies at zero. Base data frames and list-columns, never tibble.</li>
 <li>Export and document public functions. Do not create roxygen topics for internal ones. Every export needs <code>@return</code> and runnable <code>@examples</code>.</li>
 </ul></div>
 <div class="section level2">
 <h2 id="continuous-integration">Continuous integration<a class="anchor" aria-label="anchor" href="#continuous-integration"></a></h2>
-<p>Workflows come from <code>pedrobtz/r-actions</code>, pinned at <code>@v1</code>: <code>r-cmd-check.yml</code> (quick profile on pull requests, full on <code>main</code> or with the <code>full-ci</code> label), <code>coverage.yml</code> (writes the badge under <code>.github/badges/</code>) and <code>pkgdown.yml</code>. The hardening and native-check workflows the roadmap describes are not set up yet.</p>
+<p>Workflows come from <code>pedrobtz/r-actions</code>, pinned at <code>@v1</code>: <code>r-cmd-check.yml</code> (quick profile on pull requests, full on <code>main</code> or with the <code>full-ci</code> label), <code>coverage.yml</code> (writes the badge under <code>.github/badges/</code>) and <code>pkgdown.yml</code>. <code>hardening.yaml</code> runs the vendor and lint gates with their canaries; later stages add sanitizers, fuzzing and conformance to it.</p>
 </div>
 <div class="section level2">
 <h2 id="vendored-native-code">Vendored native code<a class="anchor" aria-label="anchor" href="#vendored-native-code"></a></h2>
-<p>Gumbo, the codeberg fork, <strong>Apache-2.0</strong>, to be pinned at <strong>0.14.0</strong> (tag commit <code>f7145e6e7700</code>, archive SHA-256 <code>eac82480b916d520e4c7938cbd593ceda34c9241cba04022a078550d0d324cfe</code>). Not yet imported; Stage 1 of the roadmap.</p>
+<p>Gumbo, the codeberg fork, <strong>Apache-2.0</strong>, pinned at <strong>0.14.0</strong> (tag commit <code>f7145e6e7700</code>, archive SHA-256 <code>eac82480b916d520e4c7938cbd593ceda34c9241cba04022a078550d0d324cfe</code>), in <code>src/vendor/gumbo/</code> with provenance in <code>src/vendor/PROVENANCE</code>. Re-vendor with <code>tools/update-gumbo &lt;version&gt;</code>, never by hand.</p>
 <ul><li>Pin a stable upstream release, never <code>master</code> or a release candidate.</li>
 <li>Record the tag, the commit and the checksums in <code>src/vendor/PROVENANCE</code>, and keep <code>tools/update-gumbo</code> mechanical: download, verify, extract the file list, apply <code>tools/patches/</code> in order.</li>
-<li>Keep upstream <code>COPYING</code> under <code>src/vendor/gumbo/</code>, declare every copyright holder found in the vendored file headers as <code>cph</code> in <code>Authors@R</code>, and write <code>inst/COPYRIGHTS</code> and <code>LICENSE.note</code>. Do not describe the whole package as MIT. Before writing the <code>License:</code> field, find the CRAN precedent for MIT packages bundling Apache-2.0 code and copy it.</li>
-<li>Only the 11 parser translation units and their headers are vendored: no Python bindings, tests, benchmarks, examples, <code>visualc/</code>, Meson or autotools.</li>
+<li>Keep upstream <code>COPYING</code> under <code>src/vendor/gumbo/</code>, declare every copyright holder found in the vendored file headers as <code>cph</code> in <code>Authors@R</code> (Google Inc.; Bjoern Hoehrmann for the UTF-8 decoder in <code>utf8.c</code>), and keep <code>inst/COPYRIGHTS</code> and <code>LICENSE.note</code> current. Do not describe the whole package as MIT. The <code>License:</code>/<code>Copyright:</code> fields follow the CRAN precedent of <code>data.sketches</code> 0.1.1 (MIT package bundling Apache-2.0 code): <code>MIT + file LICENSE</code> and <code>Copyright: file inst/COPYRIGHTS</code>.</li>
+<li>Only the 12 parser translation units, their headers and <code>doc/COPYING</code> are vendored (<code>tools/gumbo-files.txt</code>): no Python bindings, tests, benchmarks, examples, <code>visualc/</code>, Meson or autotools.</li>
+<li>The patch series is <code>tools/patches/0001-max-tree-depth.patch</code>, <code>0002-no-stdio.patch</code> and <code>0003-modification-notices.patch</code>. 0003 is licence-mandated (Apache-2.0 §4(b)), local only, and stays last: extend it whenever an earlier patch touches a new file. <code>tools/verify-vendor</code> fails on a modified file without the notice. The patch identifiers are also listed in <code>src/zuh_gumbo.c</code> and reported by <code><a href="reference/zuhtml_info.html">zuhtml_info()</a></code>.</li>
 </ul></div>
 <div class="section level2">
 <h2 id="commits-and-pull-requests">Commits and pull requests<a class="anchor" aria-label="anchor" href="#commits-and-pull-requests"></a></h2>
