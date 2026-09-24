@@ -2,8 +2,10 @@
 
 * Bundles the 'Gumbo' HTML5 parser 0.14.0 from the maintained fork at
   <https://codeberg.org/gumbo-parser/gumbo-parser>, with local patches that
-  add a parse-time nesting-depth limit and remove the library's only
-  `printf()`. No system library is needed.
+  add a parse-time nesting-depth limit, remove the library's only
+  `printf()`, and fix two memory-safety bugs in its `<selectedcontent>`
+  support that fuzzing found (a use-after-free and a NULL dereference, both
+  reachable from untrusted HTML). No system library is needed.
 
 * New `html_parse()` and `html_read()` parse HTML from a string, raw vector
   or local file under explicit resource limits from the new
@@ -29,7 +31,8 @@
   `html_name()`, `html_namespace()`, `html_type()`, `html_attr()`,
   `html_attrs()`, `html_classes()` and `html_text()`. `html_info()`
   describes a document. `lapply()` and friends over a nodeset pass one
-  node at a time.
+  node at a time; `rep()`, `rev()`, `unique()` and `c()` keep nodesets
+  nodesets.
 
 * New extraction functions. `html_text_clean()` gives text as a reader
   wants it: scripts and styles skipped, whitespace collapsed outside

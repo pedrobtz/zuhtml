@@ -8,7 +8,7 @@ html_limits(
   max_input = 16 * 1024^2,
   max_memory = 512 * 1024^2,
   max_depth = 512,
-  max_nodes = 1e+06,
+  max_nodes = 4e+06,
   max_errors = 100,
   max_table_cells = 1e+06,
   max_selector_length = 16 * 1024
@@ -46,10 +46,12 @@ the extraction functions. Exceeding one raises a \code{zuhtml_limit_error}
 }
 \details{
 The memory limit is the real guard; the input limit is a cheap check
-before parsing starts. The parser needs about 17 bytes of native memory
-per input byte on ordinary markup and up to about 47 on markup dense with
-formatting elements, so a large enough page can reach \code{max_memory} before
-\code{max_input}.
+before parsing starts. Parsing and conversion together need about 26
+bytes of native memory per input byte on ordinary markup, and 40 to 90 on
+markup dense with small elements, tables or formatting, so a large enough
+page reaches \code{max_memory} before \code{max_input} or \code{max_nodes}: a
+\code{zuhtml_limit_error}, not a crash. At the defaults, 16 MiB of ordinary
+markup (about 1.5 million nodes, 450 MB) parses.
 }
 \examples{
 html_limits()

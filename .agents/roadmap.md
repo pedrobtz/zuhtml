@@ -212,7 +212,15 @@ Also: strings built for R now use an R_alloc-backed buffer (`zuh_buf`), retrofit
 
 ## Stage 8 — Hardening · L
 
-**Status:** not started.
+**Status:** done 2026-09-24.
+- **Fuzzing.** `fuzz_parse` runs the whole pipeline (parse, convert, dump, serialize, clean text, table grids, selectors) with a fragment context picked by the first byte. `fuzz_roundtrip` counts non-fixed-points at exit rather than asserting. Both join `fuzz_selector`, seeded with every conformance `#data` block plus the probe generators. CI runs 60 s per target per push and 30 min nightly; `tools/run-fuzz` needs `fuzz_canary` to crash first.
+- **Two upstream memory-safety bugs found**, both in Gumbo 0.14.0's new `<selectedcontent>` support and reachable from one line of untrusted HTML: a heap use-after-free, and a NULL dereference that segfaults R. Patches 0004 and 0005 fix them; issue #22 tracks reporting them upstream. After the fixes: 15.4 M selector, 1.28 M parse and 1.3 M round-trip standalone runs, with no finding.
+- **Fault injection** now also fails every allocation of the serializer, the text cleaner and the table grid, through a failing allocator: 1,394 sites on top of 5,699 in the parser and conversion.
+- **Canaries.** `tools/run-lint --canary` also requires the strict flags to reject a planted warning. Every hardening gate has now been seen to fail: vendor, both lint halves, overflow and leak, both conformance canaries, fuzz.
+- **CI.** Windows R-devel is added to the check matrix. `native-checks.yaml` (UBSan/ASan through R, valgrind with leak checking, gctorture, rchk hard-failing) comes from r-actions and relies on that repository's own self-tests for its canaries.
+- **Limits.** Defaults were set from measurement, recorded in design §12: 16 MiB inputs cost 230–300 bytes per node in total, so `max_nodes` went from 1 M to 4 M, above what the 512 MiB memory cap allows, and 16 MiB of ordinary markup now parses at the defaults.
+- **Interrupts and printing.** Interrupts are tested with `setTimeLimit()` on selection, text and serialization loops. Every R-facing accessor loop polls, and list printing is bounded.
+- **Found along the way:** `rep()` and `unique()` stripped the nodeset class, as `lapply()` had; both now have methods.
 
 - Fuzz targets under `fuzz/`: `fuzz_parse` (ledger, limits, conversion, serialize), `fuzz_roundtrip` (report non-fixed-points), `fuzz_selector`. `tools/run-fuzz` propagates the fuzzer's exit status (zuxml #35) and a target that must crash is the canary. Nightly runs in a `hardening.yaml` workflow; the seed corpus includes the conformance `#data` blocks and the probe generators.
 - Allocation-failure injection across the corpus (Stage 2) re-run against the full pipeline including conversion and serialization.

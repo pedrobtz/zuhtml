@@ -2,9 +2,10 @@
 # a gate counts once it has been seen to fail, so every run also proves the
 # gate can still see what it guards against. See .agents/roadmap.md.
 #
-# Stage 1 added the vendor and lint gates, Stage 2 the sanitizers, Stage 3
-# the tree-construction conformance gate, Stage 6 the selector fuzz target;
-# Stage 8 adds the parse and round-trip targets and a nightly long run.
+# The vendor and lint gates (Stage 1), sanitizers (Stage 2), tree-
+# construction conformance and the round trip (Stages 3 and 5), and fuzzing
+# of selectors, parsing and the round trip (Stages 6 and 8), with a long
+# nightly fuzz run.
 #
 # paths-ignore skips the workflow for prose-only changes. GitHub applies it
 # only when every changed file matches, so a commit touching both a .md file
@@ -23,6 +24,10 @@ on:
       - '_pkgdown.yml'
       - '.agents/**'
       - 'docs/**'
+  schedule:
+    # Nightly: the long fuzz run. The per-push budget is deliberately small.
+    - cron: "23 3 * * *"
+  workflow_dispatch:
 
 name: hardening
 
@@ -51,8 +56,8 @@ jobs:
       - uses: r-lib/actions/setup-r@v2
       - name: project-owned code is warning-free; the .so imports no stdio
         run: CC=clang ./tools/run-lint
-      - name: canary - reversing patch 0002 must trip the symbol check
-        run: ./tools/run-lint --canary
+      - name: canaries - a deliberate warning, and patch 0002 reversed
+        run: CC=clang ./tools/run-lint --canary
 
   sanitizers:
     runs-on: ubuntu-latest
@@ -95,11 +100,13 @@ jobs:
           path: ~/.cache/zuhtml/fuzz-corpus
           key: fuzz-corpus-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: fuzz-corpus-
-      - name: fuzz every target for 60 s
+      - name: fuzz every target (60 s each; 30 min each nightly)
         # tools/run-fuzz first requires fuzz/fuzz_canary.c to crash, and
         # exits 2 if it does not, so a green step means a crash would have
         # been seen.
-        run: ZUH_FUZZ_CORPUS="$HOME/.cache/zuhtml/fuzz-corpus" CC=clang ./tools/run-fuzz 60
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ]; then SECS=1800; else SECS=60; fi
+          ZUH_FUZZ_CORPUS="$HOME/.cache/zuhtml/fuzz-corpus" CC=clang ./tools/run-fuzz "$SECS"
       - name: upload any findings
         if: failure()
         uses: actions/upload-artifact@v4

@@ -414,19 +414,31 @@ Parse time is quadratic in nesting depth: 10k nested `<div>` take 0.14 s, 50k 3.
 
 ### Limits
 
-Gumbo's peak allocation, measured with a counting allocator, is about 17× the input for ordinary markup (16.7 MB → 277 MB), about 13× for block nesting, about 47× for formatting-element-heavy markup and about 190× for pure nesting. The input cap and the memory cap are set so that ordinary markup at the input cap fits the memory cap. **The memory cap is the real guard; the input cap is the cheap pre-check.** A 16 MiB formatting-heavy page can trip the memory cap first: that is a classed `zuhtml_limit_error`, not a bug.
+The memory budget covers Gumbo's ledger and, during conversion, the frozen document beside it. Measured at Stage 8 on 16 MiB inputs (peak ledger bytes plus frozen bytes):
+
+| Input (16 MiB) | Nodes | Parse + convert | Per input byte | Per node |
+|---|---:|---:|---:|---:|
+| ordinary paragraphs with attributes | 1.50 M | 443 MB | 26× | 295 B |
+| block sawtooth (depth 500) | 1.53 M | 360 MB | 21× | 236 B |
+| table cells | 2.80 M | 643 MB | 38× | 230 B |
+| empty `<p></p>` | 2.40 M | 599 MB | 36× | 250 B |
+| formatting-heavy sawtooth | 5.56 M | 1,253 MB | 75× | 225 B |
+| bare `<p>` | 5.59 M | 1,387 MB | 83× | 248 B |
+| text with `<br>` | 6.71 M | 1,557 MB | 93× | 232 B |
+
+Every node costs about 230–300 bytes, so the memory cap bounds the node count at roughly two million by itself. The input cap and the memory cap are set so that ordinary markup at the input cap fits the memory cap. **The memory cap is the real guard; the input cap is the cheap pre-check, and `max_nodes` a backstop above what the memory cap allows.** Denser 16 MiB pages trip the memory cap first: that is a classed `zuhtml_limit_error`, not a bug.
 
 | Limit | Default | Enforcement point |
 |---|---:|---|
 | `max_input` — decoded input | 16 MiB | Before parsing, after decoding |
 | `max_memory` — Gumbo native memory | 512 MiB | In the ledger, on every allocation |
 | `max_depth` — tree depth | 512 | During parsing (patched Gumbo option); again during conversion |
-| `max_nodes` — final nodes | 1,000,000 | During conversion |
+| `max_nodes` — final nodes | 4,000,000 | During conversion |
 | `max_errors` — collected parse problems | 100 | Gumbo's `max_errors` option |
 | `max_table_cells` — expanded table slots | 1,000,000 | Before span expansion and result construction |
 | `max_selector_length` | 16 KiB | Before selector compilation |
 
-`html_limits()` returns one validated named option object used by parsing and extraction; `html_extract_limits()` is folded into it. It rejects negative, missing, nonfinite, overflowing or fractional counts with `zuhtml_input_error`. Limits are per operation, not global mutable options. The defaults are confirmed against measured peak memory of parse plus conversion at roadmap Stage 8, and this table is updated then. `max_errors` limits diagnostic retention, not total parser work.
+`html_limits()` returns one validated named option object used by parsing and extraction; `html_extract_limits()` is folded into it. It rejects negative, missing, nonfinite, overflowing or fractional counts with `zuhtml_input_error`. Limits are per operation, not global mutable options. The defaults were set from the Stage 8 measurements above. `max_nodes` was raised from the initial 1,000,000, which 16 MiB of ordinary markup (1.5 M nodes) exceeded before the memory cap did. `max_errors` limits diagnostic retention, not total parser work.
 
 The native-memory cap excludes memory already owned by R and R result objects. Bound output counts and checked size arithmetic separately; do not call this a cap on process RSS. Buffering, decoding, source retention, and table expansion must each be accounted for honestly. R allocations can still fail and must unwind native ownership safely.
 
@@ -440,7 +452,7 @@ Parsing is not sanitization. Serialization can preserve script elements and dang
 
 Target R >= 4.1 and C99, with no mandatory external R package dependencies for the core. Use base data frames and list-columns; tibble users can convert explicitly. Optional JSON integration and benchmarks belong in Suggests. No network access or source generation during installation.
 
-The pinned release is Gumbo **0.14.0** (released 2026-08-26, tag commit `f7145e6e7700`). Its parser source and header set is about 24,800 lines including comments and generated tables; 0.13.2's was about 36,100. 0.14.0 also drops the Ragel build dependency. These are source measurements, not installed-library or memory benchmarks. Its Meson definition lists 12 C translation units (`char_ref_gperf.c` is compiled separately from `char_ref.c`); compile them directly through portable R Makevars rather than requiring Meson for users. Every unit includes `<strings.h>` unconditionally; Rtools' MinGW provides it, and Windows CI confirms this at Stage 1. `gumbo_print_caret_diagnostic()` in `error.c` calls `printf` and would draw an R CMD check NOTE; the local `0002-no-stdio.patch` removes it. The `gumbo_debug()` body that also prints is compiled only under `-DGUMBO_DEBUG` and needs no patch. A third local patch, `0003-modification-notices.patch`, adds the notice Apache-2.0 §4(b) requires to each file the others modify; it is the only patch not offered upstream. `assert` is compiled out because R builds with `-DNDEBUG`.
+The pinned release is Gumbo **0.14.0** (released 2026-08-26, tag commit `f7145e6e7700`). Its parser source and header set is about 24,800 lines including comments and generated tables; 0.13.2's was about 36,100. 0.14.0 also drops the Ragel build dependency. These are source measurements, not installed-library or memory benchmarks. Its Meson definition lists 12 C translation units (`char_ref_gperf.c` is compiled separately from `char_ref.c`); compile them directly through portable R Makevars rather than requiring Meson for users. Every unit includes `<strings.h>` unconditionally; Rtools' MinGW provides it, and Windows CI confirms this at Stage 1. `gumbo_print_caret_diagnostic()` in `error.c` calls `printf` and would draw an R CMD check NOTE; the local `0002-no-stdio.patch` removes it. The `gumbo_debug()` body that also prints is compiled only under `-DGUMBO_DEBUG` and needs no patch. A third local patch, `0003-modification-notices.patch`, adds the notice Apache-2.0 §4(b) requires to each file the series modifies; it is the only patch not offered upstream. Fuzzing at Stage 8 found two memory-safety bugs in 0.14.0's new `<selectedcontent>` support, both reachable from untrusted HTML. `0004-selectedcontent-descendant.patch` fixes a heap use-after-free when an option sits inside the `<selectedcontent>` target. `0005-selectedcontent-end-tag.patch` fixes a NULL dereference on a stray `</selectedcontent>`. Both are tracked in issue #22 until they are reported and fixed upstream. `assert` is compiled out because R builds with `-DNDEBUG`.
 
 0.14.0 also adds the licence text as `doc/COPYING` (vendored as `src/vendor/gumbo/COPYING`), ships 61 html5lib/WPT tree-construction `.dat` fixtures under `tests/tree_construction/`, fixes a doctype-token memory leak, and adds `GUMBO_NODE_PROCESSING_INSTRUCTION` and `gumbo_tag_is_void()`.
 

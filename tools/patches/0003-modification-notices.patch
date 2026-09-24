@@ -6,8 +6,9 @@ notices stating that they were changed. Add one line under the licence
 header of every file patches 0001 and 0002 touch. tools/verify-vendor
 checks that every vendored file that differs from upstream carries it.
 
-Local to zuhtml and never offered upstream. Keep it last in the series and
-extend it whenever an earlier patch touches a new file.
+Local to zuhtml and never offered upstream. It must mark every file any
+patch in the series touches, including later ones; tools/verify-vendor
+checks that.
 ---
 --- a/error.c
 +++ b/error.c

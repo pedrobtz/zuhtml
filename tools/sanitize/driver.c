@@ -34,7 +34,7 @@ static const zuh_parse_opts defaults = {
   (size_t) 512 << 20, /* max_memory */
   512,                /* max_depth */
   100,                /* max_errors */
-  1000000,            /* max_nodes */
+  4000000,            /* max_nodes */
   1,                  /* keep_comments */
   -1,                 /* fragment_tag */
   0,                  /* fragment_ns */
@@ -68,7 +68,17 @@ static const char *const corpus[] = {
   "</tfoot></table>",
   "<table><tr><td>a<td rowspan=2>b<tr><td colspan=2>overlap</table>",
   "<table><tr><td colspan=' +7x'>w<td rowspan=70000>r<tr></table>"
-  "<ul><li>a<div><ul><li>b</ul></div>c<li>d</ul>"
+  "<ul><li>a<div><ul><li>b</ul></div>c<li>d</ul>",
+  /* Gumbo 0.14.0 freed an option inside <selectedcontent> and read it
+   * again (tools/patches/0004-selectedcontent-descendant.patch). */
+  "<selectedcontent><option>a<option selected>b",
+  "<selectedcontent><div><option>a<option selected>b</div>c",
+  "<select><button><selectedcontent></selectedcontent></button>"
+  "<option>a<option selected>b<option>c</select>",
+  /* ... and dereferenced NULL on a stray </selectedcontent>
+   * (tools/patches/0005-selectedcontent-end-tag.patch). */
+  "<p>x</selectedcontent>y",
+  "</selectedcontent><table><tr><td></selectedcontent>"
 };
 #define N_CORPUS (sizeof(corpus) / sizeof(corpus[0]))
 
@@ -154,6 +164,71 @@ arena_release(arena *a) {
   free(a->blocks);
   a->blocks = NULL;
   a->n = a->cap = 0;
+}
+
+/* An arena whose k-th allocation fails: for injecting failures into the
+ * paths that build output through an allocator callback. */
+typedef struct {
+  arena a;
+  size_t calls, fail_at;
+} failing_arena;
+
+static void *
+failing_alloc(void *userdata, size_t size) {
+  failing_arena *f = (failing_arena *) userdata;
+  if (++f->calls == f->fail_at)
+    return NULL;
+  return arena_alloc(&f->a, size);
+}
+
+static size_t buffer_sites;
+
+/* Fail every allocation of the serializer, the text cleaner and the table
+ * grid in turn: each must report ZUH_LIMIT_MEMORY (and the arena frees
+ * everything, so LeakSanitizer sees any stray malloc). */
+static void
+buffer_fault_injection(const zuh_doc *doc) {
+  zuh_id id;
+  size_t total = 0;
+  for (id = 0; id < doc->n_nodes; id++) {
+    const zuh_node *n = &doc->nodes[id];
+    int kind;
+    for (kind = 0; kind < 3; kind++) {
+      size_t k;
+      if (kind == 2 && !(n->type == ZUH_NODE_ELEMENT &&
+                         strcmp(zuh_str(doc, n->name), "table") == 0))
+        continue;
+      for (k = 1;; k++) {
+        failing_arena f;
+        zuh_status st;
+        memset(&f, 0, sizeof(f));
+        f.fail_at = k;
+        if (kind == 2) {
+          zuh_table t;
+          st = zuh_table_grid(doc, id, 1e6, failing_alloc, &f, &t);
+        } else {
+          zuh_buf b;
+          zuh_clean_opts o = {1, 1, 0, 0};
+          zuh_buf_init(&b, failing_alloc, &f);
+          st = kind == 0 ? zuh_serialize(doc, id, 1, &b)
+                         : zuh_text_clean(doc, id, &o, &b);
+        }
+        arena_release(&f.a);
+        if (f.calls < k) {
+          /* No allocation failed: any outcome but a memory error (an
+           * overlapping table is one). */
+          EXPECT(st != ZUH_LIMIT_MEMORY,
+                 "node %u kind %d: out of memory with no failure", id, kind);
+          break;
+        }
+        EXPECT(st == ZUH_LIMIT_MEMORY,
+               "node %u kind %d, failing allocation %zu: status %d", id,
+               kind, k, (int) st);
+        total++;
+      }
+    }
+  }
+  buffer_sites += total;
 }
 
 /* Cleaned text of every node under each option set, and the grid of every
@@ -261,8 +336,11 @@ parse(const char *buf, size_t len, const zuh_parse_opts *o,
            "the tree dump failed");
     free(dump);
     serialize_all(doc, o);
-    if (!reparsing && doc->n_nodes <= 2000)
+    if (!reparsing && doc->n_nodes <= 2000) {
       extract_all(doc);
+      if (o->fail_at == 0)
+        buffer_fault_injection(doc);
+    }
   }
   if (n_problems != NULL)
     *n_problems = doc->n_problems;
@@ -322,8 +400,8 @@ fault_injection(void) {
     }
   }
   printf("    fault injection: %zu allocation sites over %zu documents, "
-         "each also as two fragments\n",
-         total, (size_t) N_CORPUS);
+         "each also as two fragments; %zu in output buffers\n",
+         total, (size_t) N_CORPUS, buffer_sites);
 }
 
 static double
@@ -394,13 +472,10 @@ limits(void) {
   free(buf);
 }
 
-/* 16 MiB of sawtooth nesting under the default caps, except max_nodes:
- * the input holds about 1.5M elements, past the 1M default. Reconciling
- * max_nodes with max_input is a Stage 8 decision (see the roadmap). */
+/* 16 MiB of sawtooth nesting under the default caps. */
 static void
 sawtooth(void) {
   zuh_parse_opts o = defaults;
-  o.max_nodes = 2000000;
   zuh_parse_stats stats;
   size_t l1, l2, len, n;
   char *open = repeat("<div>", 500, &l1);

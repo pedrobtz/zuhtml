@@ -76,14 +76,11 @@ test_that("an allocation failure at any point is a clean max_memory error", {
   expect_gt(k, 10)
 })
 
-test_that("16 MiB of sawtooth nesting parses under the caps", {
+test_that("16 MiB of sawtooth nesting parses under the default caps", {
   skip_on_cran()
   tooth <- paste0(strrep("<div>", 500), strrep("</div>", 500))
   html <- strrep(tooth, floor(16 * 1024^2 / nchar(tooth)))
-  # About 1.5M elements, past the default max_nodes; see the roadmap's
-  # Stage 3 status for why that default is not raised yet.
-  lim <- html_limits(max_nodes = 2e6)
-  elapsed <- system.time(doc <- html_parse(html, limits = lim))[["elapsed"]]
+  elapsed <- system.time(doc <- html_parse(html))[["elapsed"]]
   expect_s3_class(doc, "zuhtml_document")
   # The time bound is a CI exit criterion (roadmap Stage 2). Not asserted
   # elsewhere: an emulated or instrumented build is several times slower.

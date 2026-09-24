@@ -22,7 +22,9 @@
 static const char *const zuh_patch_ids[] = {
   "0001-max-tree-depth",
   "0002-no-stdio",
-  "0003-modification-notices"
+  "0003-modification-notices",
+  "0004-selectedcontent-descendant",
+  "0005-selectedcontent-end-tag"
 };
 
 const char *

@@ -100,18 +100,31 @@ zuh_list_tree <- function(l) {
 }
 
 #' @export
-print.zuhtml_list <- function(x, ...) {
+print.zuhtml_list <- function(x, n = 20L, ...) {
+  shown <- 0L
   walk <- function(l, depth) {
     pad <- strrep("  ", depth)
     ord <- identical(l$type, "ol")
     for (i in seq_along(l$items)) {
+      if (shown >= n) return(invisible())
       it <- l$items[[i]]
       mark <- if (ord) paste0(i, ".") else "-"
-      cat(pad, mark, " ", it$text, "\n", sep = "")
+      text <- gsub("\n", " ", it$text, fixed = TRUE)
+      if (nchar(text) > 60L) text <- paste0(substr(text, 1L, 57L), "...")
+      cat(pad, mark, " ", text, "\n", sep = "")
+      shown <<- shown + 1L
       for (ch in it$children) walk(ch, depth + 1L)
     }
   }
+  count <- function(l) {
+    length(l$items) +
+      sum(vapply(l$items, function(it) {
+        sum(vapply(it$children, count, integer(1)))
+      }, integer(1)))
+  }
   cat(sprintf("<zuhtml_list %s, %d items>\n", x$type, length(x$items)))
   walk(x, 0L)
+  total <- count(x)
+  if (total > shown) cat(sprintf("... and %d more\n", total - shown))
   invisible(x)
 }

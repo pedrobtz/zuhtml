@@ -26,7 +26,7 @@ GUMBO="src/vendor/gumbo/attribute.c src/vendor/gumbo/char_ref.c
   src/vendor/gumbo/util.c src/vendor/gumbo/vector.c"
 CORE="src/zuh_buf.c src/zuh_gumbo.c src/zuh_memory.c src/zuh_document.c src/zuh_write.c
   src/zuh_selector.c src/zuh_table.c src/zuh_text.c"
-TARGETS="fuzz_selector"
+TARGETS="fuzz_selector fuzz_parse fuzz_roundtrip"
 
 printf 'int LLVMFuzzerTestOneInput(const unsigned char *d, unsigned long n)\n{ (void) d; (void) n; return 0; }\n' > "$WORK/probe.c"
 if "$CC" -fsanitize=fuzzer "$WORK/probe.c" -o "$WORK/probe" 2>/dev/null; then
@@ -47,16 +47,36 @@ build() {
     -o "$WORK/$1" "fuzz/$1.c" $EXTRA $CORE $GUMBO
 }
 
+# Seeds for the parse targets: the committed probes, and every #data block
+# of the conformance fixtures, each prefixed with "d" (an even first byte:
+# parse as a document).
+SEEDS_HTML="$WORK/seeds-html"
+mkdir -p "$SEEDS_HTML"
+cp fuzz/corpus/fuzz_parse/* "$SEEDS_HTML/"
+awk -v dir="$SEEDS_HTML" '
+  /^#data$/ { n++; f = sprintf("%s/wpt%05d", dir, n); printf "d" > f; on = 1; next }
+  /^#/      { if (on) close(f); on = 0; next }
+  on        { print >> f }
+' tools/conformance/tree-construction/*.dat
+
+seeds_of() {
+  case "$1" in
+    fuzz_selector) echo "fuzz/corpus/fuzz_selector" ;;
+    *) echo "$SEEDS_HTML" ;;
+  esac
+}
+
 run() {
   target=$1
   secs=$2
+  seeds=$(seeds_of "$target")
   if [ "$MODE" = libfuzzer ]; then
     corpus="${ZUH_FUZZ_CORPUS:-$WORK/corpus}/$target"
     mkdir -p "$corpus" fuzz/artifacts
-    "$WORK/$target" -max_total_time="$secs" -max_len=4096 -timeout=10 \
-      -artifact_prefix=fuzz/artifacts/ "$corpus" "fuzz/corpus/$target"
+    "$WORK/$target" -max_total_time="$secs" -max_len=65536 -timeout=10 \
+      -rss_limit_mb=2048 -artifact_prefix=fuzz/artifacts/ "$corpus" "$seeds"
   else
-    "$WORK/$target" "$secs" fuzz/corpus/"$target"/*
+    "$WORK/$target" "$secs" "$seeds"/*
   fi
 }
 

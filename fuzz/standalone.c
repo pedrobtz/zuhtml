@@ -24,14 +24,18 @@ next_rand(void) {
 int
 main(int argc, char **argv) {
   double secs = argc > 1 ? atof(argv[1]) : 10;
-  uint8_t *seeds[256];
-  size_t lens[256];
+  uint8_t **seeds = (uint8_t **) malloc((size_t) argc * sizeof(uint8_t *));
+  size_t *lens = (size_t *) malloc((size_t) argc * sizeof(size_t));
   int n = 0, i;
   unsigned long runs = 0;
   clock_t end;
-  static const char dict[] = "#.[]=~|^$*:() ,>+-_\"'\\npdivli0123456789";
+  /* Bytes that matter to both HTML and CSS. */
+  static const char dict[] =
+      "<>/=\"'&;#!-?.[]~|^$*:() ,+_\\\n\tpdivlitrabsxg0123456789\xc2\xa0";
 
-  for (i = 2; i < argc && n < 256; i++) {
+  if (seeds == NULL || lens == NULL)
+    return 2;
+  for (i = 2; i < argc; i++) {
     FILE *f = fopen(argv[i], "rb");
     long len;
     if (f == NULL)
@@ -54,7 +58,7 @@ main(int argc, char **argv) {
   while (clock() < end) {
     int s = (int) (next_rand() % (unsigned long) n);
     size_t len = lens[s], k, edits = 1 + next_rand() % 4;
-    uint8_t buf[512];
+    uint8_t buf[2048];
     if (len > sizeof(buf) - 8)
       len = sizeof(buf) - 8;
     memcpy(buf, seeds[s], len);
