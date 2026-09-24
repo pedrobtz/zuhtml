@@ -1,4 +1,5 @@
 test_that("a <meta charset> decides the encoding of raw input", {
+  skip_without_iconv("CP1252", "CP932")
   bytes <- c(charToRaw("<meta charset=\"ISO-8859-1\"><p>caf"), as.raw(0xe9),
              charToRaw(" "), as.raw(0x93), charToRaw("q"), as.raw(0x94))
   doc <- html_parse(bytes)
@@ -17,6 +18,7 @@ test_that("a <meta charset> decides the encoding of raw input", {
 })
 
 test_that("each source of the encoding is reported", {
+  skip_without_iconv("latin1", "ISO-8859-2")
   src <- function(...) html_info(html_parse(...))$encoding_source
   expect_identical(src("<p>x"), "string")
   expect_identical(src(charToRaw("<p>x")), "default")
@@ -31,7 +33,7 @@ test_that("each source of the encoding is reported", {
 })
 
 test_that("the prescan reads every declaration form", {
-  enc <- function(s) html_info(html_parse(charToRaw(s)))$encoding
+  enc <- sniffed
   expect_identical(enc("<meta charset=koi8-r>"), "KOI8-R")
   expect_identical(enc("<META CHARSET=' Windows-1251 '>"), "windows-1251")
   expect_identical(enc("<meta/charset=latin2>"), "ISO-8859-2")
@@ -59,7 +61,7 @@ test_that("the prescan reads every declaration form", {
 })
 
 test_that("the prescan skips comments and tags, not scripts, as browsers do", {
-  enc <- function(s) html_info(html_parse(charToRaw(s)))$encoding
+  enc <- sniffed
   expect_identical(enc("<!-- <meta charset=gbk> --><meta charset=koi8-r>"),
                    "KOI8-R")
   expect_identical(enc("<!--><meta charset=koi8-r>"), "KOI8-R")
@@ -75,7 +77,7 @@ test_that("the prescan skips comments and tags, not scripts, as browsers do", {
 })
 
 test_that("only the first 1024 bytes are scanned", {
-  enc <- function(s) html_info(html_parse(charToRaw(s)))$encoding
+  enc <- sniffed
   pad <- function(k) strrep(" ", k)
   expect_identical(enc(paste0(pad(1000), "<meta charset=koi8-r>")), "KOI8-R")
   expect_identical(enc(paste0(pad(1004), "<meta charset=koi8-r>")), "UTF-8")
@@ -120,6 +122,7 @@ test_that("a declared encoding that fails is an encoding error", {
 })
 
 test_that("html_read() sniffs files", {
+  skip_without_iconv("CP1252")
   path <- withr::local_tempfile(fileext = ".html")
   writeBin(c(charToRaw("<meta charset=windows-1252><p>"), as.raw(0x80)),
            path)
@@ -129,8 +132,10 @@ test_that("html_read() sniffs files", {
 })
 
 test_that("every label maps to an encoding iconv() can use here", {
-  # Windows' iconv lacks a few; there they are encoding errors.
+  # Windows' iconv lacks a few, and minimal builds lack code pages; there
+  # they are encoding errors.
   skip_on_os("windows")
+  skip_without_iconv("CP866", "CP1252", "KOI8-R")
   encs <- setdiff(unique(zuh_enc_labels),
                   c("replacement", "UTF-16BE", "UTF-16LE", "x-user-defined"))
   for (e in encs) {
