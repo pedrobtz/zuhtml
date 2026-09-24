@@ -72,6 +72,15 @@ enough page reaches `max_memory` before `max_input` or `max_nodes`: a
 `zuhtml_limit_error`, not a crash. At the defaults, 16 MiB of ordinary
 markup (about 1.5 million nodes, 450 MB) parses.
 
+## See also
+
+Other parsing:
+[`html_fragment()`](https://pedrobtz.github.io/zuhtml/reference/html_fragment.md),
+[`html_info()`](https://pedrobtz.github.io/zuhtml/reference/html_info.md),
+[`html_parse()`](https://pedrobtz.github.io/zuhtml/reference/html_parse.md),
+[`html_problems()`](https://pedrobtz.github.io/zuhtml/reference/html_problems.md),
+[`zuhtml_info()`](https://pedrobtz.github.io/zuhtml/reference/zuhtml_info.md)
+
 ## Examples
 
 ``` r

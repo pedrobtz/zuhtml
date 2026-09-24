@@ -47,7 +47,10 @@ An object of class `zuhtml_doc_info`: a list with
 
 Other parsing:
 [`html_fragment()`](https://pedrobtz.github.io/zuhtml/reference/html_fragment.md),
-[`html_parse()`](https://pedrobtz.github.io/zuhtml/reference/html_parse.md)
+[`html_limits()`](https://pedrobtz.github.io/zuhtml/reference/html_limits.md),
+[`html_parse()`](https://pedrobtz.github.io/zuhtml/reference/html_parse.md),
+[`html_problems()`](https://pedrobtz.github.io/zuhtml/reference/html_problems.md),
+[`zuhtml_info()`](https://pedrobtz.github.io/zuhtml/reference/zuhtml_info.md)
 
 ## Examples
 

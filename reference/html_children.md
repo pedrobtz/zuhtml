@@ -62,6 +62,11 @@ A `<template>` element's contents are its children here, but they are
 inert: searches and text extraction do not descend into them.
 `html_template_content()` returns them explicitly.
 
+## See also
+
+Other navigation:
+[`html_elements()`](https://pedrobtz.github.io/zuhtml/reference/html_elements.md)
+
 ## Examples
 
 ``` r

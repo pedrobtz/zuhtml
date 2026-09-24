@@ -2,6 +2,8 @@
 
 ## zuhtml 0.0.0.9000
 
+First release.
+
 - Bundles the ‘Gumbo’ HTML5 parser 0.14.0 from the maintained fork at
   <https://codeberg.org/gumbo-parser/gumbo-parser>, with local patches
   that add a parse-time nesting-depth limit, remove the library’s only

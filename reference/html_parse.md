@@ -88,7 +88,10 @@ for the errors these functions raise.
 
 Other parsing:
 [`html_fragment()`](https://pedrobtz.github.io/zuhtml/reference/html_fragment.md),
-[`html_info()`](https://pedrobtz.github.io/zuhtml/reference/html_info.md)
+[`html_info()`](https://pedrobtz.github.io/zuhtml/reference/html_info.md),
+[`html_limits()`](https://pedrobtz.github.io/zuhtml/reference/html_limits.md),
+[`html_problems()`](https://pedrobtz.github.io/zuhtml/reference/html_problems.md),
+[`zuhtml_info()`](https://pedrobtz.github.io/zuhtml/reference/zuhtml_info.md)
 
 ## Examples
 

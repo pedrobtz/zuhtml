@@ -19,6 +19,15 @@ identifiers, in the order applied), `parser_ok` (the bundled parser
 builds the expected tree for a fixed document) and `depth_limit_ok` (the
 parse-time nesting limit stops a deeply nested document).
 
+## See also
+
+Other parsing:
+[`html_fragment()`](https://pedrobtz.github.io/zuhtml/reference/html_fragment.md),
+[`html_info()`](https://pedrobtz.github.io/zuhtml/reference/html_info.md),
+[`html_limits()`](https://pedrobtz.github.io/zuhtml/reference/html_limits.md),
+[`html_parse()`](https://pedrobtz.github.io/zuhtml/reference/html_parse.md),
+[`html_problems()`](https://pedrobtz.github.io/zuhtml/reference/html_problems.md)
+
 ## Examples
 
 ``` r

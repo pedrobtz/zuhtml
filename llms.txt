@@ -1,11 +1,33 @@
 # zuhtml
 
-The goal of zuhtml is to …
+zuhtml parses real-world HTML the way a browser does and turns it into
+ordinary R values: character vectors, lists and data frames. It bundles
+the [Gumbo](https://codeberg.org/gumbo-parser/gumbo-parser) HTML5
+parser, so it needs no system library, and it has no hard dependencies.
+
+- Malformed markup is repaired by the HTML parsing algorithm, not
+  rejected.
+  [`html_problems()`](https://pedrobtz.github.io/zuhtml/reference/html_problems.md)
+  lists what was repaired.
+- Select elements with a documented subset of CSS. Anything outside the
+  subset is an error, never a partial match.
+- Extract text, attributes, links, lists and tables. Tables handle row
+  and column spans and keep every column as character, so `"0012"` stays
+  `"0012"`.
+- Every call runs under explicit limits on input size, native memory and
+  nesting depth, and every error is a classed condition.
+
+zuhtml does not fetch pages, run JavaScript or sanitize HTML: a fetcher
+hands it a string.
 
 ## Installation
 
-You can install the development version of zuhtml from
-[GitHub](https://github.com/) with:
+``` r
+
+install.packages("zuhtml")
+```
+
+The development version, from GitHub:
 
 ``` r
 
@@ -15,22 +37,75 @@ pak::pak("pedrobtz/zuhtml")
 
 ## Example
 
-This is a basic example which shows you how to solve a common problem:
-
 ``` r
 
 library(zuhtml)
-## basic example code
+
+doc <- html_parse('
+  <div class=product><h2>Sencha</h2><span class=price>3.50</span>
+    <a href="sencha.html">details</a></div>
+  <div class=product><h2>Genmaicha</h2>
+    <a href="genmaicha.html">details</a></div>',
+  base_url = "https://example.org/shop/"
+)
+
+cards <- html_elements(doc, ".product")
+data.frame(
+  name  = html_text_clean(html_element(cards, "h2")),
+  price = html_text_clean(html_element(cards, ".price")),
+  url   = html_url(html_element(cards, "a"))
+)
+#>        name price                                     url
+#> 1    Sencha  3.50    https://example.org/shop/sencha.html
+#> 2 Genmaicha  <NA> https://example.org/shop/genmaicha.html
 ```
+
+[`html_element()`](https://pedrobtz.github.io/zuhtml/reference/html_elements.md)
+returns one result per card, with a missing value where a card has no
+price, so the columns stay aligned.
+
+The [getting started
+guide](https://pedrobtz.github.io/zuhtml/articles/zuhtml.html) walks
+through a complete extraction. There are also guides to
+[selectors](https://pedrobtz.github.io/zuhtml/articles/selectors.html),
+[tables and
+lists](https://pedrobtz.github.io/zuhtml/articles/tables-and-lists.html),
+and [limits, encodings and
+safety](https://pedrobtz.github.io/zuhtml/articles/limits-and-encoding.html).
+
+## Licence
+
+zuhtml is MIT-licensed. The bundled Gumbo parser is Apache-2.0, and
+[`LICENSE.note`](https://github.com/pedrobtz/zuhtml/blob/main/LICENSE.note)
+explains how the two apply.
 
 # Package index
 
-## All functions
+## Parsing
 
-- [`html_attr()`](https://pedrobtz.github.io/zuhtml/reference/html_attr.md)
-  [`html_attrs()`](https://pedrobtz.github.io/zuhtml/reference/html_attr.md)
-  [`html_classes()`](https://pedrobtz.github.io/zuhtml/reference/html_attr.md)
-  : Attributes of elements
+From a string, raw bytes or a file to a document, under limits.
+
+- [`html_parse()`](https://pedrobtz.github.io/zuhtml/reference/html_parse.md)
+  [`html_read()`](https://pedrobtz.github.io/zuhtml/reference/html_parse.md)
+  : Parse HTML
+- [`html_fragment()`](https://pedrobtz.github.io/zuhtml/reference/html_fragment.md)
+  : Parse an HTML fragment
+- [`html_limits()`](https://pedrobtz.github.io/zuhtml/reference/html_limits.md)
+  : Resource limits for parsing and extraction
+- [`html_problems()`](https://pedrobtz.github.io/zuhtml/reference/html_problems.md)
+  : Parse problems recorded for a document
+- [`html_info()`](https://pedrobtz.github.io/zuhtml/reference/html_info.md)
+  : Information about a parsed document
+- [`zuhtml_info()`](https://pedrobtz.github.io/zuhtml/reference/zuhtml_info.md)
+  : Report the zuhtml build configuration
+
+## Selecting and navigating
+
+- [`html_elements()`](https://pedrobtz.github.io/zuhtml/reference/html_elements.md)
+  [`html_element()`](https://pedrobtz.github.io/zuhtml/reference/html_elements.md)
+  [`html_matches()`](https://pedrobtz.github.io/zuhtml/reference/html_elements.md)
+  [`html_filter()`](https://pedrobtz.github.io/zuhtml/reference/html_elements.md)
+  : Select elements with CSS selectors
 - [`html_children()`](https://pedrobtz.github.io/zuhtml/reference/html_children.md)
   [`html_parent()`](https://pedrobtz.github.io/zuhtml/reference/html_children.md)
   [`html_ancestors()`](https://pedrobtz.github.io/zuhtml/reference/html_children.md)
@@ -40,43 +115,55 @@ library(zuhtml)
   [`html_root()`](https://pedrobtz.github.io/zuhtml/reference/html_children.md)
   [`html_document()`](https://pedrobtz.github.io/zuhtml/reference/html_children.md)
   : Navigate a document tree
-- [`html_elements()`](https://pedrobtz.github.io/zuhtml/reference/html_elements.md)
-  [`html_element()`](https://pedrobtz.github.io/zuhtml/reference/html_elements.md)
-  [`html_matches()`](https://pedrobtz.github.io/zuhtml/reference/html_elements.md)
-  [`html_filter()`](https://pedrobtz.github.io/zuhtml/reference/html_elements.md)
-  : Select elements with CSS selectors
-- [`html_fragment()`](https://pedrobtz.github.io/zuhtml/reference/html_fragment.md)
-  : Parse an HTML fragment
-- [`html_info()`](https://pedrobtz.github.io/zuhtml/reference/html_info.md)
-  : Information about a parsed document
-- [`html_limits()`](https://pedrobtz.github.io/zuhtml/reference/html_limits.md)
-  : Resource limits for parsing and extraction
-- [`html_links()`](https://pedrobtz.github.io/zuhtml/reference/html_links.md)
-  : Links in a document
-- [`html_list()`](https://pedrobtz.github.io/zuhtml/reference/html_list.md)
-  : Extract an HTML list
+
+## Node values
+
+- [`html_text_clean()`](https://pedrobtz.github.io/zuhtml/reference/html_text_clean.md)
+  : Cleaned text for extraction
+- [`html_text()`](https://pedrobtz.github.io/zuhtml/reference/html_text.md)
+  : Text content of nodes
+- [`html_attr()`](https://pedrobtz.github.io/zuhtml/reference/html_attr.md)
+  [`html_attrs()`](https://pedrobtz.github.io/zuhtml/reference/html_attr.md)
+  [`html_classes()`](https://pedrobtz.github.io/zuhtml/reference/html_attr.md)
+  : Attributes of elements
 - [`html_name()`](https://pedrobtz.github.io/zuhtml/reference/html_name.md)
   [`html_namespace()`](https://pedrobtz.github.io/zuhtml/reference/html_name.md)
   [`html_type()`](https://pedrobtz.github.io/zuhtml/reference/html_name.md)
   : Node names, namespaces and types
-- [`html_parse()`](https://pedrobtz.github.io/zuhtml/reference/html_parse.md)
-  [`html_read()`](https://pedrobtz.github.io/zuhtml/reference/html_parse.md)
-  : Parse HTML
-- [`html_problems()`](https://pedrobtz.github.io/zuhtml/reference/html_problems.md)
-  : Parse problems recorded for a document
 - [`html_serialize()`](https://pedrobtz.github.io/zuhtml/reference/html_serialize.md)
   : Serialize nodes as HTML
+
+## Extracting structures
+
 - [`html_table()`](https://pedrobtz.github.io/zuhtml/reference/html_table.md)
   [`html_tables()`](https://pedrobtz.github.io/zuhtml/reference/html_table.md)
   : Extract HTML tables as data frames
-- [`html_text()`](https://pedrobtz.github.io/zuhtml/reference/html_text.md)
-  : Text content of nodes
-- [`html_text_clean()`](https://pedrobtz.github.io/zuhtml/reference/html_text_clean.md)
-  : Cleaned text for extraction
+- [`html_list()`](https://pedrobtz.github.io/zuhtml/reference/html_list.md)
+  : Extract an HTML list
+- [`html_links()`](https://pedrobtz.github.io/zuhtml/reference/html_links.md)
+  : Links in a document
 - [`html_url()`](https://pedrobtz.github.io/zuhtml/reference/html_url.md)
   : Resolve URLs in attributes
+
+## Conditions
+
 - [`zuhtml-conditions`](https://pedrobtz.github.io/zuhtml/reference/zuhtml-conditions.md)
   : Conditions raised by zuhtml
-- [`zuhtml_info()`](https://pedrobtz.github.io/zuhtml/reference/zuhtml_info.md)
-  : Report the zuhtml build configuration
 
+# Articles
+
+### Guides
+
+- [Getting started with
+  zuhtml](https://pedrobtz.github.io/zuhtml/articles/zuhtml.md):
+- [CSS
+  selectors](https://pedrobtz.github.io/zuhtml/articles/selectors.md):
+- [Tables and
+  lists](https://pedrobtz.github.io/zuhtml/articles/tables-and-lists.md):
+- [Limits, encodings and
+  safety](https://pedrobtz.github.io/zuhtml/articles/limits-and-encoding.md):
+
+### Worked examples
+
+- [Real-world pages: long tables, lists and
+  text](https://pedrobtz.github.io/zuhtml/articles/real-world-pages.md):

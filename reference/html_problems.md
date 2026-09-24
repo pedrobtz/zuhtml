@@ -28,6 +28,15 @@ input). At most `max_errors` problems are kept (see
 [`html_limits()`](https://pedrobtz.github.io/zuhtml/reference/html_limits.md));
 attribute `"truncated"` is `TRUE` when more occurred.
 
+## See also
+
+Other parsing:
+[`html_fragment()`](https://pedrobtz.github.io/zuhtml/reference/html_fragment.md),
+[`html_info()`](https://pedrobtz.github.io/zuhtml/reference/html_info.md),
+[`html_limits()`](https://pedrobtz.github.io/zuhtml/reference/html_limits.md),
+[`html_parse()`](https://pedrobtz.github.io/zuhtml/reference/html_parse.md),
+[`zuhtml_info()`](https://pedrobtz.github.io/zuhtml/reference/zuhtml_info.md)
+
 ## Examples
 
 ``` r

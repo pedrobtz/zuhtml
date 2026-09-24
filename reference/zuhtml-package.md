@@ -1,12 +1,51 @@
-# zuhtml: Parse 'HTML' with a Bundled 'Gumbo' Parser
+# zuhtml: parse HTML with a bundled Gumbo parser
 
-Parses real-world 'HTML' with a bundled copy of the 'Gumbo' parser
-(<https://codeberg.org/gumbo-parser/gumbo-parser>), which follows the
-'WHATWG' parsing algorithm, so that no system library is required.
-Documents become immutable trees navigated with a documented subset of
-'CSS' selectors. Attributes, text, lists, tables and links are extracted
-into ordinary character vectors, lists and data frames. Parsing is
-bounded by limits on input size, native memory and nesting depth.
+zuhtml parses real-world HTML the way a browser does, with a bundled
+copy of the 'Gumbo' parser, and extracts ordinary R objects from it:
+nodes selected by a documented subset of CSS, attributes, text, lists,
+tables and links. It needs no system library and has no hard
+dependencies.
+
+## Details
+
+It does not fetch, run JavaScript, sanitize, edit documents or support
+XPath: a fetcher hands it a string.
+
+## Getting started
+
+- Parse with
+  [`html_parse()`](https://pedrobtz.github.io/zuhtml/reference/html_parse.md),
+  [`html_read()`](https://pedrobtz.github.io/zuhtml/reference/html_parse.md)
+  or
+  [`html_fragment()`](https://pedrobtz.github.io/zuhtml/reference/html_fragment.md).
+
+- Select elements with
+  [`html_elements()`](https://pedrobtz.github.io/zuhtml/reference/html_elements.md)
+  and
+  [`html_element()`](https://pedrobtz.github.io/zuhtml/reference/html_elements.md),
+  or move around with
+  [`html_children()`](https://pedrobtz.github.io/zuhtml/reference/html_children.md)
+  and friends.
+
+- Read values with
+  [`html_text_clean()`](https://pedrobtz.github.io/zuhtml/reference/html_text_clean.md),
+  [`html_attr()`](https://pedrobtz.github.io/zuhtml/reference/html_attr.md)
+  and
+  [`html_serialize()`](https://pedrobtz.github.io/zuhtml/reference/html_serialize.md);
+  extract structures with
+  [`html_table()`](https://pedrobtz.github.io/zuhtml/reference/html_table.md),
+  [`html_list()`](https://pedrobtz.github.io/zuhtml/reference/html_list.md),
+  [`html_links()`](https://pedrobtz.github.io/zuhtml/reference/html_links.md)
+  and
+  [`html_url()`](https://pedrobtz.github.io/zuhtml/reference/html_url.md).
+
+- Every call runs under
+  [`html_limits()`](https://pedrobtz.github.io/zuhtml/reference/html_limits.md),
+  and every error is a classed condition: see
+  [zuhtml-conditions](https://pedrobtz.github.io/zuhtml/reference/zuhtml-conditions.md).
+
+[`vignette("zuhtml")`](https://pedrobtz.github.io/zuhtml/articles/zuhtml.md)
+walks through a complete extraction.
 
 ## See also
 

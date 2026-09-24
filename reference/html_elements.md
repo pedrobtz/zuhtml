@@ -82,6 +82,11 @@ Structural pseudo-classes count element siblings only. `:empty` is true
 for an element with no element or text children; comments do not count,
 whitespace does.
 
+## See also
+
+Other navigation:
+[`html_children()`](https://pedrobtz.github.io/zuhtml/reference/html_children.md)
+
 ## Examples
 
 ``` r

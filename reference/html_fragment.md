@@ -42,7 +42,10 @@ for whole documents.
 
 Other parsing:
 [`html_info()`](https://pedrobtz.github.io/zuhtml/reference/html_info.md),
-[`html_parse()`](https://pedrobtz.github.io/zuhtml/reference/html_parse.md)
+[`html_limits()`](https://pedrobtz.github.io/zuhtml/reference/html_limits.md),
+[`html_parse()`](https://pedrobtz.github.io/zuhtml/reference/html_parse.md),
+[`html_problems()`](https://pedrobtz.github.io/zuhtml/reference/html_problems.md),
+[`zuhtml_info()`](https://pedrobtz.github.io/zuhtml/reference/zuhtml_info.md)
 
 ## Examples
 

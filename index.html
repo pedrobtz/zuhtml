@@ -31,7 +31,19 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
+<li class="nav-item"><a class="nav-link" href="articles/zuhtml.html">Get started</a></li>
 <li class="nav-item"><a class="nav-link" href="reference/index.html">Reference</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
+<li><a class="dropdown-item" href="articles/selectors.html">CSS selectors</a></li>
+    <li><a class="dropdown-item" href="articles/tables-and-lists.html">Tables and lists</a></li>
+    <li><a class="dropdown-item" href="articles/limits-and-encoding.html">Limits, encodings and safety</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><h6 class="dropdown-header" data-toc-skip>Worked examples</h6></li>
+    <li><a class="dropdown-item" href="articles/real-world-pages.html">Real-world pages: long tables, lists and text</a></li>
+  </ul>
+</li>
 <li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
       </ul>
 <ul class="navbar-nav">
@@ -51,22 +63,54 @@
 </h1></div>
 <!-- badges: start -->
 
-<p>The goal of zuhtml is to …</p>
+<p>zuhtml parses real-world HTML the way a browser does and turns it into ordinary R values: character vectors, lists and data frames. It bundles the <a href="https://codeberg.org/gumbo-parser/gumbo-parser" class="external-link">Gumbo</a> HTML5 parser, so it needs no system library, and it has no hard dependencies.</p>
+<ul>
+<li>Malformed markup is repaired by the HTML parsing algorithm, not rejected. <code><a href="reference/html_problems.html">html_problems()</a></code> lists what was repaired.</li>
+<li>Select elements with a documented subset of CSS. Anything outside the subset is an error, never a partial match.</li>
+<li>Extract text, attributes, links, lists and tables. Tables handle row and column spans and keep every column as character, so <code>"0012"</code> stays <code>"0012"</code>.</li>
+<li>Every call runs under explicit limits on input size, native memory and nesting depth, and every error is a classed condition.</li>
+</ul>
+<p>zuhtml does not fetch pages, run JavaScript or sanitize HTML: a fetcher hands it a string.</p>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
-<p>You can install the development version of zuhtml from <a href="https://github.com/" class="external-link">GitHub</a> with:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"zuhtml"</span><span class="op">)</span></span></code></pre></div>
+<p>The development version, from GitHub:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># install.packages("pak")</span></span>
 <span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"pedrobtz/zuhtml"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="example">Example<a class="anchor" aria-label="anchor" href="#example"></a>
 </h2>
-<p>This is a basic example which shows you how to solve a common problem:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/pedrobtz/zuhtml" class="external-link">zuhtml</a></span><span class="op">)</span></span>
-<span><span class="co">## basic example code</span></span></code></pre></div>
+<span></span>
+<span><span class="va">doc</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/html_parse.html">html_parse</a></span><span class="op">(</span><span class="st">'</span></span>
+<span><span class="st">  &lt;div class=product&gt;&lt;h2&gt;Sencha&lt;/h2&gt;&lt;span class=price&gt;3.50&lt;/span&gt;</span></span>
+<span><span class="st">    &lt;a href="sencha.html"&gt;details&lt;/a&gt;&lt;/div&gt;</span></span>
+<span><span class="st">  &lt;div class=product&gt;&lt;h2&gt;Genmaicha&lt;/h2&gt;</span></span>
+<span><span class="st">    &lt;a href="genmaicha.html"&gt;details&lt;/a&gt;&lt;/div&gt;'</span>,</span>
+<span>  base_url <span class="op">=</span> <span class="st">"https://example.org/shop/"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">cards</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/html_elements.html">html_elements</a></span><span class="op">(</span><span class="va">doc</span>, <span class="st">".product"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>  name  <span class="op">=</span> <span class="fu"><a href="reference/html_text_clean.html">html_text_clean</a></span><span class="op">(</span><span class="fu"><a href="reference/html_elements.html">html_element</a></span><span class="op">(</span><span class="va">cards</span>, <span class="st">"h2"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  price <span class="op">=</span> <span class="fu"><a href="reference/html_text_clean.html">html_text_clean</a></span><span class="op">(</span><span class="fu"><a href="reference/html_elements.html">html_element</a></span><span class="op">(</span><span class="va">cards</span>, <span class="st">".price"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  url   <span class="op">=</span> <span class="fu"><a href="reference/html_url.html">html_url</a></span><span class="op">(</span><span class="fu"><a href="reference/html_elements.html">html_element</a></span><span class="op">(</span><span class="va">cards</span>, <span class="st">"a"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt;        name price                                     url</span></span>
+<span><span class="co">#&gt; 1    Sencha  3.50    https://example.org/shop/sencha.html</span></span>
+<span><span class="co">#&gt; 2 Genmaicha  &lt;NA&gt; https://example.org/shop/genmaicha.html</span></span></code></pre></div>
+<p><code><a href="reference/html_elements.html">html_element()</a></code> returns one result per card, with a missing value where a card has no price, so the columns stay aligned.</p>
+<p>The <a href="https://pedrobtz.github.io/zuhtml/articles/zuhtml.html">getting started guide</a> walks through a complete extraction. There are also guides to <a href="https://pedrobtz.github.io/zuhtml/articles/selectors.html">selectors</a>, <a href="https://pedrobtz.github.io/zuhtml/articles/tables-and-lists.html">tables and lists</a>, and <a href="https://pedrobtz.github.io/zuhtml/articles/limits-and-encoding.html">limits, encodings and safety</a>.</p>
+</div>
+<div class="section level2">
+<h2 id="licence">Licence<a class="anchor" aria-label="anchor" href="#licence"></a>
+</h2>
+<p>zuhtml is MIT-licensed. The bundled Gumbo parser is Apache-2.0, and <a href="https://github.com/pedrobtz/zuhtml/blob/main/LICENSE.note" class="external-link"><code>LICENSE.note</code></a> explains how the two apply.</p>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="links">
