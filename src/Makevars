@@ -23,6 +23,7 @@ GUMBO_OBJECTS = \
 OBJECTS = \
 	init.o \
 	r_api.o \
+	r_node.o \
 	zuh_document.o \
 	zuh_gumbo.o \
 	zuh_memory.o \

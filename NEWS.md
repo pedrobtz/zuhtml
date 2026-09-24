@@ -18,6 +18,18 @@
   tree-construction tests that the bundled parser ships produce the
   expected tree.
 
+* New `html_fragment()` parses markup in the context of a given element,
+  as `innerHTML` does.
+
+* Nodes are `zuhtml_nodeset`s: vectors of nodes tied to their document,
+  with missing nodes where an aligned operation has no answer. Navigate
+  with `html_children()`, `html_parent()`, `html_ancestors()`,
+  `html_next_sibling()`, `html_previous_sibling()`, `html_root()`,
+  `html_document()` and `html_template_content()`; read values with
+  `html_name()`, `html_namespace()`, `html_type()`, `html_attr()`,
+  `html_attrs()`, `html_classes()` and `html_text()`. `html_info()`
+  describes a document.
+
 * New `html_problems()` lists the parse errors the parser repaired, with
   package-owned codes and positions.
 

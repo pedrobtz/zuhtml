@@ -25,13 +25,13 @@ scripts and CRAN comments. zuhtml does not depend on it or share code with it.
 
 ## Current state
 
-Stages 0 to 3 are done. Gumbo 0.14.0 is vendored with a three-patch
-series. `html_parse()`/`html_read()` decode input, parse under the allocation
-ledger with every limit enforced, and convert Gumbo's tree into a frozen,
-index-addressed document (`src/zuh_document.h`): preorder node IDs, a
-`subtree_end` index, interned element names, one string pool. The document
-has no R-level node API yet; tests reach it through the internal tree dump.
-Stage 4 (the R document and node API) is next. The probe harness
+Stages 0 to 4 are done. Gumbo 0.14.0 is vendored with a three-patch
+series. `html_parse()`/`html_read()`/`html_fragment()` decode input, parse
+under the allocation ledger with every limit enforced, and convert Gumbo's
+tree into a frozen, index-addressed document (`src/zuh_document.h`). The R
+node API is in place: `zuhtml_nodeset` (IDs plus owner), navigation,
+names/types/namespaces, attributes, `html_text()`, `html_info()`. There is
+no serializer or selector engine yet: Stage 5 (the serializer) is next. The probe harness
 ([.agents/probe-gumbo.c](.agents/probe-gumbo.c)) holds the measurements the
 roadmap cites.
 
@@ -101,8 +101,9 @@ whether CI runs it.
 ## Architecture
 
 Planned layout, from design §13 and the roadmap. The html5lib fixtures live
-in `tools/conformance/`. So far `R/conditions.R`,
-`R/info.R`, `R/limits.R`, `R/parse.R`, `src/init.c`, `src/r_api.c`,
+in `tools/conformance/`. So far `R/attributes.R`, `R/conditions.R`,
+`R/info.R`, `R/limits.R`, `R/node.R`, `R/nodeset.R`, `R/parse.R`,
+`R/text.R`, `src/init.c`, `src/r_api.c`, `src/r_node.c`,
 `src/zuh_gumbo.[ch]`, `src/zuh_memory.[ch]`, `src/zuh_document.[ch]`,
 `src/zuh_status.h`, `src/zuh_r.h`, `src/vendor/` and the vendoring, lint and
 sanitizer scripts in `tools/` exist.
@@ -166,6 +167,12 @@ tables, serialization) reads the arena and never touches Gumbo. Only
 - **Template children stay children.** The template node carries a flag and
   descendant traversal skips them unless `html_template_content()` asks. There
   is no separate fragment object.
+- **Node accessors return NULL for a bad pointer or ID.** Every entry in
+  `src/r_node.c` validates the pointer and every ID (`checked()`) and
+  returns `R_NilValue` rather than erroring; `zuh_checked()` in
+  `R/node.R` turns that into `zuhtml_pointer_error`. Wrap every accessor
+  `.Call()` in it, and name the routine in the `.Call()` itself: R CMD
+  check flags `.Call(fun, ...)` with a variable routine.
 - **Node IDs are preorder.** Conversion assigns them in document order and
   records `subtree_end`, so a node's descendants are exactly
   `(id, subtree_end]`, and sorting IDs sorts by document order. Anything

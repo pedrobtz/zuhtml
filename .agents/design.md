@@ -116,7 +116,7 @@ Gumbo borrows pieces of its input buffer. Keep that buffer alive through parsing
 - `zuhtml_nodeset`: an integer vector of node IDs and a strong reference to its owning document. Length one represents a single node.
 - Missing nodes: `NA_integer_` IDs, used by aligned operations. These are distinct from a zero-length collection.
 - Document node: a real internal ID. `html_root()` returns the HTML root element for a document and the fragment root for a fragment.
-- `html_document(x)` returns the owner; `html_type()` distinguishes document, fragment, element, text, comment, doctype, template and processing instruction (a node type Gumbo 0.14.0 added; HTML tokenizes `<?...>` as a bogus comment, so it appears only in foreign content).
+- `html_document(x)` returns the owner; `html_type()` returns one of `"document"`, `"fragment"`, `"doctype"`, `"element"`, `"text"`, `"comment"` and `"processing_instruction"`. The last is a node type Gumbo 0.14.0 added; HTML tokenizes `<?...>` as a bogus comment, so it appears only in foreign content. A `<template>` is an `"element"`: the flag that marks its contents is internal.
 
 ID counts are checked before conversion to R integers and stay below the reserved missing value. Validate pointer tags, liveness, ownership, and node bounds at every native entry point. Finalization is idempotent. A nodeset keeps its document alive; nodes from different documents cannot be concatenated.
 
@@ -157,7 +157,7 @@ Version 0.1 does not claim browser encoding sniffing from `<meta charset>` or HT
 
 Gumbo performs normal HTML repair by default, including implied elements and named character references. HTML doctype declarations are accepted as metadata; external DTDs and arbitrary XML entity expansion are not implemented. Record quirks mode.
 
-`html_fragment()` supplies the context element and namespace to Gumbo; `<tr>` in a table context is not equivalent to `<tr>` in a div. Initially accept context names represented by the pinned Gumbo API; reject unsupported contexts. Document any fixed scripting-state behavior of the pinned parser; this is not JavaScript execution.
+`html_fragment()` supplies the context element and namespace to Gumbo; `<tr>` in a table context is not equivalent to `<tr>` in a div. Initially accept context names represented by the pinned Gumbo API; reject unsupported contexts. The result is a `zuhtml_document` whose node 0 has type `"fragment"`; `html_root()` returns that node, and its children are the parsed nodes (Gumbo's wrapping `<html>` element is not kept). The conformance runner alone may pass a foreign namespace or a context Gumbo does not know, as upstream's harness does. Document any fixed scripting-state behavior of the pinned parser; this is not JavaScript execution.
 
 Parsing always collects bounded recoverable diagnostics without warnings. It is not a full HTML conformance validator.
 
@@ -192,7 +192,7 @@ Deferred past 0.1.0: `group=` on `html_elements()` (`lapply()` does it) and `htm
 
 `html_element()` returns the first match per context and preserves input length and order. A missing match becomes a missing node. This prevents separate extractions of titles and prices from becoming misaligned. Repeated contexts can produce repeated nodes. Zero input contexts produce zero results.
 
-`html_parent()` and sibling accessors also preserve length, including missing parents/siblings. Multi-result traversals flatten and deduplicate in document order. Accessors return one result per node; missing nodes give typed missing values. `html_matches()` returns logical values with `NA` for missing nodes. `html_filter()` drops nonmatches and missing nodes.
+`html_parent()` and sibling accessors also preserve length, including missing parents/siblings; the parent of `<html>` is the document node, which has none. Multi-result traversals flatten and deduplicate in document order; since node IDs are preorder, that is `sort(unique(ids))`. `html_ancestors()` stops below the document node. Accessors return one result per node; missing nodes give typed missing values. `html_matches()` returns logical values with `NA` for missing nodes. `html_filter()` drops nonmatches and missing nodes.
 
 *(Deferred.)* `html_find()` is a simpler alternative for tag, attribute, and text searches. `attr` and `value` are scalar: `attr` alone means presence, while `value` requires `attr`. `text` matches descendant structural text; `fixed = FALSE` opts into R regular expressions. Multiple supplied filters are ANDed. Query results follow the same ordering and scoping conventions as CSS selection. Regex execution is delegated to R and is not covered by the native selector work counter; document that distinction and constrain pattern/input sizes. Do not promise a hard regex execution-time bound.
 
@@ -222,9 +222,9 @@ html_serialize(x, outer = TRUE)
 
 Deferred past 0.1.0: `html_has_attr()` (`!is.na(html_attr())`), `html_strings()`, `html_write()` (`writeLines(html_serialize())`) and `html_source_position()`.
 
-`html_attrs()` and `html_classes()` return one named character vector or token vector per node in a list. Missing attributes differ from present empty attributes. Test boolean attributes by presence, not by the textual value `"true"`. Preserve custom/data/ARIA attributes and decoded entity values. Duplicate attributes follow Gumbo's HTML recovery outcome; do not invent a second resolution policy.
+`html_attrs()` and `html_classes()` return one named character vector or token vector per node in a list, with `NA_character_` for a missing node. `html_namespace()` returns namespace URIs (`http://www.w3.org/1999/xhtml`, `…/2000/svg`, `…/1998/Math/MathML`). Attribute names match ASCII-case-insensitively on HTML elements and exactly on foreign ones, as the DOM's `getAttribute()` does; namespaced foreign attributes are named `xlink:href` and so on. Missing attributes differ from present empty attributes. Test boolean attributes by presence, not by the textual value `"true"`. Preserve custom/data/ARIA attributes and decoded entity values. Duplicate attributes follow Gumbo's HTML recovery outcome; do not invent a second resolution policy.
 
-`html_text()` concatenates text in tree order without inserting separators or trimming. With `recursive = FALSE`, it reads direct text children only. Comments and doctype text are excluded; script/style text is retained in this structural accessor. An empty element yields `""`; a missing node yields `NA_character_`.
+`html_text()` concatenates text in tree order without inserting separators or trimming. With `recursive = FALSE`, it reads direct text children only. Comments and doctype text are excluded; script/style text is retained in this structural accessor; template contents are skipped (a template's text is `""`, as its DOM `textContent` is). An empty element yields `""`; a text, comment or processing-instruction node yields its own content; a doctype or missing node yields `NA_character_`.
 
 `html_text_clean()` is an extraction-oriented alternative. It skips script/style and unentered template content, collapses HTML ASCII whitespace outside preformatted regions, adds line breaks at `<br>` and documented block boundaries, and preserves `<pre>`/`<textarea>` whitespace. `nbsp = TRUE` converts nonbreaking spaces to regular spaces before normalization. It uses a fixed, tested HTML tag list rather than computed CSS. It is not browser `innerText` and makes no claim to visual layout or visibility.
 

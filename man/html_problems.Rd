@@ -7,7 +7,8 @@
 html_problems(x)
 }
 \arguments{
-\item{x}{A \code{zuhtml_document}.}
+\item{x}{A \code{zuhtml_document}, or a \code{zuhtml_nodeset} for the document
+that owns it.}
 }
 \value{
 A data frame with one row per problem, in input order, and

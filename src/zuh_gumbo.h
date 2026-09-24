@@ -23,6 +23,9 @@ typedef struct {
   int max_errors;         /* diagnostics kept; >= 0 */
   size_t max_nodes;       /* nodes in the frozen document */
   int keep_comments;      /* 0 drops comment nodes */
+  int fragment_tag;       /* context element for a fragment parse, from
+                             zuh_gumbo_tag_lookup(); -1 for a document */
+  int fragment_ns;        /* its namespace: ZUH_NS_* */
   size_t fail_at;         /* fault injection: fail this allocation
                              (1-based), counting Gumbo's and conversion's
                              allocations together; 0 never */
@@ -42,6 +45,13 @@ typedef struct {
 zuh_status zuh_gumbo_parse(const char *buf, size_t len,
                            const zuh_parse_opts *opts, zuh_doc *doc,
                            zuh_parse_stats *stats);
+
+/* The Gumbo tag for an element name, for use as a fragment context, or -1
+ * if the pinned Gumbo has no tag of that name. ASCII case-insensitive.
+ * With allow_unknown, an unknown name gives Gumbo's "unknown element" tag
+ * instead, as upstream's own test harness passes it; the public API does
+ * not allow it. */
+int zuh_gumbo_tag_lookup(const char *name, int allow_unknown);
 
 /* The package-owned name of a problem code, and its stage: 0 tokenizer,
  * 1 parser. NULL / -1 for an unknown code. */

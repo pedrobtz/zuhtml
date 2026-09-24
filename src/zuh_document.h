@@ -77,7 +77,9 @@ typedef struct zuh_doc {
   char *pool;               /* NUL-terminated UTF-8 strings; offset 0 is "" */
   size_t pool_len;
 
-  zuh_id root;              /* the <html> element, or ZUH_NONE */
+  int is_fragment;          /* node 0 is a fragment, not a document */
+  zuh_id root;              /* the <html> element, or ZUH_NONE (always
+                               for a fragment) */
   uint32_t doctype_public;  /* pool offsets; 0 when absent */
   uint32_t doctype_system;
 

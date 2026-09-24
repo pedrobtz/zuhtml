@@ -54,6 +54,16 @@ C_zuh_doc_new(void) {
   return ptr;
 }
 
+/* Run the finalizer now. Internal: the tests use it to check that
+ * finalization is idempotent and that a released document is a pointer
+ * error, not a crash. */
+SEXP
+C_zuh_doc_release(SEXP ptr) {
+  if (TYPEOF(ptr) == EXTPTRSXP && R_ExternalPtrTag(ptr) == doc_tag())
+    doc_finalize(ptr);
+  return R_NilValue;
+}
+
 SEXP
 C_zuh_doc_alive(SEXP ptr) {
   return Rf_ScalarLogical(zuh_r_doc(ptr) != NULL);
@@ -68,13 +78,15 @@ as_size(double v) {
   return (size_t) v;
 }
 
-/* C_zuh_parse(ptr, bytes, limits, comments, fail_at)
+/* C_zuh_parse(ptr, bytes, limits, comments, fragment, fail_at)
  *
  *   ptr      from C_zuh_doc_new(), not yet holding a document
  *   bytes    raw: decoded, validated UTF-8 with no NUL
  *   limits   double: max_input, max_memory, max_depth, max_errors,
  *            max_nodes, validated in R
  *   comments logical: keep comment nodes
+ *   fragment integer(2): context tag from C_zuh_tag_lookup() and its
+ *            namespace (ZUH_NS_*), or tag -1 for a whole document
  *   fail_at  double: fault injection index, 0 for none
  *
  * Returns double(4): status (a zuh_status), observed, allocations, peak
@@ -82,7 +94,7 @@ as_size(double v) {
  * `ptr`; otherwise `ptr` is left empty and everything is freed. */
 SEXP
 C_zuh_parse(SEXP ptr, SEXP bytes, SEXP limits, SEXP comments,
-            SEXP fail_at) {
+            SEXP fragment, SEXP fail_at) {
   zuh_parse_opts opts;
   zuh_parse_stats stats;
   zuh_status st;
@@ -95,7 +107,8 @@ C_zuh_parse(SEXP ptr, SEXP bytes, SEXP limits, SEXP comments,
     Rf_error("internal error: C_zuh_parse needs a fresh document pointer");
   if (TYPEOF(bytes) != RAWSXP || TYPEOF(limits) != REALSXP ||
       XLENGTH(limits) != 5 || TYPEOF(comments) != LGLSXP ||
-      XLENGTH(comments) != 1 || TYPEOF(fail_at) != REALSXP ||
+      XLENGTH(comments) != 1 || TYPEOF(fragment) != INTSXP ||
+      XLENGTH(fragment) != 2 || TYPEOF(fail_at) != REALSXP ||
       XLENGTH(fail_at) != 1)
     Rf_error("internal error: bad arguments to C_zuh_parse");
 
@@ -109,6 +122,8 @@ C_zuh_parse(SEXP ptr, SEXP bytes, SEXP limits, SEXP comments,
                         : (int) REAL(limits)[3];
   opts.max_nodes = as_size(REAL(limits)[4]);
   opts.keep_comments = LOGICAL(comments)[0] == TRUE;
+  opts.fragment_tag = INTEGER(fragment)[0];
+  opts.fragment_ns = INTEGER(fragment)[1];
   opts.fail_at = as_size(REAL(fail_at)[0]);
 
   /* Every R allocation happens before the document exists. */
@@ -137,6 +152,17 @@ C_zuh_parse(SEXP ptr, SEXP bytes, SEXP limits, SEXP comments,
   o[3] = (double) stats.peak_bytes;
   UNPROTECT(1);
   return out;
+}
+
+/* The Gumbo tag of an element name, or -1. See zuh_gumbo_tag_lookup(). */
+SEXP
+C_zuh_tag_lookup(SEXP name, SEXP allow_unknown) {
+  if (TYPEOF(name) != STRSXP || XLENGTH(name) != 1 ||
+      STRING_ELT(name, 0) == NA_STRING)
+    return Rf_ScalarInteger(-1);
+  return Rf_ScalarInteger(zuh_gumbo_tag_lookup(
+      Rf_translateCharUTF8(STRING_ELT(name, 0)),
+      Rf_asLogical(allow_unknown) == TRUE));
 }
 
 static SEXP
@@ -198,7 +224,8 @@ SEXP
 C_zuh_doc_meta(SEXP ptr) {
   const char *names[] = {"input_bytes", "parse_peak_bytes", "quirks_mode",
                          "n_problems", "problems_truncated", "n_nodes",
-                         "n_attrs", "frozen_bytes", ""};
+                         "n_attrs", "frozen_bytes", "is_fragment", "root",
+                         ""};
   static const char *const quirks[] = {"no-quirks", "quirks",
                                        "limited-quirks"};
   zuh_doc *doc = zuh_r_doc(ptr);
@@ -218,6 +245,10 @@ C_zuh_doc_meta(SEXP ptr) {
   SET_VECTOR_ELT(out, 5, Rf_ScalarReal((double) doc->n_nodes));
   SET_VECTOR_ELT(out, 6, Rf_ScalarReal((double) doc->n_attrs));
   SET_VECTOR_ELT(out, 7, Rf_ScalarReal((double) doc->frozen_bytes));
+  SET_VECTOR_ELT(out, 8, Rf_ScalarLogical(doc->is_fragment));
+  SET_VECTOR_ELT(out, 9,
+                 Rf_ScalarInteger(doc->root == ZUH_NONE ? NA_INTEGER
+                                                        : (int) doc->root));
   UNPROTECT(1);
   return out;
 }

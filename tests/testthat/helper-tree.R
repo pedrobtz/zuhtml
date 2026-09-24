@@ -6,3 +6,6 @@ tree_lines <- function(doc) {
 }
 
 doc_meta <- function(doc) .Call(zuhtml:::C_zuh_doc_meta, doc$ptr)
+
+# The body element of a parsed document.
+body_of <- function(doc) html_children(html_root(doc))[2]
