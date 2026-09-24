@@ -21,12 +21,20 @@ library(zuhtml)
 ```
 
 zuhtml never downloads anything. Each page is fetched once into a
-temporary file, and `html_read()` parses the file:
+temporary file, with a few retries for a busy server, and `html_read()`
+parses the file:
 
 ```{r}
 fetch <- function(url) {
   path <- tempfile(fileext = ".html")
-  utils::download.file(url, path, quiet = TRUE, mode = "wb")
+  for (attempt in 1:4) {
+    ok <- tryCatch({
+      utils::download.file(url, path, quiet = TRUE, mode = "wb")
+      TRUE
+    }, error = function(e) if (attempt == 4) stop(e) else FALSE)
+    if (ok) break
+    Sys.sleep(5 * attempt)
+  }
   path
 }
 cran <- "https://cran.r-project.org/"

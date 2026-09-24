@@ -13,19 +13,34 @@
 #' [enc2utf8()], and `encoding` must be `NULL` or `"UTF-8"`. A string marked
 #' as `"bytes"` is rejected; pass a raw vector instead.
 #'
-#' A raw vector is decoded with, in order of precedence, `encoding`, a
-#' byte-order mark (UTF-8, UTF-16LE or UTF-16BE), or UTF-8. A byte-order mark
-#' that contradicts `encoding` is an error, and so is any byte sequence that
-#' is invalid in the chosen encoding: nothing is replaced silently.
-#' `<meta charset>` declarations are not consulted. A fetcher that knows the
-#' HTTP charset should pass it as `encoding`.
+#' A raw vector is decoded with, in order of precedence, a byte-order mark
+#' (UTF-8, UTF-16LE or UTF-16BE), `encoding`, a declaration in the page, or
+#' UTF-8. A byte-order mark that contradicts `encoding` is an error, and so
+#' is any byte sequence that is invalid in the chosen encoding: nothing is
+#' replaced silently. A fetcher that knows the HTTP charset should pass it
+#' as `encoding`.
+#'
+#' The declaration is found as browsers find it, by the HTML standard's
+#' prescan of the first 1024 bytes for `<meta charset="...">` or
+#' `<meta http-equiv="Content-Type" content="...; charset=...">`. The
+#' prescan skips comments and the insides of tags, but not the text of
+#' scripts. Labels are those of the Encoding Standard, which maps several
+#' to a superset: `"iso-8859-1"`, `"latin1"` and `"us-ascii"` mean
+#' windows-1252, `"gb2312"` means GBK, and a UTF-16 label means UTF-8 (the
+#' bytes read as ASCII, so they are not UTF-16). An unknown label is
+#' ignored. [html_info()] reports the encoding used and its source.
+#'
+#' A file saved in another encoding without updating its declaration, as
+#' some tools do when they convert pages to UTF-8, decodes wrongly or fails
+#' to decode, as it would in a browser. Pass its real encoding as
+#' `encoding`.
 #'
 #' A leading byte-order mark is removed. Input containing a NUL character
 #' after decoding is rejected.
 #'
 #' @param x One string, or a raw vector of encoded bytes.
 #' @param encoding The encoding of raw input, as a name [iconv()] accepts;
-#'   `NULL` to use a byte-order mark or UTF-8.
+#'   `NULL` to use a byte-order mark, the page's declaration, or UTF-8.
 #' @param base_url The document's URL, used to resolve relative links; `NULL`
 #'   if unknown.
 #' @param comments Whether to keep comment nodes.
@@ -71,8 +86,11 @@ zuh_parse <- function(x, encoding, base_url, comments, limits,
                     call = call)
   }
   input <- zuh_decode(x, encoding, limits, call)
-  zuh_parse_bytes(input$bytes, input$encoding, base_url, limits,
-                  comments = comments, fragment = fragment, call = call)
+  doc <- zuh_parse_bytes(input$bytes, input$encoding, base_url, limits,
+                         comments = comments, fragment = fragment,
+                         call = call)
+  doc$encoding_source <- input$source
+  doc
 }
 
 #' Parse an HTML fragment
@@ -215,10 +233,31 @@ zuh_decode <- function(x, encoding, limits, call) {
     }
     bytes <- zuh_strip_bom(charToRaw(x))
     used <- "UTF-8"
+    source <- "string"
   } else if (is.raw(x)) {
     bom <- zuh_bom(x)
     used <- if (!is.null(encoding)) encoding else if (!is.na(bom)) bom else
       "UTF-8"
+    source <- if (!is.na(bom)) "bom" else if (!is.null(encoding)) "argument"
+      else "default"
+    conv <- used
+    if (source == "default") {
+      sniffed <- zuh_prescan(x)
+      if (!is.null(sniffed)) {
+        used <- sniffed$encoding
+        source <- "meta"
+        if (used == "replacement") {
+          zuh_abort(
+            "encoding",
+            sprintf(paste0("The document declares encoding \"%s\" in ",
+                           "<meta>, which is not supported."),
+                    sniffed$label),
+            encoding = used, call = call
+          )
+        }
+        conv <- zuh_iconv_name(used)
+      }
+    }
     if (!is.null(encoding) && !is.na(bom) &&
         !zuh_bom_matches(bom, encoding)) {
       zuh_abort(
@@ -238,7 +277,7 @@ zuh_decode <- function(x, encoding, limits, call) {
     }
     if (zuh_canon_enc(used) %in% c("UTF16", "UTF16LE", "UTF16BE")) {
       bytes <- zuh_utf16(x, used, bom, call)
-    } else if (zuh_canon_enc(used) == "UTF8") {
+    } else if (zuh_canon_enc(conv) == "UTF8") {
       bytes <- zuh_strip_bom(x)
       if (any(bytes == as.raw(0L))) {
         zuh_input_error("x", "The input contains a NUL byte.", call = call)
@@ -251,7 +290,8 @@ zuh_decode <- function(x, encoding, limits, call) {
       if (any(x == as.raw(0L))) {
         zuh_input_error("x", "The input contains a NUL byte.", call = call)
       }
-      bytes <- zuh_iconv(x, used, call)
+      bytes <- zuh_iconv(x, conv, call, name = used,
+                         hint = if (source == "meta") zuh_meta_hint)
     }
   } else {
     zuh_input_error(
@@ -267,7 +307,7 @@ zuh_decode <- function(x, encoding, limits, call) {
       call = call
     )
   }
-  list(bytes = bytes, encoding = used)
+  list(bytes = bytes, encoding = used, source = source)
 }
 
 zuh_canon_enc <- function(enc) toupper(gsub("[-_ ]", "", enc))
@@ -345,7 +385,12 @@ zuh_utf16 <- function(x, encoding, bom, call) {
 # if the output is identical to input with non-ASCII bytes (a real
 # conversion changes those), if the output has a NUL (the input had none),
 # or if the output is not valid UTF-8.
-zuh_iconv <- function(x, from, call) {
+zuh_meta_hint <- paste0(
+  " The page's <meta> declares it; if the file was saved in another ",
+  "encoding, pass that as `encoding`."
+)
+
+zuh_iconv <- function(x, from, call, name = from, hint = NULL) {
   convert <- function(sub) {
     tryCatch(
       iconv(list(x), from = from, to = "UTF-8", toRaw = TRUE, sub = sub),
@@ -357,8 +402,9 @@ zuh_iconv <- function(x, from, call) {
   b <- convert("\002")
   if (is.null(a) || is.null(b)) {
     zuh_abort(
-      "encoding", sprintf("Encoding \"%s\" is not supported.", from),
-      encoding = from, call = call
+      "encoding",
+      paste0(sprintf("Encoding \"%s\" is not supported.", name), hint),
+      encoding = name, call = call
     )
   }
   out <- a[[1L]]
@@ -367,8 +413,9 @@ zuh_iconv <- function(x, from, call) {
       any(out == as.raw(0L)) || !validUTF8(rawToChar(out))) {
     zuh_abort(
       "encoding",
-      sprintf("The input is not valid in encoding \"%s\".", from),
-      encoding = from, call = call
+      paste0(sprintf("The input is not valid in encoding \"%s\".", name),
+             hint),
+      encoding = name, call = call
     )
   }
   zuh_strip_bom(out)
@@ -522,6 +569,10 @@ print.zuhtml_document <- function(x, ...) {
 #'   * `parse_peak_bytes`: the most memory the parser held at once;
 #'   * `input_bytes`: size of the decoded UTF-8 input;
 #'   * `encoding`: the encoding the input was decoded from;
+#'   * `encoding_source`: where that encoding came from: `"bom"` (a
+#'     byte-order mark), `"argument"` (the `encoding` argument), `"meta"`
+#'     (a `<meta>` declaration), `"default"` (none of these, so UTF-8), or
+#'     `"string"` for character input, which is already decoded;
 #'   * `base_url`: the `base_url` given to [html_parse()], or `NA`;
 #'   * `quirks_mode`: `"no-quirks"`, `"quirks"` or `"limited-quirks"`, as
 #'     the doctype selected;
@@ -545,6 +596,8 @@ html_info <- function(x) {
       parse_peak_bytes = m$parse_peak_bytes,
       input_bytes = m$input_bytes,
       encoding = doc$encoding,
+      encoding_source = if (is.null(doc$encoding_source)) NA_character_
+        else doc$encoding_source,
       base_url = if (is.null(doc$base_url)) NA_character_ else doc$base_url,
       quirks_mode = m$quirks_mode,
       problems = m$n_problems,

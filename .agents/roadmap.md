@@ -311,7 +311,11 @@ The sanitizer driver injects faults into every allocation of the walk, and `fuzz
 
 ## Stage 14 — Encoding sniffing · M
 
-**Status:** not started.
+**Status:** done 2026-09-24. The prescan is R (`R/sniff.R`) over at most 1024 bytes, step for step with the standard, and the Encoding Standard's full label table is data. Two decisions:
+- A BOM that contradicts `encoding` stays an error, the contract since Stage 2, rather than the standard's silent BOM win. Nothing else in the package replaces silently.
+- Encoding names map to candidate iconv names, because glibc, libiconv and win_iconv spell some differently (`MACCYRILLIC` against `MAC-CYRILLIC`). The label-coverage test skips Windows, whose iconv lacks a few encodings; there they are encoding errors.
+
+The exit case "scripts containing a fake `<meta>`" follows the standard: the prescan does not skip script text, so such a `<meta>` counts, as in browsers.
 
 - For raw input with no `encoding` argument and no byte-order mark, run the HTML standard's prescan of the first 1024 bytes for `<meta charset>` and `<meta http-equiv="Content-Type" content="...charset=...">`, with the standard's label table mapping names to encodings and the rule that a UTF-16 label means UTF-8. If nothing is found, use UTF-8. Precedence becomes BOM, then `encoding`, then the prescan, then UTF-8, which is the standard's order, with `encoding` as the transport layer's charset.
 - `html_info()` reports the encoding used and where it came from (`"bom"`, `"argument"`, `"meta"`, `"default"`).

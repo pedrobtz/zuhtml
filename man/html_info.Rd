@@ -20,6 +20,10 @@ An object of class \code{zuhtml_doc_info}: a list with
 \item \code{parse_peak_bytes}: the most memory the parser held at once;
 \item \code{input_bytes}: size of the decoded UTF-8 input;
 \item \code{encoding}: the encoding the input was decoded from;
+\item \code{encoding_source}: where that encoding came from: \code{"bom"} (a
+byte-order mark), \code{"argument"} (the \code{encoding} argument), \code{"meta"}
+(a \verb{<meta>} declaration), \code{"default"} (none of these, so UTF-8), or
+\code{"string"} for character input, which is already decoded;
 \item \code{base_url}: the \code{base_url} given to \code{\link[=html_parse]{html_parse()}}, or \code{NA};
 \item \code{quirks_mode}: \code{"no-quirks"}, \code{"quirks"} or \code{"limited-quirks"}, as
 the doctype selected;

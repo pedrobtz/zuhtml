@@ -53,7 +53,18 @@ Record a new baseline only when the change is understood and intended.
 
 ## The baseline, 2026-09-24
 
-All 522 pages parse, all as UTF-8. 362 round-trip exactly. 157 lose only
+All the files are UTF-8, but not all say so. Since Stage 14, `html_read()`
+decodes with a page's `<meta>` declaration as a browser does, and some
+files keep a declaration from before they were converted to UTF-8:
+
+* four htmlparser-benchmark pages declare `iso-8859-1`, so they decode as
+  windows-1252, which garbles their few non-ASCII characters (a UTF-8
+  `U+FFFD` reads as `ï¿½`), exactly as a browser shows them;
+* `readability/qq` declares `gb2312`, and its UTF-8 bytes are not valid
+  GBK, so it fails with `zuhtml_encoding_error`. Passing
+  `encoding = "UTF-8"` reads it.
+
+The other 521 pages parse. 362 round-trip exactly. 156 lose only
 their doctype's public and system identifiers, which the HTML standard's
 serializer never writes (`roundtrip` is `doctype`). The other 3 differ for
 reasons `tools/conformance/roundtrip-deviations.txt` already lists:
