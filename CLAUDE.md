@@ -260,6 +260,13 @@ tables, serialization) reads the arena and never touches Gumbo. Only
   Any change in any column fails `tools/corpus/run`: understand it, then
   `--record`. A page that exposes a bug becomes a small fixture in
   `tests/testthat/`, never the page itself.
+- **Real-world fixtures must be redistributable.** `tests/testthat/fixtures/
+  realworld/` ships pandas' public-domain (FDIC, USDA) and synthetic tables
+  and Readability's synthetic pages with its expected output, which serves
+  as an oracle for `html_text_clean()` and `html_url()`. Saved news
+  articles and site front pages stay in `tools/corpus/`: their content is
+  the sites' copyright, whatever licence the collecting project uses.
+  Add a notice to `inst/COPYRIGHTS` with any new fixture source.
 - **Round-trip non-fixed-points are adjudicated, not asserted away.**
   `tools/conformance/roundtrip-deviations.txt` lists each with its category
   and reason; the gate fails if the list and the results disagree either
