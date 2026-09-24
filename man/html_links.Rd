@@ -35,6 +35,7 @@ html_links(doc, absolute = TRUE)
 Other extraction:
 \code{\link[=html_list]{html_list()}},
 \code{\link[=html_table]{html_table()}},
+\code{\link[=html_table_cells]{html_table_cells()}},
 \code{\link[=html_url]{html_url()}}
 }
 \concept{extraction}

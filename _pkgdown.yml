@@ -28,6 +28,7 @@ reference:
   - title: Extracting structures
     contents:
       - html_table
+      - html_table_cells
       - html_list
       - html_links
       - html_url

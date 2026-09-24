@@ -44,6 +44,7 @@ html_list(items, mode = "tree")
 Other extraction:
 \code{\link[=html_links]{html_links()}},
 \code{\link[=html_table]{html_table()}},
+\code{\link[=html_table_cells]{html_table_cells()}},
 \code{\link[=html_url]{html_url()}}
 }
 \concept{extraction}

@@ -281,7 +281,7 @@ Added 2026-09-24 with Stages 11 to 15, which surveyed HTML libraries in Python, 
 
 ## Stage 12 — Table options · M
 
-**Status:** not started.
+**Status:** done 2026-09-24. All in R over the Stage 7 grid, with no native change: `html_table_cells()` takes each cell's position and span from its first and last slot in the row-major grid. It deviates from the plan in one respect: `links` holds `href` as written unless `absolute = TRUE`, as `html_links()` does, because resolving by default gives `NA` for every relative link in a document parsed without `base_url`. Across the corpus's 878 tables, every cell fills exactly its span rectangle in `html_table(header = FALSE)`, and `convert = TRUE` never changes which values are `NA`.
 
 - `html_table_cells(x)`: one row per original cell of one table, with `row`, `column`, `rowspan`, `colspan`, `section`, `header` (is `<th>`), `text` and a list-column of resolved link URLs. It reads the Stage 7 grid, so spans are placed exactly as `html_table()` places them. This is what pandas' `extract_links` answers, without folding links into the values.
 - `html_tables(x, css, match = NULL, ...)`: keep tables whose cleaned text matches a regular expression, as pandas' `match=`.

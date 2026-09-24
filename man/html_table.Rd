@@ -10,10 +10,13 @@ html_table(
   header = "auto",
   trim = TRUE,
   na = character(),
+  convert = FALSE,
+  decimal = ".",
+  thousands = NULL,
   limits = html_limits()
 )
 
-html_tables(x, css = "table", ...)
+html_tables(x, css = "table", match = NULL, ...)
 }
 \arguments{
 \item{x}{For \code{html_table()}, a nodeset holding exactly one \verb{<table>}
@@ -27,12 +30,24 @@ to search.}
 \item{na}{Strings that become \code{NA} after trimming, such as \code{c("", "-")}.
 By default no text is treated as missing.}
 
+\item{convert}{If \code{TRUE}, convert columns that are entirely numbers or
+logicals; see the Conversion section.}
+
+\item{decimal}{The decimal mark for \code{convert}: a single character.}
+
+\item{thousands}{The grouping mark for \code{convert}: a single character
+other than \code{decimal}, or \code{NULL} for none.}
+
 \item{limits}{Resource limits from \code{\link[=html_limits]{html_limits()}}; \code{max_table_cells}
 bounds the grid, spans included.}
 
 \item{css}{For \code{html_tables()}, the selector of tables to read. Only the
 outermost matching tables are read; nested ones remain part of their
 parents' cells.}
+
+\item{match}{For \code{html_tables()}, a regular expression (\code{\link[=grepl]{grepl()}}) that
+a table's cleaned text must match for the table to be read, or \code{NULL}
+to read every table.}
 
 \item{...}{For \code{html_tables()}, arguments passed on to \code{html_table()}.}
 }
@@ -83,9 +98,31 @@ non-empty header texts above it with \code{" / "}, merging repeats that a
 position, and duplicates are made unique with \code{\link[=make.unique]{make.unique()}}. Names are
 not otherwise made syntactic.
 
-Cell text follows \code{\link[=html_text_clean]{html_text_clean()}}. All columns are character:
-convert with \code{\link[=type.convert]{type.convert()}} or similar when you know the types, which
-keeps identifiers with leading zeros intact.
+Cell text follows \code{\link[=html_text_clean]{html_text_clean()}}. All columns are character unless
+\code{convert = TRUE}.
+}
+
+\section{Conversion}{
+
+With \code{convert = TRUE}, each column is converted on its own, and only when
+every non-missing value converts; otherwise it stays character, so
+conversion never turns a value into \code{NA}. Values are compared after
+removing surrounding whitespace.
+\itemize{
+\item \code{TRUE}, \code{FALSE}, \code{true}, \code{false}, \code{True} and \code{False} make a logical
+column.
+\item Decimal numbers, with an optional sign and exponent, make an integer
+column when all are whole and fit, otherwise a double column. \code{decimal}
+is the decimal mark. \code{thousands}, if given, is a grouping mark allowed
+between groups of three digits, as in \verb{1,234,567.5}; a badly grouped
+value such as \verb{1,23} keeps the column character.
+\item A value with a leading zero, such as \code{"0012"}, keeps the column
+character: it is an identifier, not a number. \code{"0"} and \code{"0.5"} are
+numbers.
+\item \code{Inf}, \code{NaN}, \code{NA}, currency symbols and percentages are not numbers;
+list such strings in \code{na}, or convert them yourself. A column with no
+non-missing values stays character.
+}
 }
 
 \examples{
@@ -100,11 +137,20 @@ doc <- html_parse(paste0(
   "<tr><th>2025<th>2026<tr><td>North<td>1<td>2</table>"
 ))
 html_tables(doc)
+html_tables(doc, match = "North")
+
+doc <- html_parse(paste0(
+  "<table><tr><th>Id<th>Amount<th>Paid",
+  "<tr><td>007<td>1.234,50<td>true<tr><td>012<td>99<td>false</table>"
+))
+str(html_table(html_element(doc, "table"), convert = TRUE,
+               decimal = ",", thousands = "."))
 }
 \seealso{
 Other extraction:
 \code{\link[=html_links]{html_links()}},
 \code{\link[=html_list]{html_list()}},
+\code{\link[=html_table_cells]{html_table_cells()}},
 \code{\link[=html_url]{html_url()}}
 }
 \concept{extraction}
