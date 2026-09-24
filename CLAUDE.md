@@ -31,20 +31,18 @@ code with it.
 
 ## Current state
 
-Stages 0 to 6 are done. Gumbo 0.14.0 is vendored with a three-patch
-series.
-[`html_parse()`](https://pedrobtz.github.io/zuhtml/reference/html_parse.md)/[`html_read()`](https://pedrobtz.github.io/zuhtml/reference/html_parse.md)/[`html_fragment()`](https://pedrobtz.github.io/zuhtml/reference/html_fragment.md)
-decode input, parse under the allocation ledger with every limit
-enforced, and convert Gumbo’s tree into a frozen, index-addressed
-document (`src/zuh_document.h`). The R node API,
-[`html_serialize()`](https://pedrobtz.github.io/zuhtml/reference/html_serialize.md)
-and CSS selection
-([`html_elements()`](https://pedrobtz.github.io/zuhtml/reference/html_elements.md),
-[`html_element()`](https://pedrobtz.github.io/zuhtml/reference/html_elements.md),
-[`html_matches()`](https://pedrobtz.github.io/zuhtml/reference/html_elements.md),
-[`html_filter()`](https://pedrobtz.github.io/zuhtml/reference/html_elements.md))
-are in place. Stage 7 (extraction: clean text, lists, tables, links,
-URLs) is next. The probe harness
+Stages 0 to 7 are done: every 0.1.0 export exists. Gumbo 0.14.0 is
+vendored with a three-patch series; parsing runs under the allocation
+ledger with every limit enforced and converts into a frozen,
+index-addressed document (`src/zuh_document.h`). On top: the node API,
+[`html_serialize()`](https://pedrobtz.github.io/zuhtml/reference/html_serialize.md),
+CSS selection, and extraction
+([`html_text_clean()`](https://pedrobtz.github.io/zuhtml/reference/html_text_clean.md),
+[`html_list()`](https://pedrobtz.github.io/zuhtml/reference/html_list.md),
+[`html_table()`](https://pedrobtz.github.io/zuhtml/reference/html_table.md)/[`html_tables()`](https://pedrobtz.github.io/zuhtml/reference/html_table.md),
+[`html_links()`](https://pedrobtz.github.io/zuhtml/reference/html_links.md),
+[`html_url()`](https://pedrobtz.github.io/zuhtml/reference/html_url.md)).
+Stage 8 (hardening) is next. The probe harness
 ([.agents/probe-gumbo.c](https://pedrobtz.github.io/zuhtml/.agents/probe-gumbo.c))
 holds the measurements the roadmap cites.
 
@@ -123,8 +121,10 @@ Add each here when it lands, and say whether CI runs it.
 Planned layout, from design §13 and the roadmap. The html5lib fixtures
 live in `tools/conformance/`. So far `R/attributes.R`, `R/conditions.R`,
 `R/info.R`, `R/limits.R`, `R/node.R`, `R/nodeset.R`, `R/parse.R`,
-`R/select.R`, `R/text.R`, `R/write.R`, `src/init.c`, `src/r_api.c`,
-`src/r_node.c`, `src/r_select.c`, `src/zuh_selector.[ch]`,
+`R/select.R`, `R/text.R`, `R/write.R`, `R/list.R`, `R/table.R`,
+`R/links.R`, `src/init.c`, `src/r_api.c`, `src/r_extract.c`,
+`src/r_node.c`, `src/r_select.c`, `src/zuh_buf.[ch]`,
+`src/zuh_selector.[ch]`, `src/zuh_table.[ch]`, `src/zuh_text.[ch]`,
 `src/zuh_write.[ch]`, `fuzz/`, `src/zuh_gumbo.[ch]`,
 `src/zuh_memory.[ch]`, `src/zuh_document.[ch]`, `src/zuh_status.h`,
 `src/zuh_r.h`, `src/vendor/` and the vendoring, lint and sanitizer
@@ -212,6 +212,13 @@ header.
   `ZUH_SEL_UNSUPPORTED` and a position, and `test-select.R` has a
   rejection test per form. Adding a production means amending the design
   first.
+- **Strings built for R use an R_alloc-backed `zuh_buf`.** Pass
+  `zuh_r_alloc` to `zuh_buf_init()` in R-facing code, so an R allocation
+  failure while a string is being built strands no `malloc` memory. The
+  core’s own callers (the sanitizer driver, fuzz targets) pass `NULL`
+  and `zuh_buf_free()`.
+- **`x[0]` drops, it does not give NA.** Table slots are 0-based with -1
+  for a gap; convert to R indices with gaps as `NA` first (`R/table.R`).
 - **Pool strings can move.** In `zuh_selector.c`, anything that copies a
   pool string back into the pool must grow first and address the source
   after (`pool_dup()`); the fuzzer found the use-after-free the naive

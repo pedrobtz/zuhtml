@@ -51,7 +51,28 @@
   and
   [`html_text()`](https://pedrobtz.github.io/zuhtml/reference/html_text.md).
   [`html_info()`](https://pedrobtz.github.io/zuhtml/reference/html_info.md)
-  describes a document.
+  describes a document. [`lapply()`](https://rdrr.io/r/base/lapply.html)
+  and friends over a nodeset pass one node at a time.
+
+- New extraction functions.
+  [`html_text_clean()`](https://pedrobtz.github.io/zuhtml/reference/html_text_clean.md)
+  gives text as a reader wants it: scripts and styles skipped,
+  whitespace collapsed outside `<pre>`, line breaks at `<br>` and block
+  elements.
+  [`html_list()`](https://pedrobtz.github.io/zuhtml/reference/html_list.md)
+  reads a `<ul>`/`<ol>` as text or a tree, without nested items leaking
+  into their parents.
+  [`html_table()`](https://pedrobtz.github.io/zuhtml/reference/html_table.md)
+  and
+  [`html_tables()`](https://pedrobtz.github.io/zuhtml/reference/html_table.md)
+  read tables into data frames of character columns, with row and column
+  spans, `rowspan="0"`, row groups, header detection and an error rather
+  than a silent overwrite for overlapping cells.
+  [`html_url()`](https://pedrobtz.github.io/zuhtml/reference/html_url.md)
+  resolves URL attributes with RFC 3986 reference resolution, honouring
+  `<base href>`, and
+  [`html_links()`](https://pedrobtz.github.io/zuhtml/reference/html_links.md)
+  lists a page’s links.
 
 - New
   [`html_elements()`](https://pedrobtz.github.io/zuhtml/reference/html_elements.md),

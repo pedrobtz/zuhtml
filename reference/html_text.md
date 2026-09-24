@@ -32,7 +32,8 @@ doctype and a missing node are `NA`.
 Other node values:
 [`html_attr()`](https://pedrobtz.github.io/zuhtml/reference/html_attr.md),
 [`html_name()`](https://pedrobtz.github.io/zuhtml/reference/html_name.md),
-[`html_serialize()`](https://pedrobtz.github.io/zuhtml/reference/html_serialize.md)
+[`html_serialize()`](https://pedrobtz.github.io/zuhtml/reference/html_serialize.md),
+[`html_text_clean()`](https://pedrobtz.github.io/zuhtml/reference/html_text_clean.md)
 
 ## Examples
 

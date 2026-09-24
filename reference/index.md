@@ -26,6 +26,10 @@
   : Information about a parsed document
 - [`html_limits()`](https://pedrobtz.github.io/zuhtml/reference/html_limits.md)
   : Resource limits for parsing and extraction
+- [`html_links()`](https://pedrobtz.github.io/zuhtml/reference/html_links.md)
+  : Links in a document
+- [`html_list()`](https://pedrobtz.github.io/zuhtml/reference/html_list.md)
+  : Extract an HTML list
 - [`html_name()`](https://pedrobtz.github.io/zuhtml/reference/html_name.md)
   [`html_namespace()`](https://pedrobtz.github.io/zuhtml/reference/html_name.md)
   [`html_type()`](https://pedrobtz.github.io/zuhtml/reference/html_name.md)
@@ -37,8 +41,15 @@
   : Parse problems recorded for a document
 - [`html_serialize()`](https://pedrobtz.github.io/zuhtml/reference/html_serialize.md)
   : Serialize nodes as HTML
+- [`html_table()`](https://pedrobtz.github.io/zuhtml/reference/html_table.md)
+  [`html_tables()`](https://pedrobtz.github.io/zuhtml/reference/html_table.md)
+  : Extract HTML tables as data frames
 - [`html_text()`](https://pedrobtz.github.io/zuhtml/reference/html_text.md)
   : Text content of nodes
+- [`html_text_clean()`](https://pedrobtz.github.io/zuhtml/reference/html_text_clean.md)
+  : Cleaned text for extraction
+- [`html_url()`](https://pedrobtz.github.io/zuhtml/reference/html_url.md)
+  : Resolve URLs in attributes
 - [`zuhtml-conditions`](https://pedrobtz.github.io/zuhtml/reference/zuhtml-conditions.md)
   : Conditions raised by zuhtml
 - [`zuhtml_info()`](https://pedrobtz.github.io/zuhtml/reference/zuhtml_info.md)
