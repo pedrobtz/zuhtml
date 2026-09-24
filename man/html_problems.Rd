@@ -29,3 +29,12 @@ have some. This is not a conformance validator.
 doc <- html_parse("<p>One</div><p id=a id=b>Two")
 html_problems(doc)
 }
+\seealso{
+Other parsing:
+\code{\link[=html_fragment]{html_fragment()}},
+\code{\link[=html_info]{html_info()}},
+\code{\link[=html_limits]{html_limits()}},
+\code{\link[=html_parse]{html_parse()}},
+\code{\link[=zuhtml_info]{zuhtml_info()}}
+}
+\concept{parsing}

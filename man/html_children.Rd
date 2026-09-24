@@ -75,4 +75,8 @@ html_ancestors(html_children(items[2]))
 tmpl <- html_parse("<template><p>inert</p></template>")
 html_template_content(html_children(html_children(html_root(tmpl))[1]))
 }
+\seealso{
+Other navigation:
+\code{\link[=html_elements]{html_elements()}}
+}
 \concept{navigation}

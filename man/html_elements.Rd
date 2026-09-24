@@ -90,4 +90,8 @@ html_filter(html_elements(doc, "div, h2"), "h2")
 
 try(html_elements(doc, "div:has(h2)"))
 }
-\concept{selection}
+\seealso{
+Other navigation:
+\code{\link[=html_children]{html_children()}}
+}
+\concept{navigation}

@@ -467,6 +467,7 @@ zuh_doc_ptr <- function(x, arg = "x", call = sys.call(-1L)) {
 #'   are kept (see [html_limits()]); attribute `"truncated"` is `TRUE` when
 #'   more occurred.
 #' @export
+#' @family parsing
 #' @examples
 #' doc <- html_parse("<p>One</div><p id=a id=b>Two")
 #' html_problems(doc)

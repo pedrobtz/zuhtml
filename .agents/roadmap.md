@@ -236,7 +236,10 @@ Also: strings built for R now use an R_alloc-backed buffer (`zuh_buf`), retrofit
 
 ## Stage 9 — Documentation, benchmarks, CRAN preparation · M
 
-**Status:** not started.
+**Status:** done 2026-09-24. All 33 exports have `@return`, runnable examples (errors shown with `try()`) and one of four families (parsing, navigation, node values, extraction). The pkgdown reference index is grouped the same way. There are four vignettes (`zuhtml`, `selectors`, `tables-and-lists`, `limits-and-encoding`); their outputs were checked by rendering them, which made the getting-started page sloppier, so that `html_problems()` has something to show. The README was rewritten. `cran-comments.md` maps each §14 criterion to what verifies it. `tools/run-benchmarks` reports parse, selection and table timings and native memory per input shape, with no rvest/xml2 comparison because neither is in `Suggests`. `R CMD check --as-cran` shows only the development-version incoming NOTE, and the suite runs in about 4 s under check. Deviations:
+- `urlchecker::url_check()` reports only the four pkgdown article links, which exist once this stage deploys the site.
+- No win-builder submission by hand: CI's Windows R-devel leg is the same flavor, as in zuxml.
+- `NEWS.md` keeps its development heading until Stage 10 bumps the version.
 
 - Roxygen for all 33 exports: `@return` on every one, runnable `@examples` (no `\dontrun{}`, no commented-out code, errors shown with `try()`), `@family` groups; `devtools::document()` leaves no diff.
 - Vignettes: `zuhtml` (parse, select, extract — the §16 workflow), `selectors` (the supported subset and what is rejected), `tables-and-lists`, `limits-and-encoding` (what is and is not bounded, that parsing is not sanitization, no encoding sniffing). `vignettes/articles/` for pkgdown-only material.

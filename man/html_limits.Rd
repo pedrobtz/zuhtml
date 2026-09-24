@@ -60,3 +60,12 @@ html_limits()
 lim <- html_limits(max_depth = 128)
 try(html_parse(strrep("<div>", 200), limits = lim))
 }
+\seealso{
+Other parsing:
+\code{\link[=html_fragment]{html_fragment()}},
+\code{\link[=html_info]{html_info()}},
+\code{\link[=html_parse]{html_parse()}},
+\code{\link[=html_problems]{html_problems()}},
+\code{\link[=zuhtml_info]{zuhtml_info()}}
+}
+\concept{parsing}

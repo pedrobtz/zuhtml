@@ -36,6 +36,9 @@ html_fragment("<tr><td>1<td>2")
 
 Other parsing:
 \code{\link[=html_info]{html_info()}},
-\code{\link[=html_parse]{html_parse()}}
+\code{\link[=html_limits]{html_limits()}},
+\code{\link[=html_parse]{html_parse()}},
+\code{\link[=html_problems]{html_problems()}},
+\code{\link[=zuhtml_info]{zuhtml_info()}}
 }
 \concept{parsing}

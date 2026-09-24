@@ -36,6 +36,9 @@ html_info(html_parse("<!DOCTYPE html><title>t</title><p>Hello"))
 \seealso{
 Other parsing:
 \code{\link[=html_fragment]{html_fragment()}},
-\code{\link[=html_parse]{html_parse()}}
+\code{\link[=html_limits]{html_limits()}},
+\code{\link[=html_parse]{html_parse()}},
+\code{\link[=html_problems]{html_problems()}},
+\code{\link[=zuhtml_info]{zuhtml_info()}}
 }
 \concept{parsing}

@@ -50,7 +50,7 @@
 #' * `html_matches()`: a logical vector as long as `x`; `NA` for missing
 #'   nodes, `FALSE` for nodes that are not elements.
 #' * `html_filter()`: the nodes of `x` that match, in their order.
-#' @family selection
+#' @family navigation
 #' @export
 #' @examples
 #' doc <- html_parse(paste0(

@@ -2,3 +2,42 @@ url: https://pedrobtz.github.io/zuhtml/
 template:
   bootstrap: 5
 
+reference:
+  - title: Parsing
+    desc: From a string, raw bytes or a file to a document, under limits.
+    contents:
+      - html_parse
+      - html_fragment
+      - html_limits
+      - html_problems
+      - html_info
+      - zuhtml_info
+  - title: Selecting and navigating
+    contents:
+      - html_elements
+      - html_children
+  - title: Node values
+    contents:
+      - html_text_clean
+      - html_text
+      - html_attr
+      - html_name
+      - html_serialize
+  - title: Extracting structures
+    contents:
+      - html_table
+      - html_list
+      - html_links
+      - html_url
+  - title: Conditions
+    contents:
+      - zuhtml-conditions
+
+articles:
+  - title: Guides
+    navbar: ~
+    contents:
+      - zuhtml
+      - selectors
+      - tables-and-lists
+      - limits-and-encoding

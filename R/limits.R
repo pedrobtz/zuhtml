@@ -28,6 +28,7 @@
 #'
 #' @return An object of class `zuhtml_limits`: a named list of the limits,
 #'   as doubles.
+#' @family parsing
 #' @export
 #' @examples
 #' html_limits()
