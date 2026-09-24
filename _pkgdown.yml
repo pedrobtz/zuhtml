@@ -15,11 +15,13 @@ reference:
   - title: Selecting and navigating
     contents:
       - html_elements
+      - html_closest
       - html_children
   - title: Node values
     contents:
       - html_text_clean
       - html_text
+      - html_strings
       - html_attr
       - html_name
       - html_serialize

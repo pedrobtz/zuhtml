@@ -4,7 +4,7 @@
 \alias{html_serialize}
 \title{Serialize nodes as HTML}
 \usage{
-html_serialize(x, outer = TRUE)
+html_serialize(x, outer = TRUE, pretty = FALSE)
 }
 \arguments{
 \item{x}{A \code{zuhtml_document} or \code{zuhtml_nodeset}.}
@@ -13,6 +13,13 @@ html_serialize(x, outer = TRUE)
 \code{outerHTML}; if \code{FALSE}, only its contents, like \code{innerHTML}. A
 document or fragment has no markup of its own, so both give its
 contents.}
+
+\item{pretty}{If \code{TRUE}, lay block-level elements out on their own lines,
+indented two spaces per level, for reading. Inline content stays on its
+line, whitespace-only text between blocks is dropped, and the contents
+of \verb{<pre>}, \verb{<textarea>}, \verb{<script>} and \verb{<style>} are left exactly as
+they are. The result is for people, not for parsing again: the added
+whitespace becomes text.}
 }
 \value{
 A character vector as long as \code{x}; \code{NA} for missing nodes.
@@ -38,6 +45,7 @@ html_serialize(doc)
 p <- html_children(html_children(html_root(doc))[2])
 html_serialize(p)
 html_serialize(p, outer = FALSE)
+cat(html_serialize(doc, pretty = TRUE))
 
 # To write a document to a file:
 path <- tempfile(fileext = ".html")
@@ -47,6 +55,7 @@ writeLines(html_serialize(doc), path)
 Other node values:
 \code{\link[=html_attr]{html_attr()}},
 \code{\link[=html_name]{html_name()}},
+\code{\link[=html_strings]{html_strings()}},
 \code{\link[=html_text]{html_text()}},
 \code{\link[=html_text_clean]{html_text_clean()}}
 }

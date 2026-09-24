@@ -45,7 +45,7 @@ LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     zuh_clean_opts co = {1, 1, (int) (id & 1), (int) ((id >> 1) & 1)};
     zuh_buf b;
     zuh_buf_init(&b, NULL, NULL);
-    (void) zuh_serialize(doc, id, (int) (id & 1), &b);
+    (void) zuh_serialize(doc, id, (int) (id & 1), (int) ((id >> 1) & 1), &b);
     zuh_buf_free(&b);
     zuh_buf_init(&b, NULL, NULL);
     (void) zuh_text_clean(doc, id, &co, &b);

@@ -12,8 +12,10 @@
 /* Serialize node `id` into `out`, a buffer from zuh_buf_init(): with
  * `outer`, the node itself (its "outerHTML"); otherwise its children
  * ("innerHTML"). The document or fragment node has no markup of its own, so
- * both give its children. ZUH_LIMIT_MEMORY if the buffer could not grow. */
+ * both give its children. With `pretty`, block-level elements are laid out
+ * on indented lines, for reading only (see zuh_write.c). ZUH_LIMIT_MEMORY
+ * if the buffer could not grow. */
 zuh_status zuh_serialize(const zuh_doc *doc, zuh_id id, int outer,
-                         zuh_buf *out);
+                         int pretty, zuh_buf *out);
 
 #endif

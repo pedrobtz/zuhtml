@@ -77,6 +77,7 @@ html_template_content(html_children(html_children(html_root(tmpl))[1]))
 }
 \seealso{
 Other navigation:
+\code{\link[=html_closest]{html_closest()}},
 \code{\link[=html_elements]{html_elements()}}
 }
 \concept{navigation}

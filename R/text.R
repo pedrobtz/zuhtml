@@ -82,3 +82,45 @@ zuh_clean <- function(nodes, trim = TRUE, nbsp = TRUE, skip_lists = FALSE,
     nodes, call = call
   )
 }
+
+#' Text pieces of nodes
+#'
+#' The text nodes of each node's subtree, in tree order, as separate
+#' strings: the pieces [html_text()] concatenates. Boundaries between
+#' elements are kept, which matters when the markup, not whitespace,
+#' separates values (`<td>1</td><td>2</td>` is `"1"`, `"2"`, not `"12"`).
+#' Text inside `<script>`, `<style>` and `<template>` is skipped, as are
+#' comments.
+#'
+#' @param x A `zuhtml_document` or `zuhtml_nodeset`.
+#' @param trim If `TRUE`, remove leading and trailing whitespace from each
+#'   piece.
+#' @param drop_empty If `TRUE`, drop pieces that are empty (after trimming,
+#'   when `trim = TRUE`).
+#'
+#' @return A list as long as `x` of character vectors; `NA_character_` for
+#'   a missing node. A text node is its own single piece.
+#' @family node values
+#' @export
+#' @examples
+#' doc <- html_parse("<p>One <b>two</b>\n  <i> three </i></p>")
+#' p <- html_element(doc, "p")
+#' html_strings(p)
+#' html_strings(p, trim = TRUE, drop_empty = TRUE)
+html_strings <- function(x, trim = FALSE, drop_empty = FALSE) {
+  call <- sys.call()
+  zuh_check_flag(trim, "trim", call)
+  zuh_check_flag(drop_empty, "drop_empty", call)
+  n <- zuh_nodes(x, call = call)
+  out <- zuh_checked(.Call(C_zuh_node_strings, n$doc$ptr, n$ids), n,
+                     call = call)
+  missing <- vapply(out, function(v) length(v) == 1L && is.na(v), NA) &
+    is.na(n$ids)
+  out <- lapply(out, function(v) {
+    if (trim) v <- trimws(v, whitespace = "[ \t\n\r\f]")
+    if (drop_empty) v <- v[nzchar(v)]
+    v
+  })
+  out[missing] <- list(NA_character_)
+  out
+}

@@ -58,6 +58,11 @@ First release.
   `html_element()` keeps one result per input node, so extracted columns
   stay aligned.
 
+* New `html_closest()` finds each node's nearest ancestor matching a
+  selector, and `html_strings()` returns the text pieces `html_text()`
+  joins, keeping element boundaries. `html_serialize(pretty = TRUE)` lays
+  block-level elements out on indented lines for reading.
+
 * New `html_serialize()` (and `as.character()` on nodesets) writes nodes
   as normalized HTML following the WHATWG serialization algorithm, outer
   or inner.

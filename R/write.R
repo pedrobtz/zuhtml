@@ -19,6 +19,13 @@
 #'   document or fragment has no markup of its own, so both give its
 #'   contents.
 #'
+#' @param pretty If `TRUE`, lay block-level elements out on their own lines,
+#'   indented two spaces per level, for reading. Inline content stays on its
+#'   line, whitespace-only text between blocks is dropped, and the contents
+#'   of `<pre>`, `<textarea>`, `<script>` and `<style>` are left exactly as
+#'   they are. The result is for people, not for parsing again: the added
+#'   whitespace becomes text.
+#'
 #' @return A character vector as long as `x`; `NA` for missing nodes.
 #' @family node values
 #' @export
@@ -28,16 +35,18 @@
 #' p <- html_children(html_children(html_root(doc))[2])
 #' html_serialize(p)
 #' html_serialize(p, outer = FALSE)
+#' cat(html_serialize(doc, pretty = TRUE))
 #'
 #' # To write a document to a file:
 #' path <- tempfile(fileext = ".html")
 #' writeLines(html_serialize(doc), path)
-html_serialize <- function(x, outer = TRUE) {
+html_serialize <- function(x, outer = TRUE, pretty = FALSE) {
   call <- sys.call()
   zuh_check_flag(outer, "outer", call)
+  zuh_check_flag(pretty, "pretty", call)
   n <- zuh_nodes(x, call = call)
-  zuh_checked(.Call(C_zuh_node_serialize, n$doc$ptr, n$ids, outer), n,
-              call = call)
+  zuh_checked(.Call(C_zuh_node_serialize, n$doc$ptr, n$ids, outer, pretty),
+              n, call = call)
 }
 
 #' @export

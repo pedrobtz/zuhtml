@@ -201,6 +201,8 @@ Deferred past 0.1.0: `group=` on `html_elements()` (`lapply()` does it) and `htm
 
 `html_elements()` returns all matching descendants. A document search includes its root element. An element search excludes the context element unless `:scope` explicitly selects it. With several contexts, the result is a deduplicated union in document order.
 
+`html_closest(x, css)` (added at roadmap Stage 10) returns, per node, the node itself or its nearest ancestor element matching `css`, aligned, with `:scope` the node, as the DOM's `closest()`; the walk stops below the document node.
+
 `html_element()` returns the first match per context and preserves input length and order. A missing match becomes a missing node. This prevents separate extractions of titles and prices from becoming misaligned. Repeated contexts can produce repeated nodes. Zero input contexts produce zero results.
 
 `html_parent()` and sibling accessors also preserve length, including missing parents/siblings; the parent of `<html>` is the document node, which has none. Multi-result traversals flatten and deduplicate in document order; since node IDs are preorder, that is `sort(unique(ids))`. `html_ancestors()` stops below the document node. Accessors return one result per node; missing nodes give typed missing values. `html_matches()` returns logical values with `NA` for missing nodes. `html_filter()` drops nonmatches and missing nodes.
@@ -249,6 +251,8 @@ Deferred past 0.1.0: `html_has_attr()` (`!is.na(html_attr())`), `html_strings()`
 *(As built: see the `html_text_clean()` documentation for the fixed block-element list. `<td>`/`<th>` are separated by a space, adjacent block boundaries merge into one line break, consecutive `<br>` give one line break each, and `trim = FALSE` keeps outer whitespace collapsed to a single space. A nested list or table left out of an item's or a cell's text still acts as a block boundary where it stood.)*
 
 `html_text_clean()` is an extraction-oriented alternative. It skips script/style and unentered template content, collapses HTML ASCII whitespace outside preformatted regions, adds line breaks at `<br>` and documented block boundaries, and preserves `<pre>`/`<textarea>` whitespace. `nbsp = TRUE` converts nonbreaking spaces to regular spaces before normalization. It uses a fixed, tested HTML tag list rather than computed CSS. It is not browser `innerText` and makes no claim to visual layout or visibility.
+
+`html_strings(x, trim, drop_empty)` (roadmap Stage 10) returns each node's text nodes as separate strings in tree order, skipping script, style and template contents. `html_serialize(pretty = TRUE)` lays block-level elements (a fixed list in `src/zuh_write.c`) on lines indented two spaces per level. Elements with block-level children close on their own line, and whitespace-only text in them is dropped. Inline content and the contents of whitespace-sensitive elements (`pre`, `textarea`, `listing`, `plaintext`, `xmp`, `script`, `style`, `iframe`, `noembed`, `noframes`) are unchanged. It is for reading, not a round-trip format.
 
 Serialization emits normalized HTML, not a reconstruction of the input bytes. Use HTML void-element and raw-text rules, appropriate escaping, namespaces for foreign content, doctype handling, comments, and explicit template contents. Apply context-aware fragment serialization. Iterative traversal avoids C-stack dependence. Reparse tests compare the representable tree semantics, not original lexical spelling.
 

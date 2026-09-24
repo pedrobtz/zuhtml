@@ -92,6 +92,7 @@ try(html_elements(doc, "div:has(h2)"))
 }
 \seealso{
 Other navigation:
-\code{\link[=html_children]{html_children()}}
+\code{\link[=html_children]{html_children()}},
+\code{\link[=html_closest]{html_closest()}}
 }
 \concept{navigation}
