@@ -1,6 +1,6 @@
 /* Drives the parse seam -- ledger, abort, limits, conversion into the
- * frozen document, the tree dump -- with no R in the way, for
- * tools/run-sanitizers. Exits non-zero on any failed
+ * frozen document, the tree dump, the serializer -- with no R in the way,
+ * for tools/run-sanitizers. Exits non-zero on any failed
  * expectation; ASan, UBSan and (on Linux) LeakSanitizer report the rest.
  *
  *   driver                 the gate
@@ -13,6 +13,7 @@
 
 #include "zuh_document.h"
 #include "zuh_gumbo.h"
+#include "zuh_write.h"
 
 static int failures = 0;
 
@@ -112,6 +113,42 @@ check_links(const zuh_doc *doc) {
   return reached;
 }
 
+/* Serialize every node, outer and inner, and parse the document's
+ * serialization again: the serializer and a second parse under ASan. Only
+ * for small documents, and not recursively. */
+static int reparsing = 0;
+
+static zuh_status parse(const char *buf, size_t len, const zuh_parse_opts *o,
+                        zuh_parse_stats *stats, size_t *n_problems);
+
+static void
+serialize_all(const zuh_doc *doc, const zuh_parse_opts *o) {
+  zuh_id id;
+  char *out;
+  size_t len;
+  if (doc->n_nodes > 2000 || reparsing)
+    return;
+  for (id = 0; id < doc->n_nodes; id++) {
+    int outer;
+    for (outer = 0; outer < 2; outer++) {
+      EXPECT(zuh_serialize(doc, id, outer, &out, &len) == ZUH_OK &&
+                 out != NULL && strlen(out) == len,
+             "serializing node %u failed", id);
+      free(out);
+    }
+  }
+  if (zuh_serialize(doc, 0, 1, &out, &len) == ZUH_OK) {
+    zuh_parse_opts again = *o;
+    zuh_parse_stats stats;
+    again.fail_at = 0;
+    reparsing = 1;
+    EXPECT(parse(out, len, &again, &stats, NULL) == ZUH_OK,
+           "the serialization did not parse again");
+    reparsing = 0;
+    free(out);
+  }
+}
+
 static zuh_status
 parse(const char *buf, size_t len, const zuh_parse_opts *o,
       zuh_parse_stats *stats, size_t *n_problems) {
@@ -132,6 +169,7 @@ parse(const char *buf, size_t len, const zuh_parse_opts *o,
                strlen(dump) == dlen,
            "the tree dump failed");
     free(dump);
+    serialize_all(doc, o);
   }
   if (n_problems != NULL)
     *n_problems = doc->n_problems;

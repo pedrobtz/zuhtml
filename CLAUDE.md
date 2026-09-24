@@ -25,13 +25,14 @@ scripts and CRAN comments. zuhtml does not depend on it or share code with it.
 
 ## Current state
 
-Stages 0 to 4 are done. Gumbo 0.14.0 is vendored with a three-patch
+Stages 0 to 5 are done. Gumbo 0.14.0 is vendored with a three-patch
 series. `html_parse()`/`html_read()`/`html_fragment()` decode input, parse
 under the allocation ledger with every limit enforced, and convert Gumbo's
 tree into a frozen, index-addressed document (`src/zuh_document.h`). The R
-node API is in place: `zuhtml_nodeset` (IDs plus owner), navigation,
-names/types/namespaces, attributes, `html_text()`, `html_info()`. There is
-no serializer or selector engine yet: Stage 5 (the serializer) is next. The probe harness
+node API and `html_serialize()` are in place, and every applicable
+conformance case parses correctly and either round-trips or is an
+adjudicated non-fixed-point. There is no selector engine yet: Stage 6 is
+next. The probe harness
 ([.agents/probe-gumbo.c](.agents/probe-gumbo.c)) holds the measurements the
 roadmap cites.
 
@@ -88,7 +89,9 @@ tools/verify-vendor --canary   # must pass by seeing a dropped patch (CI: harden
 tools/run-lint                 # strict warnings; no stdio symbols  (CI: hardening)
 tools/run-lint --canary        # symbol check sees 0002 reversed    (CI: hardening)
 tools/run-conformance          # html5lib tree-construction fixtures vs the tree
-                               # dump; --canary must fail every case (CI: hardening)
+                               # dump, plus a serialize-reparse round trip;
+                               # --canary and --canary-serialize must fail
+                               #                                    (CI: hardening)
 tools/run-sanitizers           # ASan+UBSan seam driver, fault injection at every
                                # allocation index, overflow canary; leak check and
                                # leak canary with ASAN_OPTIONS=detect_leaks=1
@@ -103,7 +106,8 @@ whether CI runs it.
 Planned layout, from design §13 and the roadmap. The html5lib fixtures live
 in `tools/conformance/`. So far `R/attributes.R`, `R/conditions.R`,
 `R/info.R`, `R/limits.R`, `R/node.R`, `R/nodeset.R`, `R/parse.R`,
-`R/text.R`, `src/init.c`, `src/r_api.c`, `src/r_node.c`,
+`R/text.R`, `R/write.R`, `src/init.c`, `src/r_api.c`, `src/r_node.c`,
+`src/zuh_write.[ch]`,
 `src/zuh_gumbo.[ch]`, `src/zuh_memory.[ch]`, `src/zuh_document.[ch]`,
 `src/zuh_status.h`, `src/zuh_r.h`, `src/vendor/` and the vendoring, lint and
 sanitizer scripts in `tools/` exist.
@@ -216,6 +220,15 @@ tables, serialization) reads the arena and never touches Gumbo. Only
   are listed rather than asserted away.
 - **Never test through Python.** Beautiful Soup and pandas are exploratory
   comparators only; nothing under `tests/` may need them.
+- **The CRAN-sized conformance subset** is
+  `tests/testthat/fixtures/tree-construction.dat`: twelve cases copied
+  verbatim, read by `read_dat()` in `helper-dat.R`. They are WPT material
+  (3-Clause BSD): `inst/COPYRIGHTS` carries the notice, and any new fixture
+  from elsewhere needs its own entry there.
+- **Round-trip non-fixed-points are adjudicated, not asserted away.**
+  `tools/conformance/roundtrip-deviations.txt` lists each with its category
+  and reason; the gate fails if the list and the results disagree either
+  way.
 - **Helpers live in `tests/testthat/helper-*.R`.** `helper-tree.R` renders a
   document in the html5lib test format (`tree_lines()`) through the
   internal `C_zuh_doc_dump`, which is also what the conformance gate

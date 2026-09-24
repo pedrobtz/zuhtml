@@ -1,6 +1,7 @@
 #!/bin/sh
-# Drive the parse seam -- ledger, abort, limits, conversion, tree dump -- under
-# AddressSanitizer and UndefinedBehaviorSanitizer, with no R in the way.
+# Drive the parse seam -- ledger, abort, limits, conversion, tree dump,
+# serializer -- under AddressSanitizer and UndefinedBehaviorSanitizer, with
+# no R in the way.
 # Run from the package root.
 #
 # LeakSanitizer is unavailable on macOS, so leaks are caught only on Linux,
@@ -22,7 +23,7 @@ GUMBO="src/vendor/gumbo/attribute.c src/vendor/gumbo/char_ref.c
   src/vendor/gumbo/string_piece.c src/vendor/gumbo/tag.c
   src/vendor/gumbo/tokenizer.c src/vendor/gumbo/utf8.c
   src/vendor/gumbo/util.c src/vendor/gumbo/vector.c"
-CORE="src/zuh_gumbo.c src/zuh_memory.c src/zuh_document.c"
+CORE="src/zuh_gumbo.c src/zuh_memory.c src/zuh_document.c src/zuh_write.c"
 
 echo "==> building the driver"
 # -DNDEBUG as R builds it: the same code paths the package ships.

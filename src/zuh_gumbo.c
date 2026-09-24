@@ -549,6 +549,15 @@ fill_tree(conv_ctx *c, const GumboOutput *out, zuh_ledger *lg) {
 
   id = new_node(doc, ZUH_NODE_DOCUMENT, ZUH_NS_HTML);
   doc->is_fragment = c->opts->fragment_tag >= 0;
+  doc->context[0] = '\0';
+  if (doc->is_fragment && c->opts->fragment_ns == ZUH_NS_HTML &&
+      c->opts->fragment_tag < (int) GUMBO_TAG_UNKNOWN) {
+    const char *nm = gumbo_normalized_tagname((GumboTag) c->opts->fragment_tag);
+    size_t n = strlen(nm);
+    if (n < sizeof(doc->context)) {
+      memcpy(doc->context, nm, n + 1);
+    }
+  }
   if (d->has_doctype && !doc->is_fragment) {
     zuh_id dt = new_node(doc, ZUH_NODE_DOCTYPE, ZUH_NS_HTML);
     doc->nodes[dt].name = pool_add(c, d->name, strlen(d->name));

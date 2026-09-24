@@ -56,6 +56,7 @@ static const R_CallMethodDef call_methods[] = {
   {"C_zuh_node_attr", (DL_FUNC) &C_zuh_node_attr, 4},
   {"C_zuh_node_attrs", (DL_FUNC) &C_zuh_node_attrs, 2},
   {"C_zuh_node_text", (DL_FUNC) &C_zuh_node_text, 3},
+  {"C_zuh_node_serialize", (DL_FUNC) &C_zuh_node_serialize, 3},
   {NULL, NULL, 0}
 };
 

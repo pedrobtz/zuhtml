@@ -78,6 +78,10 @@ typedef struct zuh_doc {
   size_t pool_len;
 
   int is_fragment;          /* node 0 is a fragment, not a document */
+  char context[24];         /* a fragment's context element name, when it
+                               is an HTML element; "" otherwise. The
+                               serializer needs it: text directly in a
+                               <script> or <style> context is raw. */
   zuh_id root;              /* the <html> element, or ZUH_NONE (always
                                for a fragment) */
   uint32_t doctype_public;  /* pool offsets; 0 when absent */

@@ -1,0 +1,144 @@
+# Cases whose tree does not survive html_serialize() followed by a second
+# parse, with the reason. tools/run-conformance fails if a case round-trips
+# differently from this list: when one appears, adjudicate it here; when one
+# disappears, remove it.
+#
+# The HTML standard does not promise that serializing a parsed tree and
+# parsing the result gives the same tree
+# (https://html.spec.whatwg.org/multipage/parsing.html#serialising-html-fragments,
+# the warning after the algorithm). These are the known cases in the
+# pinned fixtures. Each line is <file>:<case index>; the case index counts
+# #data blocks from 1, as upstream's harness does.
+
+# A. The doctype's public and system identifiers are not serialized. The
+#    WHATWG algorithm writes "<!DOCTYPE " + name + ">" and nothing else, so
+#    the reparsed doctype has neither, and the quirks mode the identifiers
+#    selected can change with it.
+
+doctype01.dat:14
+doctype01.dat:15
+doctype01.dat:16
+doctype01.dat:23
+doctype01.dat:24
+doctype01.dat:25
+doctype01.dat:26
+doctype01.dat:27
+doctype01.dat:29
+doctype01.dat:30
+doctype01.dat:32
+doctype01.dat:33
+doctype01.dat:34
+doctype01.dat:35
+doctype01.dat:36
+doctype01.dat:37
+quirks01.dat:1
+quirks01.dat:2
+quirks01.dat:3
+quirks01.dat:4
+tests6.dat:47
+
+# B. A character reference produced a character that input preprocessing
+#    changes when it appears literally. A C1 control or a noncharacter
+#    (&#x81;, &#x10FFFE;) is serialized as itself, and the bundled parser's
+#    decoder replaces such characters in raw input with U+FFFD; &#x0D; is
+#    serialized as a CR, which preprocessing turns into LF. The serializer
+#    escapes only what the standard says to escape.
+
+entities01.dat:27
+entities01.dat:39
+entities01.dat:41
+entities01.dat:42
+entities01.dat:55
+entities01.dat:65
+entities01.dat:67
+plain-text-unsafe.dat:1
+
+# C. The text of a <pre>, <textarea> or <listing> begins with a newline.
+#    The parser drops one newline right after those start tags, and the
+#    current standard no longer has the serializer add one to compensate,
+#    so the leading newline is lost on reparse.
+
+plain-text-unsafe.dat:24
+plain-text-unsafe.dat:25
+tests3.dat:7
+tests3.dat:12
+tests3.dat:19
+
+# D. A <plaintext> element never ends: everything after its start tag is
+#    text. Serializing writes the </plaintext> end tag (and the end tags of
+#    its ancestors), which the reparse reads as more text.
+
+foreign-fragment.dat:51
+tests18.dat:1
+tests18.dat:2
+tests18.dat:3
+tests18.dat:4
+tests18.dat:5
+tests18.dat:6
+tests18.dat:7
+tests18.dat:8
+tests18.dat:9
+tests18.dat:10
+tests18.dat:11
+tests18.dat:12
+tests18.dat:13
+tests18.dat:14
+tests18.dat:15
+tests18.dat:16
+tests18.dat:17
+tests18.dat:20
+tests18.dat:23
+tests19.dat:6
+tests19.dat:102
+tests2.dat:13
+tests2.dat:14
+tests20.dat:35
+webkit02.dat:20
+webkit02.dat:22
+
+# E. A <script> whose text stops inside the script-data escape states
+#    ("<!--<script " with no closing "-->"). Serializing appends
+#    </script>, and in the double-escaped state the tokenizer does not treat
+#    it as the end of the script, so it becomes script text.
+
+tests16.dat:32
+tests16.dat:33
+tests16.dat:34
+tests16.dat:35
+tests16.dat:36
+tests16.dat:37
+tests16.dat:38
+tests16.dat:49
+tests16.dat:50
+tests16.dat:51
+tests16.dat:52
+tests16.dat:53
+tests16.dat:54
+tests16.dat:131
+tests16.dat:132
+tests16.dat:133
+tests16.dat:134
+tests16.dat:135
+tests16.dat:136
+tests16.dat:137
+tests16.dat:148
+tests16.dat:149
+tests16.dat:150
+tests16.dat:151
+
+# F. Tree construction rearranged the markup, and the rearranged tree
+#    serializes to markup that tree construction rearranges again: nested
+#    <a> elements (the adoption agency), a <p> or formatting element around a
+#    table, <nobr> reconstruction, and a second <form> inside a table that
+#    the form element pointer admitted the first time but not the second.
+#    The standard notes that serialization does not round-trip such
+#    trees.
+
+template.dat:108
+tests1.dat:31
+tests1.dat:78
+tests1.dat:91
+tests1.dat:102
+tests16.dat:197
+tests20.dat:42
+tests26.dat:3

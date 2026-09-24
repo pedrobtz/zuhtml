@@ -44,6 +44,7 @@ html_namespace(nodes)
 \seealso{
 Other node values:
 \code{\link[=html_attr]{html_attr()}},
+\code{\link[=html_serialize]{html_serialize()}},
 \code{\link[=html_text]{html_text()}}
 }
 \concept{node values}

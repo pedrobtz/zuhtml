@@ -1,0 +1,7 @@
+# Cases whose tree zuhtml renders differently from the fixture's
+# #document, with the reason. tools/run-conformance fails if the list and
+# the results disagree in either direction. Each line is
+# <file>:<case index>; the case index counts #data blocks from 1.
+#
+# There are none: every case that zuhtml's input contract accepts (no NUL,
+# valid UTF-8) produces the expected tree.

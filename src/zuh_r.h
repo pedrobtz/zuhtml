@@ -31,5 +31,6 @@ SEXP C_zuh_node_ancestors(SEXP ptr, SEXP ids);
 SEXP C_zuh_node_attr(SEXP ptr, SEXP ids, SEXP name, SEXP dflt);
 SEXP C_zuh_node_attrs(SEXP ptr, SEXP ids);
 SEXP C_zuh_node_text(SEXP ptr, SEXP ids, SEXP recursive);
+SEXP C_zuh_node_serialize(SEXP ptr, SEXP ids, SEXP outer);
 
 #endif

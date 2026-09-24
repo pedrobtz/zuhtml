@@ -14,10 +14,12 @@
 #include <R_ext/Utils.h>
 
 #include <limits.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "zuh_document.h"
 #include "zuh_r.h"
+#include "zuh_write.h"
 
 /* The document behind `ptr` if `ids` are all NA or in range. */
 static const zuh_doc *
@@ -485,6 +487,44 @@ C_zuh_node_text(SEXP ptr, SEXP ids, SEXP recursive) {
                    id == NA_INTEGER ? NA_STRING : node_text(doc, (zuh_id) id, rec));
     vmaxset(vmax);
     poll(i);
+  }
+  UNPROTECT(1);
+  return out;
+}
+
+/* Aligned: the HTML serialization of each node, NA for missing nodes. */
+SEXP
+C_zuh_node_serialize(SEXP ptr, SEXP ids, SEXP outer) {
+  const zuh_doc *doc = checked(ptr, ids);
+  int out_ = Rf_asLogical(outer) == TRUE;
+  R_xlen_t i, n;
+  SEXP out;
+  if (doc == NULL)
+    return R_NilValue;
+  n = XLENGTH(ids);
+  out = PROTECT(Rf_allocVector(STRSXP, n));
+  for (i = 0; i < n; i++) {
+    int id = INTEGER(ids)[i];
+    const void *vmax = vmaxget();
+    char *buf, *copy;
+    size_t len;
+    if (id == NA_INTEGER) {
+      SET_STRING_ELT(out, i, NA_STRING);
+      continue;
+    }
+    if (zuh_serialize(doc, (zuh_id) id, out_, &buf, &len) != ZUH_OK)
+      Rf_error("out of memory serializing a node");
+    if (len > (size_t) INT_MAX) {
+      free(buf);
+      Rf_error("serialization too long for an R string");
+    }
+    /* Copy into R_alloc memory before any R allocation can long-jump. */
+    copy = R_alloc(len + 1, 1);
+    memcpy(copy, buf, len + 1);
+    free(buf);
+    SET_STRING_ELT(out, i, Rf_mkCharLenCE(copy, (int) len, CE_UTF8));
+    vmaxset(vmax);
+    R_CheckUserInterrupt();
   }
   UNPROTECT(1);
   return out;
