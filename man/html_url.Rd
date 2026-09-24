@@ -50,6 +50,7 @@ html_url(html_elements(doc, "a"), base_url = "http://other.test/x/")
 }
 \seealso{
 Other extraction:
+\code{\link[=html_forms]{html_forms()}},
 \code{\link[=html_links]{html_links()}},
 \code{\link[=html_list]{html_list()}},
 \code{\link[=html_table]{html_table()}},

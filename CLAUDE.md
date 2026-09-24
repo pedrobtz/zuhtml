@@ -25,12 +25,22 @@ scripts and CRAN comments. zuhtml does not depend on it or share code with it.
 
 ## Current state
 
-Stages 0 to 9 are done: every 0.1.0 export exists, is documented with
-runnable examples and has a family; four vignettes cover the workflow,
-selectors, tables and lists, and limits and encodings; `cran-comments.md`
-is written. Gumbo 0.14.0 is vendored with a six-patch series. Stage 10
-(the 0.1.0 release) is next, and it needs the maintainer: the CRAN
-submission and upstream reports are theirs to make. The probe harness
+Stages 0 to 15 are done. Stages 10 to 15 widened 0.1.0 after a survey of
+other languages' HTML libraries, adding:
+- `html_closest()`, `html_strings()` and `pretty =`;
+- page metadata;
+- table options;
+- `html_markdown()` in `src/zuh_markdown.c`;
+- `<meta>` encoding sniffing;
+- `html_forms()`.
+
+Every export is documented with runnable examples and a family. Four
+vignettes and a pkgdown-only article of real pages are written, and so is
+`cran-comments.md`. Gumbo 0.14.0 is vendored with a six-patch series.
+
+Stage 16 (the 0.1.0 release) is next. It refreshes the CRAN preparation
+and needs the maintainer: the CRAN submission and the upstream reports
+are theirs to make. The probe harness
 ([.agents/probe-gumbo.c](.agents/probe-gumbo.c)) holds the measurements the
 roadmap cites.
 
@@ -128,7 +138,7 @@ sanitizer scripts in `tools/` exist.
 ```
 R/                 parse.R, conditions.R, info.R, node.R, nodeset.R, select.R,
                    attributes.R, text.R, write.R, list.R, table.R, links.R,
-                   metadata.R, markdown.R
+                   metadata.R, markdown.R, sniff.R, forms.R
 src/               init.c, r_api.c                       R-facing glue only
                    zuh_gumbo.c                            version-specific Gumbo adapter
                    zuh_memory.c                           allocation ledger, abort, limits

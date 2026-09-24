@@ -88,6 +88,11 @@ First release.
   `html_info()` reports where the encoding came from in
   `encoding_source`.
 
+* New `html_forms()` describes each form and the controls it owns, by the
+  HTML standard's form-owner rules (`form=` references included), with
+  DOM values for every control type and the options of each select. It
+  only inspects: nothing is submitted.
+
 * New `html_serialize()` (and `as.character()` on nodesets) writes nodes
   as normalized HTML following the WHATWG serialization algorithm, outer
   or inner.

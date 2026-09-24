@@ -327,7 +327,7 @@ The exit case "scripts containing a fake `<meta>`" follows the standard: the pre
 
 ## Stage 15 — Forms · S
 
-**Status:** not started.
+**Status:** done 2026-09-24. R over existing accessors. The one addition to the plan is the old-page case `<table><form><tr><td><input>`: the parser closes such a form at once, so its controls are not descendants. Browsers associate them through the parser's form pointer, which Gumbo does not keep, so a form left empty directly inside a table owns the unowned controls after it in that table. Over the corpus: 784 forms and 3,782 controls, no errors, 1.7 s in all.
 
 - `html_forms(x)`: one element per `<form>`: `action` (resolved), `method`, `enctype`, `id`, `name`, and a `fields` data frame of the controls it owns (`input`, `select`, `textarea`, `button`, including controls outside it with a `form=` attribute): `name`, `type`, `value`, `checked`, `disabled`, and `options` as a list-column for `<select>`. Inspection only; nothing is submitted.
 
