@@ -97,7 +97,7 @@ htmlparser-benchmark/69087cd3b7ca122ffbd35d6d38de33651fd5ab62d637b87d70599e05d29
 htmlparser-benchmark/6a59bd96489c98226c72f0245bac98a4b09aa0516ebfe4982233a6c33d129691.html	ok	1158	18	3/17	6/42	96	6051/e021f9730d7d	TRUE
 htmlparser-benchmark/6b095375a53dfc7994a032e2efac70f43a4fac9303d549256d88b8f7cecadd50.html	ok	1219	100	0/0	0/0	119	4008/521a1fb71358	FALSE
 htmlparser-benchmark/6b817bedb8d6402bab160ed6d2b99256163bd3aef20deae3015f74e5bb253e55.html	ok	2742	3	2/3	41/218	246	8928/36375b882ce9	doctype
-htmlparser-benchmark/6d30abed88489774017024b17cdb1928d9a2b45bb79767515383b8444e9601b2.html	ok	1491	5	0/0	24/143	178	9591/6676c201b1df	TRUE
+htmlparser-benchmark/6d30abed88489774017024b17cdb1928d9a2b45bb79767515383b8444e9601b2.html	ok	1491	5	0/0	24/143	178	9593/2aa34aec7ff9	TRUE
 htmlparser-benchmark/717fa45e0e3901be4039f2a6b26d4b50cf869a903dc8057e2fac1047fd033fdc.html	ok	1229	6	0/0	14/82	106	5274/49989dcfa808	TRUE
 htmlparser-benchmark/71bf3c23c5d3fff9cec67606fde6547c8866ae8aa95f5991651d94c68df4ad1d.html	ok	2839	18	4/15	31/245	305	15506/7457c85a64df	doctype
 htmlparser-benchmark/71cb773c42c94b75d41c059a27dd10b763443a71dbb6dd202402843de8a5e331.html	ok	1559	8	0/0	18/75	134	9232/1651a49e8eab	TRUE
@@ -170,11 +170,11 @@ htmlparser-benchmark/af85fcc561166d0c28caf2ed6765c36d604749e715d3dfa48f4b0b6d5dc
 htmlparser-benchmark/b02e15742db8bfa35d678294194980662f3f6534bbd7d1a8cda2ad35f4db83a6.html	ok	1671	2	0/0	16/71	178	8593/209388dd2386	doctype
 htmlparser-benchmark/b15ea7d9944eaec6db01b310e68f400fe6865d74798294226260a20fcc2099d1.html	ok	2304	4	2/2	36/218	251	7898/64ed7b53af42	doctype
 htmlparser-benchmark/b1a85f64c10aa51213f334fd7f640caab1a821b1f16154f4b374663426de1375.html	ok	2403	11	2/2	37/218	264	9202/3ab817f10feb	doctype
-htmlparser-benchmark/b2ca042c043a1ad0f0bdd912ec11984aaa1330d24f4b549852bfc748e496fe8a.html	ok	1581	5	1/77	21/125	174	4156/a5f9f7746b51	TRUE
+htmlparser-benchmark/b2ca042c043a1ad0f0bdd912ec11984aaa1330d24f4b549852bfc748e496fe8a.html	ok	1581	5	1/77	21/125	174	4158/3c77dfbbe7ed	TRUE
 htmlparser-benchmark/b415b9e79addcb85b582c5556dbdf2f23aeb1189f4e79aef2c2ff6440245d77c.html	ok	1489	9	0/0	18/101	129	9287/b291bc64e67d	TRUE
 htmlparser-benchmark/b41b3c1a01fae3feb1eff41a369be869b7c6a0285012c9f38c8228ed89a8555e.html	ok	2625	18	14/87	12/75	233	11974/68369d9ca887	doctype
 htmlparser-benchmark/b52d6a170c78bea8365c51c8e5ec8ed212162bd733f81a10b9acdb6f0fa55560.html	ok	4747	5	0/0	84/306	412	15807/ae5030ba255b	doctype
-htmlparser-benchmark/b65990adfd43e3be62c8bc66e7a6e3710da4387af5899b4eeb478e59c67ceba0.html	ok	1296	7	0/0	14/60	143	8927/11694d6ff344	TRUE
+htmlparser-benchmark/b65990adfd43e3be62c8bc66e7a6e3710da4387af5899b4eeb478e59c67ceba0.html	ok	1296	7	0/0	14/60	143	8931/c4a05b127952	TRUE
 htmlparser-benchmark/b6a33f826f7663ae51a43f4be87e9ba55962b2baa05dfef7355aeca91006779f.html	ok	1830	6	0/0	6/34	119	11453/a5baefc4c497	TRUE
 htmlparser-benchmark/b7660c4d40274010176c79271f7ed0c2d4612fa2a68efb92b30cfe68cc400e5e.html	ok	471	0	0/0	4/16	57	2208/396d22db6013	TRUE
 htmlparser-benchmark/b84ec657c46c12ba69262e94784ea87d237fdecef64ab82031e95469c510abe3.html	ok	1274	3	0/0	16/133	139	15113/dc9419ba868e	TRUE
@@ -195,7 +195,7 @@ htmlparser-benchmark/c6bb934af3d288c69e9fac33501b8ff0470eb16ca618dca654cc709f2e6
 htmlparser-benchmark/c6c81270db52e2fd59107d815a4823526aa23f339b77376a31dd8ba4a770be37.html	ok	349	1	0/0	3/18	24	3341/ce3dcc734a47	TRUE
 htmlparser-benchmark/cad337499f52823462d2abcf1fb67d697c5bc59c5bc9f4e57a3fcbef2bc986ef.html	ok	3141	5	24/653	38/157	303	11156/2d00fefb6ef3	TRUE
 htmlparser-benchmark/cb3ce2786db729aa887ab6fd0b2f377549c235f3fc26e6e252efd6c92319b418.html	ok	1692	1	0/0	19/109	189	6208/80807702c08c	TRUE
-htmlparser-benchmark/cba3ab1dbd08f50ece5040490247b84cc88095052766c91e00bbf5a7fa83b00c.html	ok	740	29	0/0	17/30	40	4263/2f2ceadae3ea	TRUE
+htmlparser-benchmark/cba3ab1dbd08f50ece5040490247b84cc88095052766c91e00bbf5a7fa83b00c.html	ok	740	29	0/0	17/30	40	4265/ce0fd6d4c1b2	TRUE
 htmlparser-benchmark/cc2f5bc5146b08ceb2aa6513183cdd6aecbfa2073fe84bd888e224f6e9e5c79f.html	ok	1806	8	0/0	23/140	166	7239/057c722b0816	TRUE
 htmlparser-benchmark/ccada6580a0b1d05408db6d59cca18c2707530139807ebf112de8f6615d32b90.html	ok	4530	14	0/0	48/260	395	13950/c137070f2c42	doctype
 htmlparser-benchmark/cd65a11a9c7c6a3deac05443833a7097578ee6d5538479408dc0bbdbae438fcc.html	ok	1330	18	3/18	8/47	109	7660/43a748a89cc1	TRUE
@@ -422,7 +422,7 @@ readability/parsely-metadata/source.html	ok	30	0	0/0	0/0	0	913/88c1cf74a251	TRUE
 readability/pixnet/expected.html	ok	788	1	0/0	0/0	48	2509/64a8d7d6b3c8	TRUE
 readability/pixnet/source.html	ok	7221	1	0/0	88/476	535	15543/590d602c953c	doctype
 readability/qq/expected.html	ok	107	1	0/0	0/0	3	756/3fef17cfdafe	TRUE
-readability/qq/source.html	ok	1665	1	1/1	10/65	127	1856/775853ce94a6	doctype
+readability/qq/source.html	zuhtml_encoding_error							
 readability/quanta-1/expected.html	ok	223	1	0/0	0/0	16	18425/2232f165c673	TRUE
 readability/quanta-1/source.html	ok	1861	0	0/0	5/18	96	20470/abc0f39a48a9	TRUE
 readability/remove-aria-hidden/expected.html	ok	15	1	0/0	0/0	0	232/0e05fd14ca9d	TRUE

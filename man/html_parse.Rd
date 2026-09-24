@@ -19,7 +19,7 @@ html_read(path, ...)
 \item{x}{One string, or a raw vector of encoded bytes.}
 
 \item{encoding}{The encoding of raw input, as a name \code{\link[=iconv]{iconv()}} accepts;
-\code{NULL} to use a byte-order mark or UTF-8.}
+\code{NULL} to use a byte-order mark, the page's declaration, or UTF-8.}
 
 \item{base_url}{The document's URL, used to resolve relative links; \code{NULL}
 if unknown.}
@@ -51,12 +51,27 @@ A character string is taken as text: it is converted to UTF-8 with
 \code{\link[=enc2utf8]{enc2utf8()}}, and \code{encoding} must be \code{NULL} or \code{"UTF-8"}. A string marked
 as \code{"bytes"} is rejected; pass a raw vector instead.
 
-A raw vector is decoded with, in order of precedence, \code{encoding}, a
-byte-order mark (UTF-8, UTF-16LE or UTF-16BE), or UTF-8. A byte-order mark
-that contradicts \code{encoding} is an error, and so is any byte sequence that
-is invalid in the chosen encoding: nothing is replaced silently.
-\verb{<meta charset>} declarations are not consulted. A fetcher that knows the
-HTTP charset should pass it as \code{encoding}.
+A raw vector is decoded with, in order of precedence, a byte-order mark
+(UTF-8, UTF-16LE or UTF-16BE), \code{encoding}, a declaration in the page, or
+UTF-8. A byte-order mark that contradicts \code{encoding} is an error, and so
+is any byte sequence that is invalid in the chosen encoding: nothing is
+replaced silently. A fetcher that knows the HTTP charset should pass it
+as \code{encoding}.
+
+The declaration is found as browsers find it, by the HTML standard's
+prescan of the first 1024 bytes for \verb{<meta charset="...">} or
+\verb{<meta http-equiv="Content-Type" content="...; charset=...">}. The
+prescan skips comments and the insides of tags, but not the text of
+scripts. Labels are those of the Encoding Standard, which maps several
+to a superset: \code{"iso-8859-1"}, \code{"latin1"} and \code{"us-ascii"} mean
+windows-1252, \code{"gb2312"} means GBK, and a UTF-16 label means UTF-8 (the
+bytes read as ASCII, so they are not UTF-16). An unknown label is
+ignored. \code{\link[=html_info]{html_info()}} reports the encoding used and its source.
+
+A file saved in another encoding without updating its declaration, as
+some tools do when they convert pages to UTF-8, decodes wrongly or fails
+to decode, as it would in a browser. Pass its real encoding as
+\code{encoding}.
 
 A leading byte-order mark is removed. Input containing a NUL character
 after decoding is rejected.
