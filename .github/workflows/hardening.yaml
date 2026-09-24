@@ -2,8 +2,8 @@
 # a gate counts once it has been seen to fail, so every run also proves the
 # gate can still see what it guards against. See .agents/roadmap.md.
 #
-# Stage 1 adds the vendor and lint gates; sanitizers, fuzzing and
-# conformance join at later stages.
+# Stage 1 added the vendor and lint gates, Stage 2 the sanitizers; fuzzing
+# and conformance join at later stages.
 #
 # paths-ignore skips the workflow for prose-only changes. GitHub applies it
 # only when every changed file matches, so a commit touching both a .md file
@@ -52,3 +52,13 @@ jobs:
         run: CC=clang ./tools/run-lint
       - name: canary - reversing patch 0002 must trip the symbol check
         run: ./tools/run-lint --canary
+
+  sanitizers:
+    runs-on: ubuntu-latest
+    name: ASan + UBSan + LSan over the parse seam
+    steps:
+      - uses: actions/checkout@v6
+      - name: fault injection at every allocation index, limits, canaries
+        # LeakSanitizer is unavailable on macOS, so this Linux job is the only
+        # place a block the abort path forgets is actually caught.
+        run: CC=clang ASAN_OPTIONS=detect_leaks=1 ./tools/run-sanitizers

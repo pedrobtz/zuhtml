@@ -5,5 +5,19 @@
   add a parse-time nesting-depth limit and remove the library's only
   `printf()`. No system library is needed.
 
+* New `html_parse()` and `html_read()` parse HTML from a string, raw vector
+  or local file under explicit resource limits from the new
+  `html_limits()`. Nesting depth is bounded while parsing, and all parser
+  memory goes through an allocation ledger with a budget, so a failed
+  parse always releases everything. Raw input is decoded from an explicit
+  encoding, a byte-order mark or UTF-8; invalid input is an error, never
+  silently replaced.
+
+* New `html_problems()` lists the parse errors the parser repaired, with
+  package-owned codes and positions.
+
+* Errors are classed conditions under `zuhtml_error`; see
+  `?zuhtml-conditions`.
+
 * New `zuhtml_info()` reports the bundled parser version and patches, and
   self-tests the compiled parser.

@@ -115,7 +115,7 @@ The highest-risk stage; do not proceed until Windows is green.
 
 ## Stage 2 — Ledger, abort and limits (the safety seam) · L
 
-**Status:** not started.
+**Status:** done 2026-09-24. Fault injection covers every allocation index of an 18-document corpus (978 sites) under ASan+UBSan, with LeakSanitizer on Linux CI. `deep 100000` and `aaa 20000` return `LIMIT_DEPTH` in milliseconds. The 16 MiB sawtooth peaks at 293 MB of ledger memory (about 17×). Its time bound is asserted on CI only, because the local R runs x86_64 under Rosetta (5.9 s there). Deviations: `html_parse()` exists already, returning a `zuhtml_document` that holds only the problems and metadata until Stage 3; `html_problems()` has no `severity` or `message` column (design §5 amended). Also found: R's `iconv()` on raw input can return invalid input unchanged instead of failing, so decoding converts twice with different substitution bytes. A double free is detected (the ledger reports `ZUH_ERR_INTERNAL`) but not fault-injected, because doing so under ASan is itself a use-after-free.
 
 The stage that makes "untrusted HTML" an honest claim. No tree conversion yet.
 

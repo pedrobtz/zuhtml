@@ -4,6 +4,11 @@
 #ifndef ZUH_GUMBO_H
 #define ZUH_GUMBO_H
 
+#include <stddef.h>
+
+#include "zuh_document.h"
+#include "zuh_status.h"
+
 /* The pinned Gumbo release, as recorded in src/vendor/PROVENANCE. */
 const char *zuh_gumbo_version(void);
 
@@ -11,13 +16,40 @@ const char *zuh_gumbo_version(void);
  * the number of patches and points *ids at a static array of identifiers. */
 int zuh_gumbo_patches(const char *const **ids);
 
+typedef struct {
+  size_t max_input;       /* bytes of decoded input */
+  size_t max_memory;      /* bytes live in the parse ledger */
+  unsigned int max_depth; /* open-element stack depth; must be >= 1 */
+  int max_errors;         /* diagnostics kept; >= 0 */
+  size_t fail_at;         /* fault injection: fail this allocation
+                             (1-based); 0 never */
+} zuh_parse_opts;
+
+typedef struct {
+  size_t observed;        /* for a limit status: the value that tripped it */
+  size_t n_allocs;        /* allocations Gumbo requested */
+  size_t peak_bytes;      /* peak live bytes in the ledger */
+} zuh_parse_stats;
+
+/* Parse `len` bytes of UTF-8 at `buf` into `doc`. The abortable region:
+ * pure C, no R API. Every Gumbo allocation is freed before it returns,
+ * whatever the status; on a status other than ZUH_OK, `doc` is left as it
+ * was given. `buf` need not be NUL-terminated. */
+zuh_status zuh_gumbo_parse(const char *buf, size_t len,
+                           const zuh_parse_opts *opts, zuh_doc *doc,
+                           zuh_parse_stats *stats);
+
+/* The package-owned name of a problem code, and its stage: 0 tokenizer,
+ * 1 parser. NULL / -1 for an unknown code. */
+const char *zuh_problem_code_name(unsigned int code);
+int zuh_problem_code_stage(unsigned int code);
+
 /* Parse a fixed document and check the tree Gumbo builds. Returns 1 when
  * the vendored library is linked and working. */
 int zuh_gumbo_selftest(void);
 
 /* Parse a fixed deeply nested document with and without max_tree_depth.
- * Returns 1 when patch 0001 is in effect: the limited parse stops with
- * GUMBO_STATUS_TREE_TOO_DEEP and the unlimited one does not. */
+ * Returns 1 when patch 0001 is in effect. */
 int zuh_gumbo_depth_selftest(void);
 
 #endif

@@ -1,0 +1,68 @@
+#!/bin/sh
+# Drive the parse seam -- ledger, abort, depth limit, diagnostics -- under
+# AddressSanitizer and UndefinedBehaviorSanitizer, with no R in the way.
+# Run from the package root.
+#
+# LeakSanitizer is unavailable on macOS, so leaks are caught only on Linux,
+# where CI runs this with ASAN_OPTIONS=detect_leaks=1. The fault injection
+# fails every allocation index of a small corpus; a block the abort path
+# forgets is a leak LeakSanitizer reports at exit.
+#
+# Canaries: a heap overflow ASan must report, and (when leak detection is
+# on) a leak LeakSanitizer must report. A gate that cannot see those
+# cannot see anything.
+set -eu
+CC=${CC:-clang}
+OUT=$(mktemp -d)
+trap 'rm -rf "$OUT"' EXIT
+
+GUMBO="src/vendor/gumbo/attribute.c src/vendor/gumbo/char_ref.c
+  src/vendor/gumbo/char_ref_gperf.c src/vendor/gumbo/error.c
+  src/vendor/gumbo/parser.c src/vendor/gumbo/string_buffer.c
+  src/vendor/gumbo/string_piece.c src/vendor/gumbo/tag.c
+  src/vendor/gumbo/tokenizer.c src/vendor/gumbo/utf8.c
+  src/vendor/gumbo/util.c src/vendor/gumbo/vector.c"
+CORE="src/zuh_gumbo.c src/zuh_memory.c src/zuh_document.c"
+
+echo "==> building the driver"
+# -DNDEBUG as R builds it: the same code paths the package ships.
+# shellcheck disable=SC2086
+"$CC" -std=c99 -g -O1 -DNDEBUG -fsanitize=address,undefined \
+  -fno-sanitize-recover=undefined -fno-omit-frame-pointer \
+  -I src -I src/vendor/gumbo -w \
+  -o "$OUT/driver" tools/sanitize/driver.c $CORE $GUMBO
+
+echo "==> the seam under ASan + UBSan"
+UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=1 "$OUT/driver"
+echo "==> sanitizers clean"
+
+echo "==> canary: a heap overflow must be reported"
+if "$OUT/driver" canary-overflow > "$OUT/canary.log" 2>&1; then
+  echo "CANARY FAILED: ASan did not report a heap overflow" >&2
+  exit 1
+fi
+grep -q "heap-buffer-overflow" "$OUT/canary.log" || {
+  cat "$OUT/canary.log" >&2
+  echo "CANARY FAILED: the driver failed, but not with an ASan report" >&2
+  exit 1
+}
+echo "    reported"
+
+case "${ASAN_OPTIONS:-}" in
+  *detect_leaks=1*)
+    echo "==> canary: a leak must be reported"
+    if "$OUT/driver" canary-leak > "$OUT/leak.log" 2>&1; then
+      echo "CANARY FAILED: LeakSanitizer did not report a leak" >&2
+      exit 1
+    fi
+    grep -q "LeakSanitizer" "$OUT/leak.log" || {
+      cat "$OUT/leak.log" >&2
+      echo "CANARY FAILED: the driver failed, but not with a leak report" >&2
+      exit 1
+    }
+    echo "    reported"
+    ;;
+  *)
+    echo "==> leak detection off (set ASAN_OPTIONS=detect_leaks=1 on Linux)"
+    ;;
+esac
