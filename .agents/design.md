@@ -106,6 +106,8 @@ One document owns contiguous node and attribute arrays, interned names where use
 
 Copy Gumbo's final topology, normalized names, decoded strings, and relevant insertion flags. Preserve unknown/custom element names, comments when requested, and foreign-content namespaces. Do not retain native Gumbo structs in the public representation.
 
+As built (`src/zuh_document.h`): node types document, doctype, element, text, comment and processing instruction. Gumbo's whitespace and CDATA nodes fold into text. A template is an element with a flag. Node IDs are assigned in preorder, and each node records `subtree_end`, its last descendant. ID order is therefore document order, and a node's descendants are exactly the IDs after it up to `subtree_end`. Element names are interned per (tag, namespace); unknown names are ASCII-lowercased from the start tag, and SVG names are case-adjusted as the spec requires. All strings live NUL-terminated in one pool, with offset 0 being `""`. Gumbo keeps the doctype outside its children and does not record its position, so the doctype node is the document's first child. Conversion is two iterative passes: the first counts, enforcing `max_nodes`, a second-line depth check and the memory budget (the frozen size plus Gumbo's live bytes) before anything is allocated; the second fills the arrays.
+
 Gumbo borrows pieces of its input buffer. Keep that buffer alive through parsing and conversion. After conversion, bulk-free the ledger (§12) and drop the input; the frozen document retains neither. At conversion time, both trees exist: peak memory accounting must include this overlap.
 
 ### R representation

@@ -21,8 +21,11 @@ typedef struct {
   size_t max_memory;      /* bytes live in the parse ledger */
   unsigned int max_depth; /* open-element stack depth; must be >= 1 */
   int max_errors;         /* diagnostics kept; >= 0 */
+  size_t max_nodes;       /* nodes in the frozen document */
+  int keep_comments;      /* 0 drops comment nodes */
   size_t fail_at;         /* fault injection: fail this allocation
-                             (1-based); 0 never */
+                             (1-based), counting Gumbo's and conversion's
+                             allocations together; 0 never */
 } zuh_parse_opts;
 
 typedef struct {
@@ -31,10 +34,11 @@ typedef struct {
   size_t peak_bytes;      /* peak live bytes in the ledger */
 } zuh_parse_stats;
 
-/* Parse `len` bytes of UTF-8 at `buf` into `doc`. The abortable region:
- * pure C, no R API. Every Gumbo allocation is freed before it returns,
- * whatever the status; on a status other than ZUH_OK, `doc` is left as it
- * was given. `buf` need not be NUL-terminated. */
+/* Parse `len` bytes of UTF-8 at `buf` and convert the tree into `doc`,
+ * which must be fresh from zuh_doc_new(). Pure C, no R API. Every Gumbo
+ * allocation is freed before it returns, whatever the status; on a status
+ * other than ZUH_OK, `doc` is left empty. `buf` need not be
+ * NUL-terminated. */
 zuh_status zuh_gumbo_parse(const char *buf, size_t len,
                            const zuh_parse_opts *opts, zuh_doc *doc,
                            zuh_parse_stats *stats);

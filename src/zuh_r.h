@@ -12,8 +12,10 @@ zuh_doc *zuh_r_doc(SEXP ptr);
 
 SEXP C_zuh_doc_new(void);
 SEXP C_zuh_doc_alive(SEXP ptr);
-SEXP C_zuh_parse(SEXP ptr, SEXP bytes, SEXP limits, SEXP fail_at);
+SEXP C_zuh_parse(SEXP ptr, SEXP bytes, SEXP limits, SEXP comments,
+                 SEXP fail_at);
 SEXP C_zuh_doc_problems(SEXP ptr);
 SEXP C_zuh_doc_meta(SEXP ptr);
+SEXP C_zuh_doc_dump(SEXP ptr);
 
 #endif

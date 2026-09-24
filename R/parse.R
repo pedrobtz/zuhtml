@@ -64,7 +64,8 @@ html_parse <- function(x, encoding = NULL, base_url = NULL, comments = TRUE,
                     call = call)
   }
   input <- zuh_decode(x, encoding, limits, call)
-  zuh_parse_bytes(input$bytes, input$encoding, base_url, limits, call = call)
+  zuh_parse_bytes(input$bytes, input$encoding, base_url, limits,
+                  comments = comments, call = call)
 }
 
 #' @rdname html_parse
@@ -304,13 +305,15 @@ zuh_status_names <- c(
 
 # Parse decoded UTF-8 bytes. fail_at > 0 injects an allocation failure at
 # that allocation index; tests use it, html_parse() never does.
-zuh_parse_bytes <- function(bytes, encoding, base_url, limits, fail_at = 0,
+zuh_parse_bytes <- function(bytes, encoding, base_url, limits,
+                            comments = TRUE, fail_at = 0,
                             call = sys.call(-1L)) {
   ptr <- .Call(C_zuh_doc_new)
   res <- .Call(
     C_zuh_parse, ptr, bytes,
     c(limits$max_input, limits$max_memory, limits$max_depth,
-      limits$max_errors),
+      limits$max_errors, limits$max_nodes),
+    comments,
     as.double(fail_at)
   )
   status <- zuh_status_names[res[[1L]] + 1L]

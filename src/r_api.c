@@ -12,6 +12,8 @@
 
 #include <limits.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "zuh_document.h"
 #include "zuh_gumbo.h"
@@ -66,19 +68,21 @@ as_size(double v) {
   return (size_t) v;
 }
 
-/* C_zuh_parse(ptr, bytes, limits, fail_at)
+/* C_zuh_parse(ptr, bytes, limits, comments, fail_at)
  *
- *   ptr     from C_zuh_doc_new(), not yet holding a document
- *   bytes   raw: decoded, validated UTF-8 with no NUL
- *   limits  double: max_input, max_memory, max_depth, max_errors,
- *           validated in R
- *   fail_at double: fault injection index, 0 for none
+ *   ptr      from C_zuh_doc_new(), not yet holding a document
+ *   bytes    raw: decoded, validated UTF-8 with no NUL
+ *   limits   double: max_input, max_memory, max_depth, max_errors,
+ *            max_nodes, validated in R
+ *   comments logical: keep comment nodes
+ *   fail_at  double: fault injection index, 0 for none
  *
  * Returns double(4): status (a zuh_status), observed, allocations, peak
  * bytes. R maps the status to a condition. On ZUH_OK the document is in
  * `ptr`; otherwise `ptr` is left empty and everything is freed. */
 SEXP
-C_zuh_parse(SEXP ptr, SEXP bytes, SEXP limits, SEXP fail_at) {
+C_zuh_parse(SEXP ptr, SEXP bytes, SEXP limits, SEXP comments,
+            SEXP fail_at) {
   zuh_parse_opts opts;
   zuh_parse_stats stats;
   zuh_status st;
@@ -90,7 +94,8 @@ C_zuh_parse(SEXP ptr, SEXP bytes, SEXP limits, SEXP fail_at) {
       R_ExternalPtrAddr(ptr) != NULL)
     Rf_error("internal error: C_zuh_parse needs a fresh document pointer");
   if (TYPEOF(bytes) != RAWSXP || TYPEOF(limits) != REALSXP ||
-      XLENGTH(limits) != 4 || TYPEOF(fail_at) != REALSXP ||
+      XLENGTH(limits) != 5 || TYPEOF(comments) != LGLSXP ||
+      XLENGTH(comments) != 1 || TYPEOF(fail_at) != REALSXP ||
       XLENGTH(fail_at) != 1)
     Rf_error("internal error: bad arguments to C_zuh_parse");
 
@@ -102,6 +107,8 @@ C_zuh_parse(SEXP ptr, SEXP bytes, SEXP limits, SEXP fail_at) {
   opts.max_errors = REAL(limits)[3] >= (double) INT_MAX
                         ? INT_MAX
                         : (int) REAL(limits)[3];
+  opts.max_nodes = as_size(REAL(limits)[4]);
+  opts.keep_comments = LOGICAL(comments)[0] == TRUE;
   opts.fail_at = as_size(REAL(fail_at)[0]);
 
   /* Every R allocation happens before the document exists. */
@@ -185,11 +192,13 @@ C_zuh_doc_problems(SEXP ptr) {
 }
 
 /* list(input_bytes, parse_peak_bytes, quirks_mode, n_problems,
- * problems_truncated), or NULL for a dead pointer. */
+ * problems_truncated, n_nodes, n_attrs, frozen_bytes), or NULL for a dead
+ * pointer. */
 SEXP
 C_zuh_doc_meta(SEXP ptr) {
   const char *names[] = {"input_bytes", "parse_peak_bytes", "quirks_mode",
-                         "n_problems", "problems_truncated", ""};
+                         "n_problems", "problems_truncated", "n_nodes",
+                         "n_attrs", "frozen_bytes", ""};
   static const char *const quirks[] = {"no-quirks", "quirks",
                                        "limited-quirks"};
   zuh_doc *doc = zuh_r_doc(ptr);
@@ -206,6 +215,38 @@ C_zuh_doc_meta(SEXP ptr) {
                                      : NA_STRING));
   SET_VECTOR_ELT(out, 3, Rf_ScalarReal((double) doc->n_problems));
   SET_VECTOR_ELT(out, 4, Rf_ScalarLogical(doc->problems_truncated));
+  SET_VECTOR_ELT(out, 5, Rf_ScalarReal((double) doc->n_nodes));
+  SET_VECTOR_ELT(out, 6, Rf_ScalarReal((double) doc->n_attrs));
+  SET_VECTOR_ELT(out, 7, Rf_ScalarReal((double) doc->frozen_bytes));
+  UNPROTECT(1);
+  return out;
+}
+
+/* The tree in the html5lib test format, as one string, or NULL for a dead
+ * pointer. Internal: the conformance gate and the tests use it. */
+SEXP
+C_zuh_doc_dump(SEXP ptr) {
+  zuh_doc *doc = zuh_r_doc(ptr);
+  char *buf;
+  size_t len;
+  SEXP out;
+
+  if (doc == NULL)
+    return R_NilValue;
+  if (zuh_doc_dump(doc, &buf, &len) != ZUH_OK)
+    Rf_error("out of memory rendering the tree");
+  if (len > (size_t) INT_MAX) {
+    free(buf);
+    Rf_error("tree rendering too long for an R string");
+  }
+  /* mkCharLenCE can fail and long-jump; free the buffer first by copying
+   * into R_alloc memory, which R reclaims either way. */
+  {
+    char *copy = R_alloc(len + 1, 1);
+    memcpy(copy, buf, len + 1);
+    free(buf);
+    out = PROTECT(Rf_ScalarString(Rf_mkCharLenCE(copy, (int) len, CE_UTF8)));
+  }
   UNPROTECT(1);
   return out;
 }

@@ -152,10 +152,11 @@ translate_code(const GumboError *e) {
 
 /* ---- the abortable region ------------------------------------------- */
 
-/* Runs on a complete Gumbo tree, before bulk free. Must not allocate
- * through the ledger. Returns ZUH_OK or a status to fail the parse with. */
+/* Runs on a complete Gumbo tree, before bulk free, with the abort
+ * disarmed: it must not allocate through the ledger. `lg` is there for its
+ * counters. Returns ZUH_OK or a status to fail the parse with. */
 typedef zuh_status (*zuh_visit_fn)(const GumboOutput *out, void *ctx,
-                                   zuh_parse_stats *stats);
+                                   zuh_ledger *lg, zuh_parse_stats *stats);
 
 static zuh_status
 parse_core(const char *buf, size_t len, const zuh_parse_opts *opts,
@@ -196,7 +197,6 @@ parse_core(const char *buf, size_t len, const zuh_parse_opts *opts,
   out = gumbo_parse_with_options(&go, buf, len);
   lg->abort_to = NULL;
 
-  stats->n_allocs = lg->n_allocs;
   stats->peak_bytes = lg->peak_bytes;
   if (lg->corrupt) {
     st = ZUH_ERR_INTERNAL;
@@ -204,10 +204,395 @@ parse_core(const char *buf, size_t len, const zuh_parse_opts *opts,
     stats->observed = (size_t) opts->max_depth + 1;
     st = ZUH_LIMIT_DEPTH;
   } else {
-    st = visit(out, ctx, stats);
+    st = visit(out, ctx, lg, stats);
   }
+  /* After the visit: conversion's allocations count too. */
+  stats->n_allocs = lg->n_allocs;
   zuh_ledger_free_all(lg);
   return st;
+}
+
+/* ---- conversion into the frozen document ----------------------------
+ *
+ * Two iterative passes over the Gumbo tree. The first counts nodes,
+ * attributes and string bytes, enforcing max_nodes, a second-line depth
+ * check and the memory budget before anything is allocated. The second
+ * fills contiguous arrays in preorder, so node IDs are document order.
+ * Every string is copied: nothing points into Gumbo or the input. */
+
+/* Conversion allocations share the ledger's fault-injection counter, so
+ * that failing "every allocation index" also covers them. */
+static void *
+conv_malloc(zuh_ledger *lg, size_t n) {
+  lg->n_allocs++;
+  if (lg->fail_at != 0 && lg->n_allocs == lg->fail_at)
+    return NULL;
+  return malloc(n != 0 ? n : 1);
+}
+
+static const GumboVector *
+children_of(const GumboNode *n) {
+  switch (n->type) {
+  case GUMBO_NODE_DOCUMENT:
+    return &n->v.document.children;
+  case GUMBO_NODE_ELEMENT:
+  case GUMBO_NODE_TEMPLATE:
+    return &n->v.element.children;
+  default:
+    return NULL;
+  }
+}
+
+static int
+is_element(const GumboNode *n) {
+  return n->type == GUMBO_NODE_ELEMENT || n->type == GUMBO_NODE_TEMPLATE;
+}
+
+/* The source text of an unknown element's name: the start tag's name,
+ * which the tokenizer ends at whitespace or '/' (and '\r', which input
+ * preprocessing turns into a newline but original_tag still holds). */
+static GumboStringPiece
+unknown_tag_text(const GumboElement *e) {
+  GumboStringPiece t = e->original_tag;
+  size_t i;
+  if (t.data == NULL || t.length < 2) {
+    t.data = "";
+    t.length = 0;
+    return t;
+  }
+  gumbo_tag_from_original_text(&t);
+  for (i = 0; i < t.length; i++) {
+    if (t.data[i] == '\r') {
+      t.length = i;
+      break;
+    }
+  }
+  return t;
+}
+
+#define N_INTERN ((size_t) GUMBO_TAG_LAST * 3u)
+
+typedef struct {
+  const zuh_parse_opts *opts;
+  int keep_comments;
+  zuh_doc *doc;
+  size_t len;
+  /* pass 1 */
+  size_t n_nodes;
+  size_t n_attrs;
+  size_t pool_len;
+  /* pass 2 */
+  uint32_t *intern;   /* pool offset per (tag, namespace), or UINT32_MAX */
+  size_t pool_used;
+} conv_ctx;
+
+static int
+keep_node(const conv_ctx *c, const GumboNode *n) {
+  return n->type != GUMBO_NODE_COMMENT || c->keep_comments;
+}
+
+/* Pool bytes a string of `n` bytes needs, with checked arithmetic. */
+static int
+add_bytes(size_t *acc, size_t n) {
+  if (n > (size_t) -1 - 1 || *acc > (size_t) -1 - (n + 1))
+    return 0;
+  *acc += n + 1;
+  return 1;
+}
+
+typedef struct {
+  const GumboNode *node;
+  unsigned int next;   /* index of the next child to visit */
+  zuh_id id;           /* pass 2: the node's ID */
+} conv_frame;
+
+/* Grow the explicit stack. The depth it can reach is bounded by max_depth
+ * (checked by the callers), so this never grows without limit. */
+static int
+stack_push(zuh_ledger *lg, conv_frame **st, size_t *cap, size_t *sp,
+           const GumboNode *node, zuh_id id) {
+  if (*sp == *cap) {
+    size_t nc = *cap ? *cap * 2 : 64;
+    conv_frame *grown;
+    if (nc > (size_t) -1 / sizeof(conv_frame))
+      return 0;
+    grown = (conv_frame *) conv_malloc(lg, nc * sizeof(conv_frame));
+    if (grown == NULL)
+      return 0;
+    if (*sp > 0)
+      memcpy(grown, *st, *sp * sizeof(conv_frame));
+    free(*st);
+    *st = grown;
+    *cap = nc;
+  }
+  (*st)[*sp].node = node;
+  (*st)[*sp].next = 0;
+  (*st)[*sp].id = id;
+  (*sp)++;
+  return 1;
+}
+
+static zuh_status
+count_tree(conv_ctx *c, const GumboOutput *out, zuh_ledger *lg,
+           zuh_parse_stats *stats) {
+  const GumboDocument *d = &out->document->v.document;
+  unsigned char *seen;
+  conv_frame *st = NULL;
+  size_t cap = 0, sp = 0;
+  zuh_status status = ZUH_OK;
+
+  seen = (unsigned char *) conv_malloc(lg, N_INTERN);
+  if (seen == NULL)
+    return ZUH_LIMIT_MEMORY;
+  memset(seen, 0, N_INTERN);
+
+  c->n_nodes = 1; /* the document */
+  c->n_attrs = 0;
+  c->pool_len = 1; /* offset 0 is "" */
+  if (d->has_doctype) {
+    c->n_nodes++;
+    if (!add_bytes(&c->pool_len, strlen(d->name)) ||
+        !add_bytes(&c->pool_len, strlen(d->public_identifier)) ||
+        !add_bytes(&c->pool_len, strlen(d->system_identifier)))
+      status = ZUH_LIMIT_MEMORY;
+  }
+
+  if (status == ZUH_OK &&
+      !stack_push(lg, &st, &cap, &sp, out->document, ZUH_NONE))
+    status = ZUH_LIMIT_MEMORY;
+  while (status == ZUH_OK && sp > 0) {
+    conv_frame *f = &st[sp - 1];
+    const GumboVector *kids = children_of(f->node);
+    const GumboNode *n;
+    if (kids == NULL || f->next >= kids->length) {
+      sp--;
+      continue;
+    }
+    n = (const GumboNode *) kids->data[f->next++];
+    if (!keep_node(c, n))
+      continue;
+    if (++c->n_nodes > (size_t) c->opts->max_nodes) {
+      stats->observed = c->n_nodes;
+      status = ZUH_LIMIT_NODES;
+      break;
+    }
+    if (is_element(n)) {
+      const GumboElement *e = &n->v.element;
+      unsigned int i;
+      /* sp counts the document frame, so it is this element's depth. */
+      if (sp > (size_t) c->opts->max_depth) {
+        stats->observed = sp;
+        status = ZUH_LIMIT_DEPTH;
+        break;
+      }
+      if (e->tag != GUMBO_TAG_UNKNOWN && e->tag < GUMBO_TAG_LAST) {
+        size_t key = (size_t) e->tag * 3u + (size_t) e->tag_namespace;
+        if (!seen[key]) {
+          seen[key] = 1;
+          if (!add_bytes(&c->pool_len, strlen(gumbo_normalized_tagname(e->tag))))
+            status = ZUH_LIMIT_MEMORY;
+        }
+      } else if (!add_bytes(&c->pool_len, unknown_tag_text(e).length)) {
+        status = ZUH_LIMIT_MEMORY;
+      }
+      c->n_attrs += e->attributes.length;
+      for (i = 0; i < e->attributes.length && status == ZUH_OK; i++) {
+        const GumboAttribute *a = (const GumboAttribute *) e->attributes.data[i];
+        if (!add_bytes(&c->pool_len, strlen(a->name)) ||
+            !add_bytes(&c->pool_len, strlen(a->value)))
+          status = ZUH_LIMIT_MEMORY;
+      }
+      if (status == ZUH_OK && !stack_push(lg, &st, &cap, &sp, n, ZUH_NONE))
+        status = ZUH_LIMIT_MEMORY;
+    } else if (!add_bytes(&c->pool_len, strlen(n->v.text.text))) {
+      status = ZUH_LIMIT_MEMORY;
+    }
+  }
+  free(st);
+  free(seen);
+  if (status == ZUH_OK &&
+      (c->n_attrs >= (size_t) UINT32_MAX || c->pool_len >= (size_t) UINT32_MAX))
+    status = ZUH_LIMIT_MEMORY;
+  return status;
+}
+
+static uint32_t
+pool_add(conv_ctx *c, const char *s, size_t n) {
+  uint32_t off = (uint32_t) c->pool_used;
+  memcpy(c->doc->pool + c->pool_used, s, n);
+  c->doc->pool[c->pool_used + n] = '\0';
+  c->pool_used += n + 1;
+  return off;
+}
+
+static uint32_t
+element_name(conv_ctx *c, const GumboElement *e) {
+  uint32_t off;
+  size_t i, n;
+  char *p;
+  if (e->tag != GUMBO_TAG_UNKNOWN && e->tag < GUMBO_TAG_LAST) {
+    size_t key = (size_t) e->tag * 3u + (size_t) e->tag_namespace;
+    if (c->intern[key] == UINT32_MAX) {
+      const char *nm = gumbo_normalized_tagname(e->tag);
+      off = pool_add(c, nm, strlen(nm));
+      if (e->tag_namespace == GUMBO_NAMESPACE_SVG) {
+        GumboStringPiece piece;
+        const char *fixed;
+        piece.data = c->doc->pool + off;
+        piece.length = strlen(nm);
+        fixed = gumbo_normalize_svg_tagname(&piece);
+        if (fixed != NULL && strlen(fixed) == piece.length)
+          memcpy(c->doc->pool + off, fixed, piece.length);
+      }
+      c->intern[key] = off;
+    }
+    return c->intern[key];
+  }
+  {
+    GumboStringPiece t = unknown_tag_text(e);
+    off = pool_add(c, t.data, t.length);
+    p = c->doc->pool + off;
+    n = t.length;
+    for (i = 0; i < n; i++)
+      if (p[i] >= 'A' && p[i] <= 'Z')
+        p[i] = (char) (p[i] - 'A' + 'a');
+    if (e->tag_namespace == GUMBO_NAMESPACE_SVG) {
+      GumboStringPiece piece;
+      const char *fixed;
+      piece.data = p;
+      piece.length = n;
+      fixed = gumbo_normalize_svg_tagname(&piece);
+      if (fixed != NULL && strlen(fixed) == n)
+        memcpy(p, fixed, n);
+    }
+  }
+  return off;
+}
+
+static void
+link_child(zuh_doc *doc, zuh_id parent, zuh_id child) {
+  zuh_node *p = &doc->nodes[parent];
+  zuh_node *k = &doc->nodes[child];
+  k->parent = parent;
+  k->prev_sibling = p->last_child;
+  k->next_sibling = ZUH_NONE;
+  if (p->last_child != ZUH_NONE)
+    doc->nodes[p->last_child].next_sibling = child;
+  else
+    p->first_child = child;
+  p->last_child = child;
+}
+
+static zuh_id
+new_node(zuh_doc *doc, uint8_t type, uint8_t ns) {
+  zuh_id id = doc->n_nodes++;
+  zuh_node *n = &doc->nodes[id];
+  memset(n, 0, sizeof(*n));
+  n->type = type;
+  n->ns = ns;
+  n->parent = n->first_child = n->last_child = ZUH_NONE;
+  n->next_sibling = n->prev_sibling = ZUH_NONE;
+  n->subtree_end = id;
+  return id;
+}
+
+static uint8_t
+attr_ns(GumboAttributeNamespaceEnum ns) {
+  switch (ns) {
+  case GUMBO_ATTR_NAMESPACE_XLINK:
+    return ZUH_ATTR_NS_XLINK;
+  case GUMBO_ATTR_NAMESPACE_XML:
+    return ZUH_ATTR_NS_XML;
+  case GUMBO_ATTR_NAMESPACE_XMLNS:
+    return ZUH_ATTR_NS_XMLNS;
+  default:
+    return ZUH_ATTR_NS_NONE;
+  }
+}
+
+static zuh_status
+fill_tree(conv_ctx *c, const GumboOutput *out, zuh_ledger *lg) {
+  zuh_doc *doc = c->doc;
+  const GumboDocument *d = &out->document->v.document;
+  conv_frame *st = NULL;
+  size_t cap = 0, sp = 0;
+  zuh_id id;
+
+  doc->pool[0] = '\0';
+  c->pool_used = 1;
+  doc->n_nodes = 0;
+  doc->n_attrs = 0;
+
+  id = new_node(doc, ZUH_NODE_DOCUMENT, ZUH_NS_HTML);
+  if (d->has_doctype) {
+    zuh_id dt = new_node(doc, ZUH_NODE_DOCTYPE, ZUH_NS_HTML);
+    doc->nodes[dt].name = pool_add(c, d->name, strlen(d->name));
+    doc->doctype_public = pool_add(c, d->public_identifier,
+                                   strlen(d->public_identifier));
+    doc->doctype_system = pool_add(c, d->system_identifier,
+                                   strlen(d->system_identifier));
+    /* Absent identifiers point at "", like the empty string itself. */
+    if (d->public_identifier[0] == '\0')
+      doc->doctype_public = 0;
+    if (d->system_identifier[0] == '\0')
+      doc->doctype_system = 0;
+    link_child(doc, id, dt);
+  }
+
+  if (!stack_push(lg, &st, &cap, &sp, out->document, id))
+    return ZUH_LIMIT_MEMORY;
+  while (sp > 0) {
+    conv_frame *f = &st[sp - 1];
+    const GumboVector *kids = children_of(f->node);
+    const GumboNode *n;
+    zuh_id parent = f->id, kid;
+    if (kids == NULL || f->next >= kids->length) {
+      doc->nodes[parent].subtree_end = doc->n_nodes - 1;
+      sp--;
+      continue;
+    }
+    n = (const GumboNode *) kids->data[f->next++];
+    if (!keep_node(c, n))
+      continue;
+    if (is_element(n)) {
+      const GumboElement *e = &n->v.element;
+      unsigned int i;
+      kid = new_node(doc, ZUH_NODE_ELEMENT, (uint8_t) e->tag_namespace);
+      if (n->type == GUMBO_NODE_TEMPLATE)
+        doc->nodes[kid].flags |= ZUH_FLAG_TEMPLATE;
+      doc->nodes[kid].name = element_name(c, e);
+      doc->nodes[kid].attr_start = doc->n_attrs;
+      doc->nodes[kid].attr_count = e->attributes.length;
+      for (i = 0; i < e->attributes.length; i++) {
+        const GumboAttribute *a = (const GumboAttribute *) e->attributes.data[i];
+        zuh_attr *za = &doc->attrs[doc->n_attrs++];
+        za->name = pool_add(c, a->name, strlen(a->name));
+        za->value = pool_add(c, a->value, strlen(a->value));
+        za->ns = attr_ns(a->attr_namespace);
+      }
+      link_child(doc, parent, kid);
+      if (e->tag == GUMBO_TAG_HTML && parent == 0 && doc->root == ZUH_NONE)
+        doc->root = kid;
+      /* Cannot fail for want of memory the count did not foresee, but can
+       * for the stack itself. */
+      if (!stack_push(lg, &st, &cap, &sp, n, kid)) {
+        free(st);
+        return ZUH_LIMIT_MEMORY;
+      }
+    } else {
+      uint8_t type = n->type == GUMBO_NODE_COMMENT
+                         ? ZUH_NODE_COMMENT
+                         : n->type == GUMBO_NODE_PROCESSING_INSTRUCTION
+                               ? ZUH_NODE_PI
+                               : ZUH_NODE_TEXT;
+      kid = new_node(doc, type, ZUH_NS_HTML);
+      doc->nodes[kid].value = pool_add(c, n->v.text.text,
+                                       strlen(n->v.text.text));
+      link_child(doc, parent, kid);
+    }
+  }
+  free(st);
+  return ZUH_OK;
 }
 
 typedef struct {
@@ -217,18 +602,16 @@ typedef struct {
 } parse_ctx;
 
 static zuh_status
-collect_document(const GumboOutput *out, void *vctx, zuh_parse_stats *stats) {
-  parse_ctx *ctx = (parse_ctx *) vctx;
+collect_problems(const GumboOutput *out, parse_ctx *ctx, zuh_ledger *lg) {
   const GumboVector *errs = &out->errors;
   size_t keep = errs->length;
   zuh_problem *problems = NULL;
   size_t i;
 
-  (void) stats;
   if (keep > (size_t) ctx->opts->max_errors)
     keep = (size_t) ctx->opts->max_errors;
   if (keep > 0) {
-    problems = (zuh_problem *) malloc(keep * sizeof(zuh_problem));
+    problems = (zuh_problem *) conv_malloc(lg, keep * sizeof(zuh_problem));
     if (problems == NULL)
       return ZUH_LIMIT_MEMORY;
   }
@@ -239,14 +622,81 @@ collect_document(const GumboOutput *out, void *vctx, zuh_parse_stats *stats) {
     problems[i].column = e->position.column;
     problems[i].offset = e->position.offset;
   }
-
   ctx->doc->problems = problems;
   ctx->doc->n_problems = keep;
   ctx->doc->problems_truncated = errs->length > keep;
-  ctx->doc->input_bytes = ctx->len;
-  ctx->doc->quirks_mode =
-      (int) out->document->v.document.doc_type_quirks_mode;
   return ZUH_OK;
+}
+
+static zuh_status
+convert_document(const GumboOutput *out, void *vctx, zuh_ledger *lg,
+                 zuh_parse_stats *stats) {
+  parse_ctx *ctx = (parse_ctx *) vctx;
+  zuh_doc *doc = ctx->doc;
+  conv_ctx c;
+  size_t bytes, i;
+  zuh_status st;
+
+  memset(&c, 0, sizeof(c));
+  c.opts = ctx->opts;
+  c.keep_comments = ctx->opts->keep_comments;
+  c.doc = doc;
+  c.len = ctx->len;
+
+  st = count_tree(&c, out, lg, stats);
+  if (st != ZUH_OK)
+    return st;
+
+  /* The frozen document, plus the Gumbo tree still live beside it, must
+   * fit the memory budget together. Checked before allocating. */
+  bytes = c.n_nodes * sizeof(zuh_node) + c.n_attrs * sizeof(zuh_attr) +
+          c.pool_len + N_INTERN * sizeof(uint32_t);
+  if (bytes > ctx->opts->max_memory ||
+      lg->live_bytes > ctx->opts->max_memory - bytes) {
+    stats->observed = lg->live_bytes + bytes;
+    return ZUH_LIMIT_MEMORY;
+  }
+
+  doc->nodes = (zuh_node *) conv_malloc(lg, c.n_nodes * sizeof(zuh_node));
+  doc->attrs = (zuh_attr *) conv_malloc(lg, c.n_attrs * sizeof(zuh_attr));
+  doc->pool = (char *) conv_malloc(lg, c.pool_len);
+  c.intern = (uint32_t *) conv_malloc(lg, N_INTERN * sizeof(uint32_t));
+  if (doc->nodes == NULL || doc->attrs == NULL || doc->pool == NULL ||
+      c.intern == NULL) {
+    st = ZUH_LIMIT_MEMORY;
+    goto fail;
+  }
+  for (i = 0; i < N_INTERN; i++)
+    c.intern[i] = UINT32_MAX;
+
+  st = fill_tree(&c, out, lg);
+  if (st != ZUH_OK)
+    goto fail;
+  st = collect_problems(out, ctx, lg);
+  if (st != ZUH_OK)
+    goto fail;
+  free(c.intern);
+
+  doc->pool_len = c.pool_used;
+  doc->input_bytes = ctx->len;
+  doc->quirks_mode = (int) out->document->v.document.doc_type_quirks_mode;
+  doc->frozen_bytes = sizeof(zuh_doc) + c.n_nodes * sizeof(zuh_node) +
+                      c.n_attrs * sizeof(zuh_attr) + c.pool_len +
+                      doc->n_problems * sizeof(zuh_problem);
+  return ZUH_OK;
+
+fail:
+  free(c.intern);
+  free(doc->nodes);
+  free(doc->attrs);
+  free(doc->pool);
+  doc->nodes = NULL;
+  doc->attrs = NULL;
+  doc->pool = NULL;
+  doc->n_nodes = 0;
+  doc->n_attrs = 0;
+  doc->root = ZUH_NONE;
+  return st;
 }
 
 zuh_status
@@ -257,7 +707,7 @@ zuh_gumbo_parse(const char *buf, size_t len, const zuh_parse_opts *opts,
   ctx.opts = opts;
   ctx.doc = doc;
   ctx.len = len;
-  st = parse_core(buf, len, opts, collect_document, &ctx, stats);
+  st = parse_core(buf, len, opts, convert_document, &ctx, stats);
   if (st == ZUH_OK)
     doc->parse_peak_bytes = stats->peak_bytes;
   return st;
@@ -270,14 +720,17 @@ static const zuh_parse_opts selftest_opts = {
   1u << 24, /* max_memory */
   512,      /* max_depth */
   100,      /* max_errors */
+  1000,     /* max_nodes */
+  1,        /* keep_comments */
   0         /* fail_at */
 };
 
 static zuh_status
-check_selftest_tree(const GumboOutput *out, void *vctx,
+check_selftest_tree(const GumboOutput *out, void *vctx, zuh_ledger *lg,
                     zuh_parse_stats *stats) {
   int *ok = (int *) vctx;
   const GumboNode *root = out->root;
+  (void) lg;
   (void) stats;
   *ok = 0;
   if (root != NULL && root->type == GUMBO_NODE_ELEMENT &&
@@ -301,9 +754,11 @@ check_selftest_tree(const GumboOutput *out, void *vctx,
 }
 
 static zuh_status
-visit_nothing(const GumboOutput *out, void *vctx, zuh_parse_stats *stats) {
+visit_nothing(const GumboOutput *out, void *vctx, zuh_ledger *lg,
+              zuh_parse_stats *stats) {
   (void) out;
   (void) vctx;
+  (void) lg;
   (void) stats;
   return ZUH_OK;
 }

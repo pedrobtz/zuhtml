@@ -1,5 +1,5 @@
 #!/bin/sh
-# Drive the parse seam -- ledger, abort, depth limit, diagnostics -- under
+# Drive the parse seam -- ledger, abort, limits, conversion, tree dump -- under
 # AddressSanitizer and UndefinedBehaviorSanitizer, with no R in the way.
 # Run from the package root.
 #
