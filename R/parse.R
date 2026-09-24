@@ -224,9 +224,12 @@ zuh_strip_bom <- function(bytes) {
 }
 
 # R's iconv() does not reliably report invalid input when converting raw
-# vectors: with the default `sub = NA` some builds hand back the original
-# bytes unchanged. Converting twice with two different substitution bytes
-# does: the results differ exactly when something was substituted.
+# vectors: some builds hand back the original bytes unchanged, with the
+# default `sub = NA` (macOS libiconv) and even with a `sub` string (Windows).
+# Three checks catch it between them: converting twice with two different
+# substitution bytes (the results differ exactly when something was
+# substituted); output identical to non-ASCII or NUL-bearing input (a real
+# conversion changes those bytes); and a final UTF-8 validity check.
 zuh_iconv <- function(x, from, call) {
   convert <- function(sub) {
     tryCatch(
@@ -243,14 +246,18 @@ zuh_iconv <- function(x, from, call) {
       encoding = from, call = call
     )
   }
-  if (is.null(a[[1L]]) || !identical(a[[1L]], b[[1L]])) {
+  out <- a[[1L]]
+  unchanged <- identical(out, x) &&
+    (any(x == as.raw(0L)) || any(x >= as.raw(0x80L)))
+  if (is.null(out) || !identical(out, b[[1L]]) || unchanged ||
+      (!any(out == as.raw(0L)) && !validUTF8(rawToChar(out)))) {
     zuh_abort(
       "encoding",
       sprintf("The input is not valid in encoding \"%s\".", from),
       encoding = from, call = call
     )
   }
-  zuh_strip_bom(a[[1L]])
+  zuh_strip_bom(out)
 }
 
 # Status codes of zuh_status in src/zuh_status.h, in enum order.

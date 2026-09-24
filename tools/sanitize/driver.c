@@ -203,6 +203,26 @@ sawtooth(void) {
   free(buf);
 }
 
+/* The leak canary allocates in a frame that has returned, then overwrites
+ * the stack, so that no stale copy of the pointer is left for
+ * LeakSanitizer's conservative scan to find. A pointer kept in main's own
+ * frame or registers can survive -O1 and make the leak look reachable. */
+static void *volatile leak_sink;
+
+__attribute__((noinline)) static void
+leak_one(void) {
+  leak_sink = malloc(64);
+  leak_sink = NULL;
+}
+
+__attribute__((noinline)) static void
+scrub_stack(void) {
+  volatile char pad[4096];
+  size_t i;
+  for (i = 0; i < sizeof(pad); i++)
+    pad[i] = 0;
+}
+
 int
 main(int argc, char **argv) {
   if (argc > 1 && strcmp(argv[1], "canary-overflow") == 0) {
@@ -212,9 +232,10 @@ main(int argc, char **argv) {
     return 0;
   }
   if (argc > 1 && strcmp(argv[1], "canary-leak") == 0) {
-    volatile void *p = malloc(64);
-    p = NULL;
-    (void) p;
+    int i;
+    for (i = 0; i < 16; i++)
+      leak_one();
+    scrub_stack();
     return 0;
   }
 

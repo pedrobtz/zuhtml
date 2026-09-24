@@ -172,8 +172,9 @@ tables, serialization) reads the arena and never touches Gumbo. Only
   malloc'd document in it before Gumbo runs. Keep every R allocation outside
   the window between `zuh_doc_new()` and that store.
 - **Do not trust `iconv()`'s failure signal on raw input.** It can return the
-  input unchanged. `zuh_iconv()` converts twice with different `sub=` bytes
-  and treats any difference as invalid input.
+  input unchanged (macOS with `sub = NA`, Windows even with `sub`).
+  `zuh_iconv()` converts twice with different `sub=` bytes, rejects output
+  identical to NUL- or non-ASCII-bearing input, and validates the UTF-8.
 
 ## Testing conventions
 
