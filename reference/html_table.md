@@ -11,10 +11,13 @@ html_table(
   header = "auto",
   trim = TRUE,
   na = character(),
+  convert = FALSE,
+  decimal = ".",
+  thousands = NULL,
   limits = html_limits()
 )
 
-html_tables(x, css = "table", ...)
+html_tables(x, css = "table", match = NULL, ...)
 ```
 
 ## Arguments
@@ -39,6 +42,20 @@ html_tables(x, css = "table", ...)
   Strings that become `NA` after trimming, such as `c("", "-")`. By
   default no text is treated as missing.
 
+- convert:
+
+  If `TRUE`, convert columns that are entirely numbers or logicals; see
+  the Conversion section.
+
+- decimal:
+
+  The decimal mark for `convert`: a single character.
+
+- thousands:
+
+  The grouping mark for `convert`: a single character other than
+  `decimal`, or `NULL` for none.
+
 - limits:
 
   Resource limits from
@@ -50,6 +67,13 @@ html_tables(x, css = "table", ...)
   For `html_tables()`, the selector of tables to read. Only the
   outermost matching tables are read; nested ones remain part of their
   parents' cells.
+
+- match:
+
+  For `html_tables()`, a regular expression
+  ([`grepl()`](https://rdrr.io/r/base/grep.html)) that a table's cleaned
+  text must match for the table to be read, or `NULL` to read every
+  table.
 
 - ...:
 
@@ -101,16 +125,38 @@ not otherwise made syntactic.
 
 Cell text follows
 [`html_text_clean()`](https://pedrobtz.github.io/zuhtml/reference/html_text_clean.md).
-All columns are character: convert with
-[`type.convert()`](https://rdrr.io/r/utils/type.convert.html) or similar
-when you know the types, which keeps identifiers with leading zeros
-intact.
+All columns are character unless `convert = TRUE`.
+
+## Conversion
+
+With `convert = TRUE`, each column is converted on its own, and only
+when every non-missing value converts; otherwise it stays character, so
+conversion never turns a value into `NA`. Values are compared after
+removing surrounding whitespace.
+
+- `TRUE`, `FALSE`, `true`, `false`, `True` and `False` make a logical
+  column.
+
+- Decimal numbers, with an optional sign and exponent, make an integer
+  column when all are whole and fit, otherwise a double column.
+  `decimal` is the decimal mark. `thousands`, if given, is a grouping
+  mark allowed between groups of three digits, as in `1,234,567.5`; a
+  badly grouped value such as `1,23` keeps the column character.
+
+- A value with a leading zero, such as `"0012"`, keeps the column
+  character: it is an identifier, not a number. `"0"` and `"0.5"` are
+  numbers.
+
+- `Inf`, `NaN`, `NA`, currency symbols and percentages are not numbers;
+  list such strings in `na`, or convert them yourself. A column with no
+  non-missing values stays character.
 
 ## See also
 
 Other extraction:
 [`html_links()`](https://pedrobtz.github.io/zuhtml/reference/html_links.md),
 [`html_list()`](https://pedrobtz.github.io/zuhtml/reference/html_list.md),
+[`html_table_cells()`](https://pedrobtz.github.io/zuhtml/reference/html_table_cells.md),
 [`html_url()`](https://pedrobtz.github.io/zuhtml/reference/html_url.md)
 
 ## Examples
@@ -134,4 +180,20 @@ html_tables(doc)
 #>   Region Sales / 2025 Sales / 2026
 #> 1  North            1            2
 #> 
+html_tables(doc, match = "North")
+#> [[1]]
+#>   Region Sales / 2025 Sales / 2026
+#> 1  North            1            2
+#> 
+
+doc <- html_parse(paste0(
+  "<table><tr><th>Id<th>Amount<th>Paid",
+  "<tr><td>007<td>1.234,50<td>true<tr><td>012<td>99<td>false</table>"
+))
+str(html_table(html_element(doc, "table"), convert = TRUE,
+               decimal = ",", thousands = "."))
+#> 'data.frame':    2 obs. of  3 variables:
+#>  $ Id    : chr  "007" "012"
+#>  $ Amount: num  1234 99
+#>  $ Paid  : logi  TRUE FALSE
 ```

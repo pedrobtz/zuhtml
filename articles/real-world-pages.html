@@ -106,10 +106,10 @@ per package, about 25,000 rows and several megabytes of HTML.</p>
 <span><span class="co">#&gt; [1] 226921</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $input_bytes</span></span>
-<span><span class="co">#&gt; [1] 4165766</span></span>
+<span><span class="co">#&gt; [1] 4165777</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $native_bytes</span></span>
-<span><span class="co">#&gt; [1] 13570635</span></span>
+<span><span class="co">#&gt; [1] 13570646</span></span>
 <span></span>
 <span><span class="va">packages</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/html_table.html">html_tables</a></span><span class="op">(</span><span class="va">by_name</span><span class="op">)</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">packages</span><span class="op">)</span></span>
@@ -184,18 +184,18 @@ the page’s address.</p>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">recent</span>, <span class="fl">3</span><span class="op">)</span></span>
 <span><span class="co">#&gt;         Date          Package</span></span>
 <span><span class="co">#&gt; 1 2026-09-24 AI4OfficialStats</span></span>
-<span><span class="co">#&gt; 2 2026-09-24        autotestR</span></span>
-<span><span class="co">#&gt; 3 2026-09-24       BarcodingR</span></span>
-<span><span class="co">#&gt;                                                           Title</span></span>
-<span><span class="co">#&gt; 1 Audit Statistical Fidelity of AI-Mediated Official Statistics</span></span>
-<span><span class="co">#&gt; 2               Automated Functions for Basic Statistical Tests</span></span>
-<span><span class="co">#&gt; 3                     Species Identification using DNA Barcodes</span></span>
+<span><span class="co">#&gt; 2 2026-09-24      angstromATE</span></span>
+<span><span class="co">#&gt; 3 2026-09-24        autotestR</span></span>
+<span><span class="co">#&gt;                                                                       Title</span></span>
+<span><span class="co">#&gt; 1             Audit Statistical Fidelity of AI-Mediated Official Statistics</span></span>
+<span><span class="co">#&gt; 2 Imports Recipe and Log Files from Angstrom Engineering Thermal Evaporator</span></span>
+<span><span class="co">#&gt; 3                           Automated Functions for Basic Statistical Tests</span></span>
 <span></span>
 <span><span class="va">year</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/substr.html" class="external-link">substr</a></span><span class="op">(</span><span class="va">recent</span><span class="op">$</span><span class="va">Date</span>, <span class="fl">1</span>, <span class="fl">4</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">year</span><span class="op">)</span>, <span class="fl">8</span><span class="op">)</span></span>
 <span><span class="co">#&gt; year</span></span>
 <span><span class="co">#&gt; 2019 2020 2021 2022 2023 2024 2025 2026 </span></span>
-<span><span class="co">#&gt;  611  919 1152 1640 2278 2769 5281 8960</span></span></code></pre></div>
+<span><span class="co">#&gt;  611  919 1152 1640 2278 2768 5279 8963</span></span></code></pre></div>
 <p>Dates stay character, as every cell does: convert them when you know
 they are dates.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">

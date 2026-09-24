@@ -119,6 +119,18 @@ First release.
   `itemref` included.
 
 - New
+  [`html_table_cells()`](https://pedrobtz.github.io/zuhtml/reference/html_table_cells.md)
+  returns one row per table cell with its grid position, spans, section,
+  whether it is a header, and its links.
+  [`html_tables()`](https://pedrobtz.github.io/zuhtml/reference/html_table.md)
+  gains `match =` to keep tables whose text matches a regular
+  expression.
+  [`html_table()`](https://pedrobtz.github.io/zuhtml/reference/html_table.md)
+  gains `convert =`, `decimal =` and `thousands =` to convert columns
+  that are entirely numbers or logicals, keeping identifiers with
+  leading zeros as text.
+
+- New
   [`html_serialize()`](https://pedrobtz.github.io/zuhtml/reference/html_serialize.md)
   (and [`as.character()`](https://rdrr.io/r/base/character.html) on
   nodesets) writes nodes as normalized HTML following the WHATWG

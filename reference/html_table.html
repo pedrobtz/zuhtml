@@ -57,10 +57,13 @@ character columns. <code>html_tables()</code> finds tables and reads each.</p>
 <span>  header <span class="op">=</span> <span class="st">"auto"</span>,</span>
 <span>  trim <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  na <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  convert <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  decimal <span class="op">=</span> <span class="st">"."</span>,</span>
+<span>  thousands <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  limits <span class="op">=</span> <span class="fu"><a href="html_limits.html">html_limits</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="fu">html_tables</span><span class="op">(</span><span class="va">x</span>, css <span class="op">=</span> <span class="st">"table"</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">html_tables</span><span class="op">(</span><span class="va">x</span>, css <span class="op">=</span> <span class="st">"table"</span>, match <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -86,6 +89,20 @@ to search.</p></dd>
 By default no text is treated as missing.</p></dd>
 
 
+<dt id="arg-convert">convert<a class="anchor" aria-label="anchor" href="#arg-convert"></a></dt>
+<dd><p>If <code>TRUE</code>, convert columns that are entirely numbers or
+logicals; see the Conversion section.</p></dd>
+
+
+<dt id="arg-decimal">decimal<a class="anchor" aria-label="anchor" href="#arg-decimal"></a></dt>
+<dd><p>The decimal mark for <code>convert</code>: a single character.</p></dd>
+
+
+<dt id="arg-thousands">thousands<a class="anchor" aria-label="anchor" href="#arg-thousands"></a></dt>
+<dd><p>The grouping mark for <code>convert</code>: a single character
+other than <code>decimal</code>, or <code>NULL</code> for none.</p></dd>
+
+
 <dt id="arg-limits">limits<a class="anchor" aria-label="anchor" href="#arg-limits"></a></dt>
 <dd><p>Resource limits from <code><a href="html_limits.html">html_limits()</a></code>; <code>max_table_cells</code>
 bounds the grid, spans included.</p></dd>
@@ -95,6 +112,12 @@ bounds the grid, spans included.</p></dd>
 <dd><p>For <code>html_tables()</code>, the selector of tables to read. Only the
 outermost matching tables are read; nested ones remain part of their
 parents' cells.</p></dd>
+
+
+<dt id="arg-match">match<a class="anchor" aria-label="anchor" href="#arg-match"></a></dt>
+<dd><p>For <code>html_tables()</code>, a regular expression (<code><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl()</a></code>) that
+a table's cleaned text must match for the table to be read, or <code>NULL</code>
+to read every table.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
@@ -143,15 +166,36 @@ non-empty header texts above it with <code>" / "</code>, merging repeats that a
 <code>colspan</code> created. Blank names become <code>V1</code>, <code>V2</code>, ... by column
 position, and duplicates are made unique with <code><a href="https://rdrr.io/r/base/make.unique.html" class="external-link">make.unique()</a></code>. Names are
 not otherwise made syntactic.</p>
-<p>Cell text follows <code><a href="html_text_clean.html">html_text_clean()</a></code>. All columns are character:
-convert with <code><a href="https://rdrr.io/r/utils/type.convert.html" class="external-link">type.convert()</a></code> or similar when you know the types, which
-keeps identifiers with leading zeros intact.</p>
+<p>Cell text follows <code><a href="html_text_clean.html">html_text_clean()</a></code>. All columns are character unless
+<code>convert = TRUE</code>.</p>
     </div>
+    <div class="section level2">
+    <h2 id="conversion">Conversion<a class="anchor" aria-label="anchor" href="#conversion"></a></h2>
+
+
+<p>With <code>convert = TRUE</code>, each column is converted on its own, and only when
+every non-missing value converts; otherwise it stays character, so
+conversion never turns a value into <code>NA</code>. Values are compared after
+removing surrounding whitespace.</p><ul><li><p><code>TRUE</code>, <code>FALSE</code>, <code>true</code>, <code>false</code>, <code>True</code> and <code>False</code> make a logical
+column.</p></li>
+<li><p>Decimal numbers, with an optional sign and exponent, make an integer
+column when all are whole and fit, otherwise a double column. <code>decimal</code>
+is the decimal mark. <code>thousands</code>, if given, is a grouping mark allowed
+between groups of three digits, as in <code>1,234,567.5</code>; a badly grouped
+value such as <code>1,23</code> keeps the column character.</p></li>
+<li><p>A value with a leading zero, such as <code>"0012"</code>, keeps the column
+character: it is an identifier, not a number. <code>"0"</code> and <code>"0.5"</code> are
+numbers.</p></li>
+<li><p><code>Inf</code>, <code>NaN</code>, <code>NA</code>, currency symbols and percentages are not numbers;
+list such strings in <code>na</code>, or convert them yourself. A column with no
+non-missing values stays character.</p></li>
+</ul></div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p>Other extraction:
 <code><a href="html_links.html">html_links()</a></code>,
 <code><a href="html_list.html">html_list()</a></code>,
+<code><a href="html_table_cells.html">html_table_cells()</a></code>,
 <code><a href="html_url.html">html_url()</a></code></p></div>
     </div>
 
@@ -175,6 +219,22 @@ keeps identifiers with leading zeros intact.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Region Sales / 2025 Sales / 2026</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 1  North            1            2</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-in"><span><span class="fu">html_tables</span><span class="op">(</span><span class="va">doc</span>, match <span class="op">=</span> <span class="st">"North"</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [[1]]</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   Region Sales / 2025 Sales / 2026</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1  North            1            2</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="va">doc</span> <span class="op">&lt;-</span> <span class="fu"><a href="html_parse.html">html_parse</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  <span class="st">"&lt;table&gt;&lt;tr&gt;&lt;th&gt;Id&lt;th&gt;Amount&lt;th&gt;Paid"</span>,</span></span>
+<span class="r-in"><span>  <span class="st">"&lt;tr&gt;&lt;td&gt;007&lt;td&gt;1.234,50&lt;td&gt;true&lt;tr&gt;&lt;td&gt;012&lt;td&gt;99&lt;td&gt;false&lt;/table&gt;"</span></span></span>
+<span class="r-in"><span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="fu">html_table</span><span class="op">(</span><span class="fu"><a href="html_elements.html">html_element</a></span><span class="op">(</span><span class="va">doc</span>, <span class="st">"table"</span><span class="op">)</span>, convert <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
+<span class="r-in"><span>               decimal <span class="op">=</span> <span class="st">","</span>, thousands <span class="op">=</span> <span class="st">"."</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 'data.frame':	2 obs. of  3 variables:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ Id    : chr  "007" "012"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ Amount: num  1234 99</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  $ Paid  : logi  TRUE FALSE</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

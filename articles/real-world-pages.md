@@ -46,10 +46,10 @@ html_info(by_name)[c("nodes", "input_bytes", "native_bytes")]
 #> [1] 226921
 #> 
 #> $input_bytes
-#> [1] 4165766
+#> [1] 4165777
 #> 
 #> $native_bytes
-#> [1] 13570635
+#> [1] 13570646
 
 packages <- html_tables(by_name)[[1]]
 dim(packages)
@@ -137,18 +137,18 @@ names(recent)
 head(recent, 3)
 #>         Date          Package
 #> 1 2026-09-24 AI4OfficialStats
-#> 2 2026-09-24        autotestR
-#> 3 2026-09-24       BarcodingR
-#>                                                           Title
-#> 1 Audit Statistical Fidelity of AI-Mediated Official Statistics
-#> 2               Automated Functions for Basic Statistical Tests
-#> 3                     Species Identification using DNA Barcodes
+#> 2 2026-09-24      angstromATE
+#> 3 2026-09-24        autotestR
+#>                                                                       Title
+#> 1             Audit Statistical Fidelity of AI-Mediated Official Statistics
+#> 2 Imports Recipe and Log Files from Angstrom Engineering Thermal Evaporator
+#> 3                           Automated Functions for Basic Statistical Tests
 
 year <- substr(recent$Date, 1, 4)
 tail(table(year), 8)
 #> year
 #> 2019 2020 2021 2022 2023 2024 2025 2026 
-#>  611  919 1152 1640 2278 2769 5281 8960
+#>  611  919 1152 1640 2278 2768 5279 8963
 ```
 
 Dates stay character, as every cell does: convert them when you know

@@ -61,6 +61,8 @@ From a string, raw bytes or a file to a document, under limits.
 - [`html_table()`](https://pedrobtz.github.io/zuhtml/reference/html_table.md)
   [`html_tables()`](https://pedrobtz.github.io/zuhtml/reference/html_table.md)
   : Extract HTML tables as data frames
+- [`html_table_cells()`](https://pedrobtz.github.io/zuhtml/reference/html_table_cells.md)
+  : Cells of an HTML table
 - [`html_list()`](https://pedrobtz.github.io/zuhtml/reference/html_list.md)
   : Extract an HTML list
 - [`html_links()`](https://pedrobtz.github.io/zuhtml/reference/html_links.md)
