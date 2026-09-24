@@ -2,17 +2,20 @@
 
 ## Authors
 
-- **First Last**. Author, maintainer.
+- **Pedro Baltazar**. Author, maintainer, copyright holder.
 
 ## Citation
 
-Last F (2026). *zuhtml: What the Package Does (One Line, Title Case)*. R
-package version 0.0.0.9000, <https://pedrobtz.github.io/zuhtml/>.
+Source:
+[`DESCRIPTION`](https://github.com/pedrobtz/zuhtml/blob/main/DESCRIPTION)
+
+Baltazar P (2026). *zuhtml: Parse 'HTML' with a Bundled 'Gumbo' Parser*.
+R package version 0.0.0.9000, <https://github.com/pedrobtz/zuhtml>.
 
     @Manual{,
-      title = {zuhtml: What the Package Does (One Line, Title Case)},
-      author = {First Last},
+      title = {zuhtml: Parse 'HTML' with a Bundled 'Gumbo' Parser},
+      author = {Pedro Baltazar},
       year = {2026},
       note = {R package version 0.0.0.9000},
-      url = {https://pedrobtz.github.io/zuhtml/},
+      url = {https://github.com/pedrobtz/zuhtml},
     }

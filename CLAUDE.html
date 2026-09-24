@@ -19,6 +19,7 @@
 <li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="search.json"></form></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/pedrobtz/zuhtml/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul></div>
 
 
@@ -28,7 +29,7 @@
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>CLAUDE.md</h1>
-
+      <small class="dont-index">Source: <a href="https://github.com/pedrobtz/zuhtml/blob/main/CLAUDE.md" class="external-link"><code>CLAUDE.md</code></a></small>
     </div>
 
 <div id="claudemd" class="section level1">
@@ -43,14 +44,14 @@
 </div>
 <div class="section level2">
 <h2 id="current-state">Current state<a class="anchor" aria-label="anchor" href="#current-state"></a></h2>
-<p>Verified 2026-09-24. <strong>Nothing is implemented.</strong> The repository is the <code>usethis</code> skeleton plus the design, the roadmap and a probe harness (<a href=".agents/probe-gumbo.c">.agents/probe-gumbo.c</a>) whose measurements the roadmap cites. There is no <code>src/</code>, no vendored Gumbo, no exported function, and the one test is the template’s. Stage 0 of the roadmap has not started.</p>
+<p>Stage 0 is done: the design carries the seven amendments, <code>DESCRIPTION</code> is real, and <code>src/init.c</code> registers one smoke entry point (<code>C_zuh_loaded</code>) with dynamic lookup off and symbols forced. There is no vendored Gumbo and no exported function yet. The probe harness (<a href=".agents/probe-gumbo.c">.agents/probe-gumbo.c</a>) holds the measurements the roadmap cites.</p>
 <p>The roadmap’s <strong>Status:</strong> line under each stage is authoritative for progress; update it there, not here.</p>
 </div>
 <div class="section level2">
 <h2 id="stage-tracking">Stage tracking<a class="anchor" aria-label="anchor" href="#stage-tracking"></a></h2>
 <p>Progress toward the next version is tracked as GitHub sub-issues, so the parent issue shows a progress bar such as “6 of 7”.</p>
 <ul><li>
-<strong>One parent issue per target version</strong>, titled with the bare version, for example <code>v0.1.0</code>. Not yet created; opening it is a Stage 0 task.</li>
+<strong>One parent issue per target version</strong>, titled with the bare version, for example <code>v0.1.0</code> (#2). Stages 0 to 10 are sub-issues #3 to #13.</li>
 <li>
 <strong>One sub-issue per roadmap stage</strong>, titled as the roadmap titles it, for example <code>Stage 2 — Ledger, abort and limits (the safety seam)</code>, linking to that section’s anchor. The roadmap has eleven stages, 0 to 10.</li>
 <li><strong>Every tracking issue carries the <code>stage</code> label.</strong></li>
@@ -132,6 +133,8 @@ fuzz/              libFuzzer targets over the C core
 <li>
 <strong>Helpers live in <code>tests/testthat/helper-*.R</code>.</strong> None yet.</li>
 <li>
+<strong>Stage pull requests carry the <code>full-ci</code> label</strong>, so the full R CMD check matrix (all three platforms) runs before merge rather than only after.</li>
+<li>
 <strong>Keep the suite inside the CRAN time budget.</strong> No runtime to report yet.</li>
 </ul></div>
 <div class="section level2">
@@ -173,7 +176,7 @@ fuzz/              libFuzzer targets over the C core
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by First Last.</p>
+  <p>Developed by Pedro Baltazar.</p>
 </div>
 
 <div class="pkgdown-footer-right">
