@@ -105,6 +105,29 @@ test_that("unknown encodings and invalid sequences are encoding errors", {
   }
 })
 
+test_that("UTF-16 is decoded strictly and without iconv", {
+  u16 <- function(cps, big = FALSE) {
+    hi <- cps %/% 256L
+    lo <- cps %% 256L
+    as.raw(if (big) rbind(hi, lo) else rbind(lo, hi))
+  }
+  # A surrogate pair: U+1F600.
+  doc <- html_parse(u16(c(0x3c, 0x70, 0x3e, 0xD83D, 0xDE00)),
+                    encoding = "UTF-16LE")
+  expect_identical(.Call(zuhtml:::C_zuh_doc_meta, doc$ptr)$input_bytes, 7)
+  doc <- html_parse(u16(c(0x3c, 0x70, 0x3e, 0xe9), big = TRUE),
+                    encoding = "UTF-16BE")
+  expect_identical(.Call(zuhtml:::C_zuh_doc_meta, doc$ptr)$input_bytes, 5)
+  # Plain "UTF-16" without a BOM is big-endian.
+  doc <- html_parse(u16(c(0x3c, 0x70, 0x3e), big = TRUE), encoding = "UTF-16")
+  expect_identical(.Call(zuhtml:::C_zuh_doc_meta, doc$ptr)$input_bytes, 3)
+  # A lone low surrogate, and a high surrogate at the end.
+  expect_error(html_parse(u16(c(0x3c, 0xDE00)), encoding = "UTF-16LE"),
+               class = "zuhtml_encoding_error")
+  expect_error(html_parse(u16(c(0x3c, 0xD83D)), encoding = "UTF-16LE"),
+               class = "zuhtml_encoding_error")
+})
+
 test_that("NUL is rejected before and after decoding", {
   expect_error(html_parse(as.raw(c(0x3c, 0x00, 0x3e))),
                class = "zuhtml_input_error")

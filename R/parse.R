@@ -158,7 +158,9 @@ zuh_decode <- function(x, encoding, limits, call) {
         call = call
       )
     }
-    if (zuh_canon_enc(used) == "UTF8") {
+    if (zuh_canon_enc(used) %in% c("UTF16", "UTF16LE", "UTF16BE")) {
+      bytes <- zuh_utf16(x, used, bom, call)
+    } else if (zuh_canon_enc(used) == "UTF8") {
       bytes <- zuh_strip_bom(x)
       if (any(bytes == as.raw(0L))) {
         zuh_input_error("x", "The input contains a NUL byte.", call = call)
@@ -168,11 +170,10 @@ zuh_decode <- function(x, encoding, limits, call) {
                   encoding = used, call = call)
       }
     } else {
-      bytes <- zuh_iconv(x, used, call)
-      if (any(bytes == as.raw(0L))) {
-        zuh_input_error("x", "The input contains a NUL character.",
-                        call = call)
+      if (any(x == as.raw(0L))) {
+        zuh_input_error("x", "The input contains a NUL byte.", call = call)
       }
+      bytes <- zuh_iconv(x, used, call)
     }
   } else {
     zuh_input_error(
@@ -223,13 +224,49 @@ zuh_strip_bom <- function(bytes) {
   bytes
 }
 
-# R's iconv() does not reliably report invalid input when converting raw
-# vectors: some builds hand back the original bytes unchanged, with the
-# default `sub = NA` (macOS libiconv) and even with a `sub` string (Windows).
-# Three checks catch it between them: converting twice with two different
-# substitution bytes (the results differ exactly when something was
-# substituted); output identical to non-ASCII or NUL-bearing input (a real
-# conversion changes those bytes); and a final UTF-8 validity check.
+# UTF-16 is decoded here rather than by iconv(), whose handling of invalid
+# UTF-16 differs across platforms (see zuh_iconv()). Strict: an odd byte
+# count and any unpaired surrogate are errors.
+zuh_utf16 <- function(x, encoding, bom, call) {
+  bad <- function() {
+    zuh_abort(
+      "encoding",
+      sprintf("The input is not valid in encoding \"%s\".", encoding),
+      encoding = encoding, call = call
+    )
+  }
+  # A BOM decides the byte order of plain "UTF-16"; without one it is
+  # big-endian, as the Unicode standard specifies.
+  enc <- zuh_canon_enc(encoding)
+  big <- if (enc == "UTF16") !identical(bom, "UTF-16LE") else enc == "UTF16BE"
+  if (!is.na(bom) && bom %in% c("UTF-16LE", "UTF-16BE")) x <- x[-(1:2)]
+  if (length(x) %% 2L != 0L) bad()
+  if (length(x) == 0L) return(raw())
+  b <- as.integer(x)
+  odd <- b[c(TRUE, FALSE)]
+  even <- b[c(FALSE, TRUE)]
+  u <- if (big) odd * 256L + even else even * 256L + odd
+  hi <- which(u >= 0xD800L & u <= 0xDBFFL)
+  lo <- which(u >= 0xDC00L & u <= 0xDFFFL)
+  if (length(hi) != length(lo) || any(lo != hi + 1L)) bad()
+  if (length(hi)) {
+    u[hi] <- 0x10000L + (u[hi] - 0xD800L) * 1024L + (u[lo] - 0xDC00L)
+    u <- u[-lo]
+  }
+  if (any(u == 0L)) {
+    zuh_input_error("x", "The input contains a NUL character.", call = call)
+  }
+  zuh_strip_bom(charToRaw(intToUtf8(u)))
+}
+
+# Every encoding that reaches here is ASCII-compatible (UTF-16 is decoded
+# by zuh_utf16(), and input with a NUL byte is rejected before). R's iconv()
+# does not reliably report invalid input when converting raw vectors: some
+# builds hand back the original bytes unchanged, or with a NUL in them. So
+# a conversion fails if two runs with different substitution bytes differ,
+# if the output is identical to input with non-ASCII bytes (a real
+# conversion changes those), if the output has a NUL (the input had none),
+# or if the output is not valid UTF-8.
 zuh_iconv <- function(x, from, call) {
   convert <- function(sub) {
     tryCatch(
@@ -247,10 +284,9 @@ zuh_iconv <- function(x, from, call) {
     )
   }
   out <- a[[1L]]
-  unchanged <- identical(out, x) &&
-    (any(x == as.raw(0L)) || any(x >= as.raw(0x80L)))
-  if (is.null(out) || !identical(out, b[[1L]]) || unchanged ||
-      (!any(out == as.raw(0L)) && !validUTF8(rawToChar(out)))) {
+  if (is.null(out) || !identical(out, b[[1L]]) ||
+      (identical(out, x) && any(x >= as.raw(0x80L))) ||
+      any(out == as.raw(0L)) || !validUTF8(rawToChar(out))) {
     zuh_abort(
       "encoding",
       sprintf("The input is not valid in encoding \"%s\".", from),
