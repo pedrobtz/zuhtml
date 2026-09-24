@@ -1,0 +1,54 @@
+# Gates that R CMD check cannot express. Each gate runs next to its canary:
+# a gate counts once it has been seen to fail, so every run also proves the
+# gate can still see what it guards against. See .agents/roadmap.md.
+#
+# Stage 1 adds the vendor and lint gates; sanitizers, fuzzing and
+# conformance join at later stages.
+#
+# paths-ignore skips the workflow for prose-only changes. GitHub applies it
+# only when every changed file matches, so a commit touching both a .md file
+# and src/ still runs.
+on:
+  push:
+    branches: [main, master]
+    paths-ignore:
+      - '**.md'
+      - '_pkgdown.yml'
+      - '.agents/**'
+      - 'docs/**'
+  pull_request:
+    paths-ignore:
+      - '**.md'
+      - '_pkgdown.yml'
+      - '.agents/**'
+      - 'docs/**'
+
+name: hardening
+
+permissions: read-all
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  vendor:
+    runs-on: ubuntu-latest
+    name: vendored Gumbo is upstream plus the patch series
+    steps:
+      - uses: actions/checkout@v6
+      - name: re-derive src/vendor/gumbo from the pinned archive
+        run: ./tools/verify-vendor
+      - name: canary - leaving a patch out must fail verification
+        run: ./tools/verify-vendor --canary
+
+  lint:
+    runs-on: ubuntu-latest
+    name: strict warnings and no stdio symbols
+    steps:
+      - uses: actions/checkout@v6
+      - uses: r-lib/actions/setup-r@v2
+      - name: project-owned code is warning-free; the .so imports no stdio
+        run: CC=clang ./tools/run-lint
+      - name: canary - reversing patch 0002 must trip the symbol check
+        run: ./tools/run-lint --canary

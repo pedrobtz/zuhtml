@@ -1,0 +1,91 @@
+#!/bin/sh
+# Re-vendor Gumbo. Usage: tools/update-gumbo <version>   e.g. 0.14.0
+#
+# Downloads the release archive from Codeberg, records its SHA-256, copies
+# the files listed in tools/gumbo-files.txt into src/vendor/gumbo/, applies
+# tools/patches/*.patch in order and rewrites src/vendor/PROVENANCE. Run from
+# the package root, then run tools/verify-vendor, R CMD check and the gates.
+#
+# Also update ZUH_GUMBO_VERSION in src/zuh_gumbo.c; tools/verify-vendor
+# fails until it matches.
+set -eu
+
+VERSION="${1:?usage: tools/update-gumbo <version>}"
+REPO="gumbo-parser/gumbo-parser"
+URL="https://codeberg.org/${REPO}/archive/${VERSION}.tar.gz"
+ROOT=$(pwd)
+WORK=$(mktemp -d)
+trap 'rm -rf "$WORK"' EXIT
+
+echo "==> fetching $URL"
+curl -fsSL --retry 3 --retry-delay 2 --retry-connrefused \
+  -o "$WORK/gumbo.tar.gz" "$URL"
+SHA=$(shasum -a 256 "$WORK/gumbo.tar.gz" | cut -d' ' -f1)
+echo "==> sha256 $SHA"
+
+# The tag is mutable; the commit it resolved to at import time is recorded
+# so that a moved tag is noticed.
+COMMIT=$(curl -fsSL --retry 3 \
+  "https://codeberg.org/api/v1/repos/${REPO}/tags/${VERSION}" |
+  sed -n 's/.*"commit":{[^}]*"sha":"\([0-9a-f]*\)".*/\1/p')
+[ -n "$COMMIT" ] || { echo "could not resolve tag $VERSION" >&2; exit 1; }
+echo "==> tag $VERSION is commit $COMMIT"
+
+tar xzf "$WORK/gumbo.tar.gz" -C "$WORK"
+SRC="$WORK/gumbo-parser"
+
+echo "==> replacing src/vendor/gumbo"
+rm -rf "$ROOT/src/vendor/gumbo"
+mkdir -p "$ROOT/src/vendor/gumbo"
+grep -v '^#' "$ROOT/tools/gumbo-files.txt" | grep -v '^[[:space:]]*$' |
+  while read -r f; do
+    cp "$SRC/$f" "$ROOT/src/vendor/gumbo/$(basename "$f")"
+  done
+
+PATCHES=""
+for p in "$ROOT"/tools/patches/*.patch; do
+  [ -f "$p" ] || continue
+  echo "==> applying $(basename "$p")"
+  patch -s -p1 -d "$ROOT/src/vendor/gumbo" < "$p"
+  PATCHES="${PATCHES}                 $(basename "$p")
+"
+done
+find "$ROOT/src/vendor/gumbo" \( -name '*.orig' -o -name '*.rej' \) -delete
+
+echo "==> writing src/vendor/PROVENANCE"
+cat > "$ROOT/src/vendor/PROVENANCE" <<PEOF
+Vendored dependency: Gumbo HTML5 parser (codeberg fork)
+
+  Upstream:      https://codeberg.org/${REPO}
+  Version:       ${VERSION}
+  Commit:        ${COMMIT}
+  Archive:       ${URL}
+  SHA-256:       ${SHA}
+  Imported:      $(date -u +%Y-%m-%d)
+  License:       Apache-2.0 (see src/vendor/gumbo/COPYING);
+                 src/vendor/gumbo/utf8.c also carries an MIT notice for
+                 Bjoern Hoehrmann's UTF-8 decoder
+  Local patches: applied in this order, from tools/patches/
+${PATCHES}
+src/vendor/gumbo/ is the files listed in tools/gumbo-files.txt, copied from
+the archive under their basenames, with exactly the patches above applied.
+tools/verify-vendor re-derives the tree from the pinned archive and the
+patch series and fails on any other difference. Every patch but the last is
+minimal and offered upstream; the last adds the modification notice that
+Apache-2.0 section 4(b) requires to each file the others change.
+
+Only the parser library is imported: the 12 C translation units meson.build
+compiles, the headers they include, and the licence (doc/COPYING upstream).
+The generated char_ref_gperf.c and tag_*.h are vendored as-is; their gperf
+and tag.in inputs, the Python bindings, tests, benchmarks, examples,
+fuzzers, visualc/, Meson and autotools are deliberately excluded.
+
+Codeberg publishes no uploaded release asset for this tag, so the archive
+is the one the forge generates from the tag. Hash verification is
+trust-on-first-use: the SHA-256 above was computed at import time and is
+re-checked by tools/verify-vendor. If the forge ever regenerates the archive
+with different bytes, verification fails and the new archive must be
+compared against the recorded commit before the digest is updated.
+PEOF
+
+echo "==> done. Next: tools/verify-vendor, then R CMD check, then the gates."

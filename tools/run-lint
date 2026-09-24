@@ -1,0 +1,94 @@
+#!/bin/sh
+# Two gates. Run from the package root.
+#
+#  1. Project-owned C is warning-free under strict flags. -Werror, because
+#     without it -fsyntax-only exits 0 on warnings and the gate passes
+#     silently. Vendored Gumbo has its own warning policy and is excluded by
+#     file, not by flag: CRAN rejects -Wno-* overrides in Makevars, and its
+#     headers come in through -isystem.
+#  2. The installed shared object references no stdio, abort or exit symbol.
+#     R CMD check notes those, and R owns the process's streams. This is the
+#     canary for tools/patches/0002-no-stdio.patch.
+#
+#   tools/run-lint            both gates
+#   tools/run-lint --canary   gate 2 on a copy with patch 0002 reversed;
+#                             it must FAIL there, or it cannot see anything
+set -eu
+CC=${CC:-clang}
+ROOT=$(pwd)
+WORK=$(mktemp -d)
+trap 'rm -rf "$WORK"' EXIT
+
+# Undefined symbols the shared object must not import. Leading underscores
+# cover macOS's C symbol prefix and its ___stderrp/___stdoutp spellings;
+# the _chk forms are what glibc's fortified headers turn printf into.
+FORBIDDEN='^_*(printf|vprintf|fprintf|vfprintf|dprintf|puts|putchar|fputs|fputc|putc|fwrite|perror|abort|exit|_Exit|stderr|stdout|stderrp|stdoutp|_*(v?f?printf)_chk)(@.*)?$'
+
+check_symbols() {
+  pkgdir="$1"
+  lib="$WORK/lib"
+  rm -rf "$lib"
+  mkdir -p "$lib"
+  R CMD INSTALL --no-test-load --library="$lib" "$pkgdir" > "$WORK/install.log" 2>&1 || {
+    cat "$WORK/install.log" >&2
+    echo "FAIL: package did not install" >&2
+    exit 1
+  }
+  so=$(ls "$lib"/zuhtml/libs/zuhtml.so "$lib"/zuhtml/libs/*/zuhtml.so 2>/dev/null | head -n 1)
+  [ -n "$so" ] || { echo "FAIL: no zuhtml.so under $lib" >&2; exit 1; }
+  nm -u "$so" | awk '{print $NF}' | grep -E "$FORBIDDEN" || true
+}
+
+if [ "${1:-}" = "--canary" ]; then
+  echo "==> canary: installing with patch 0002 reversed"
+  mkdir "$WORK/pkg"
+  (cd "$ROOT" && tar cf - --exclude='*.o' --exclude='*.so' DESCRIPTION NAMESPACE R src) |
+    (cd "$WORK/pkg" && tar xf -)
+  patch -s -R -p1 -d "$WORK/pkg/src/vendor/gumbo" \
+    < "$ROOT/tools/patches/0002-no-stdio.patch"
+  found=$(check_symbols "$WORK/pkg")
+  if [ -n "$found" ]; then
+    echo "==> canary OK: the symbol check sees $(echo "$found" | tr '\n' ' ')"
+    exit 0
+  fi
+  echo "CANARY FAILED: no forbidden symbol found with patch 0002 reversed" >&2
+  exit 1
+fi
+
+fail=0
+RINC=$(Rscript -e 'cat(R.home("include"))')
+
+# Pure C, no R: held to the strictest standard.
+CORE="src/zuh_gumbo.c"
+# R-facing: the same, plus R's headers, and the one cast R's API requires.
+RSRC="src/init.c"
+
+for f in $CORE; do
+  echo "==> $f"
+  "$CC" -std=c99 -Werror -Wall -Wextra -Wpedantic -Wshadow -Wconversion \
+    -Wstrict-prototypes -Wmissing-prototypes -Wcast-qual -Wwrite-strings \
+    -I src -isystem src/vendor/gumbo -fsyntax-only "$f" || fail=1
+done
+for f in $RSRC; do
+  echo "==> $f"
+  # The (DL_FUNC) cast in R_CallMethodDef is a function-type mismatch that
+  # R's own API requires; nothing else is exempt. The two spellings differ
+  # across compiler versions, hence -Wno-unknown-warning-option (clang).
+  "$CC" -std=c99 -Werror -Wall -Wextra -Wpedantic -Wshadow -Wconversion \
+    -Wstrict-prototypes -Wmissing-prototypes -Wcast-qual -Wwrite-strings \
+    -Wno-unknown-warning-option \
+    -Wno-cast-function-type-mismatch -Wno-cast-function-type \
+    -I src -isystem "$RINC" -fsyntax-only "$f" || fail=1
+done
+
+echo "==> symbols of the installed shared object"
+found=$(check_symbols "$ROOT")
+if [ -n "$found" ]; then
+  echo "FAIL: the shared object imports: $(echo "$found" | tr '\n' ' ')" >&2
+  fail=1
+else
+  echo "    no stdio, abort or exit reference"
+fi
+
+[ "$fail" -eq 0 ] && echo "==> lint clean"
+exit "$fail"

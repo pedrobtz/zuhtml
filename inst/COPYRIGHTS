@@ -1,0 +1,62 @@
+zuhtml package
+==============
+
+Copyright (c) 2026 Pedro Baltazar.
+Licensed under the MIT license; see DESCRIPTION and the file LICENSE for
+license and copyright details. The MIT license covers only the code written
+for this package: everything outside src/vendor/.
+
+Bundled third-party code
+========================
+
+src/vendor/gumbo/
+-----------------
+
+This directory vendors the parser library of the Gumbo HTML5 parser,
+version 0.14.0, from the maintained fork at
+https://codeberg.org/gumbo-parser/gumbo-parser. The release, the commit it
+resolves to, the archive checksum and the import date are recorded in
+src/vendor/PROVENANCE.
+
+  Copyright 2010 Google Inc. All Rights Reserved.
+  Copyright 2011 Google Inc. All Rights Reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not
+use these files except in compliance with the License. You may obtain a copy
+of the License at
+
+  https://www.apache.org/licenses/LICENSE-2.0
+
+The full licence text is preserved at src/vendor/gumbo/COPYING. Upstream
+ships no NOTICE file. The Apache License, Version 2.0 and the package's own
+MIT license are separate and apply to their respective files; the MIT
+license does not cover the vendored Gumbo sources.
+
+The files are upstream's, with a short series of local patches applied:
+error.c, error.h, gumbo.h and parser.c are modified, and each says so under
+its licence header. The patches are listed in src/vendor/PROVENANCE.
+
+The copyright notices above are the only ones found in the vendored file
+headers. Later changes by the fork's maintainers carry no separate notice.
+
+Bundled files with separate authorship notices
+==============================================
+
+src/vendor/gumbo/utf8.c
+-----------------------
+
+Contains a DFA-based UTF-8 decoder by Bjoern Hoehrmann, under the MIT
+license. The notice is reproduced in the file itself:
+
+  Copyright (c) 2008-2009 Bjoern Hoehrmann <bjoern@hoehrmann.de>
+
+  Permission is hereby granted, free of charge, to any person obtaining a
+  copy of this software and associated documentation files (the
+  "Software"), to deal in the Software without restriction, including
+  without limitation the rights to use, copy, modify, merge, publish,
+  distribute, sublicense, and/or sell copies of the Software, and to permit
+  persons to whom the Software is furnished to do so, subject to the
+  following conditions:
+
+  The above copyright notice and this permission notice shall be included
+  in all copies or substantial portions of the Software.

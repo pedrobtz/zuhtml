@@ -1,0 +1,59 @@
+From: Pedro Baltazar <pedrobtz@gmail.com>
+Subject: [PATCH 3/3] Mark the files the earlier patches modify
+
+Apache License 2.0, section 4(b): modified files must carry prominent
+notices stating that they were changed. Add one line under the licence
+header of every file patches 0001 and 0002 touch. tools/verify-vendor
+checks that every vendored file that differs from upstream carries it.
+
+Local to zuhtml and never offered upstream. Keep it last in the series and
+extend it whenever an earlier patch touches a new file.
+---
+--- a/error.c
++++ b/error.c
+@@ -12,6 +12,9 @@
+ // See the License for the specific language governing permissions and
+ // limitations under the License.
+ //
++// Modified for the zuhtml R package (https://github.com/pedrobtz/zuhtml):
++// see src/vendor/PROVENANCE for the patches applied to this file.
++//
+ // Author: jdtang@google.com (Jonathan Tang)
+ 
+ #include "error.h"
+--- a/error.h
++++ b/error.h
+@@ -12,6 +12,9 @@
+ // See the License for the specific language governing permissions and
+ // limitations under the License.
+ //
++// Modified for the zuhtml R package (https://github.com/pedrobtz/zuhtml):
++// see src/vendor/PROVENANCE for the patches applied to this file.
++//
+ // Author: jdtang@google.com (Jonathan Tang)
+ //
+ // Error types, enums, and handling functions.
+--- a/gumbo.h
++++ b/gumbo.h
+@@ -12,6 +12,9 @@
+ // See the License for the specific language governing permissions and
+ // limitations under the License.
+ //
++// Modified for the zuhtml R package (https://github.com/pedrobtz/zuhtml):
++// see src/vendor/PROVENANCE for the patches applied to this file.
++//
+ // Author: jdtang@google.com (Jonathan Tang)
+ //
+ // We use Gumbo as a prefix for types, gumbo_ as a prefix for functions, and
+--- a/parser.c
++++ b/parser.c
+@@ -12,6 +12,9 @@
+ // See the License for the specific language governing permissions and
+ // limitations under the License.
+ //
++// Modified for the zuhtml R package (https://github.com/pedrobtz/zuhtml):
++// see src/vendor/PROVENANCE for the patches applied to this file.
++//
+ // Author: jdtang@google.com (Jonathan Tang)
+ 
+ #include <assert.h>

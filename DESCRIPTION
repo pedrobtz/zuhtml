@@ -1,9 +1,13 @@
 Package: zuhtml
 Title: Parse 'HTML' with a Bundled 'Gumbo' Parser
 Version: 0.0.0.9000
-Authors@R: 
+Authors@R: c(
     person("Pedro", "Baltazar", , "pedrobtz@gmail.com",
-           role = c("aut", "cre", "cph"))
+           role = c("aut", "cre", "cph")),
+    person("Google Inc.", role = "cph",
+           comment = "Gumbo, bundled in src/vendor/gumbo"),
+    person("Bjoern", "Hoehrmann", role = "cph",
+           comment = "UTF-8 decoder in src/vendor/gumbo/utf8.c"))
 Description: Parses real-world 'HTML' with a bundled copy of the 'Gumbo'
     parser (<https://codeberg.org/gumbo-parser/gumbo-parser>), which
     follows the 'WHATWG' parsing algorithm, so that no system library is
@@ -13,6 +17,7 @@ Description: Parses real-world 'HTML' with a bundled copy of the 'Gumbo'
     Parsing is bounded by limits on input size, native memory and nesting
     depth.
 License: MIT + file LICENSE
+Copyright: file inst/COPYRIGHTS
 URL: https://github.com/pedrobtz/zuhtml, https://pedrobtz.github.io/zuhtml/
 BugReports: https://github.com/pedrobtz/zuhtml/issues
 Depends: 
