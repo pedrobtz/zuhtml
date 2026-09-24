@@ -51,6 +51,7 @@ is `html_serialize()`.
 
 Other node values:
 [`html_attr()`](https://pedrobtz.github.io/zuhtml/reference/html_attr.md),
+[`html_markdown()`](https://pedrobtz.github.io/zuhtml/reference/html_markdown.md),
 [`html_name()`](https://pedrobtz.github.io/zuhtml/reference/html_name.md),
 [`html_strings()`](https://pedrobtz.github.io/zuhtml/reference/html_strings.md),
 [`html_text()`](https://pedrobtz.github.io/zuhtml/reference/html_text.md),

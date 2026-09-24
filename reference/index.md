@@ -45,6 +45,8 @@ From a string, raw bytes or a file to a document, under limits.
   : Text content of nodes
 - [`html_strings()`](https://pedrobtz.github.io/zuhtml/reference/html_strings.md)
   : Text pieces of nodes
+- [`html_markdown()`](https://pedrobtz.github.io/zuhtml/reference/html_markdown.md)
+  : Convert HTML to Markdown
 - [`html_attr()`](https://pedrobtz.github.io/zuhtml/reference/html_attr.md)
   [`html_attrs()`](https://pedrobtz.github.io/zuhtml/reference/html_attr.md)
   [`html_classes()`](https://pedrobtz.github.io/zuhtml/reference/html_attr.md)

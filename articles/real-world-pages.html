@@ -195,7 +195,7 @@ the page’s address.</p>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">year</span><span class="op">)</span>, <span class="fl">8</span><span class="op">)</span></span>
 <span><span class="co">#&gt; year</span></span>
 <span><span class="co">#&gt; 2019 2020 2021 2022 2023 2024 2025 2026 </span></span>
-<span><span class="co">#&gt;  611  919 1152 1640 2278 2768 5279 8963</span></span></code></pre></div>
+<span><span class="co">#&gt;  611  919 1152 1640 2278 2768 5278 8964</span></span></code></pre></div>
 <p>Dates stay character, as every cell does: convert them when you know
 they are dates.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
@@ -358,6 +358,49 @@ exactly as written:</p>
 <span><span class="fu"><a href="../reference/html_list.html">html_list</a></span><span class="op">(</span><span class="va">bullets</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "How can R be installed (Unix-like)" "How can R be installed (Windows)"  </span></span>
 <span><span class="co">#&gt; [3] "How can R be installed (Mac)"</span></span></code></pre></div>
+<p>To keep a section’s structure (headings, lists, code and links)
+rather than just its text, <code><a href="../reference/html_markdown.html">html_markdown()</a></code> writes it as
+Markdown. Links are resolved against the page’s address, which
+<code><a href="../reference/html_parse.html">html_read()</a></code> does not know, so the page is parsed again with
+a <code>base_url</code>. The navigation bar and the rule under it are
+left out by selecting the section’s other children:</p>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">faq_url</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">cran</span>, <span class="st">"doc/FAQ/R-FAQ.html"</span><span class="op">)</span></span>
+<span><span class="va">faq</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/html_parse.html">html_read</a></span><span class="op">(</span><span class="fu">fetch</span><span class="op">(</span><span class="va">faq_url</span><span class="op">)</span>, base_url <span class="op">=</span> <span class="va">faq_url</span><span class="op">)</span></span>
+<span><span class="va">sections</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/html_elements.html">html_elements</a></span><span class="op">(</span><span class="va">faq</span>, <span class="st">"div.section-level-extent"</span><span class="op">)</span></span>
+<span><span class="va">s</span> <span class="op">&lt;-</span> <span class="va">sections</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/startsWith.html" class="external-link">startsWith</a></span><span class="op">(</span><span class="fu"><a href="../reference/html_text_clean.html">html_text_clean</a></span><span class="op">(</span><span class="fu"><a href="../reference/html_elements.html">html_element</a></span><span class="op">(</span><span class="va">sections</span>, <span class="st">"h3"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>                         <span class="st">"2.7 "</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="va">parts</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/html_elements.html">html_elements</a></span><span class="op">(</span><span class="va">s</span>, <span class="st">":scope &gt; :not(.nav-panel):not(hr)"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="../reference/html_markdown.html">html_markdown</a></span><span class="op">(</span><span class="va">parts</span><span class="op">)</span>, <span class="fl">7</span><span class="op">)</span>, sep <span class="op">=</span> <span class="st">"\n\n"</span><span class="op">)</span></span></code></pre></div>
+<pre><code><span><span class="co">#&gt; ### 2.7 What documentation exists for R? [¶](https://cran.r-project.org/doc/FAQ/R-FAQ.html#What-documentation-exists-for-R_003f-1)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Online documentation for most of the functions and variables in R exists, and can be printed on-screen by typing `help(name)` (or `?name`) at the R prompt, where name is the name of the topic help is sought for. (In the case of unary and binary operators and control-flow special forms, the name may need to be quoted.)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; This documentation can also be made available as one reference manual for on-line reading in HTML and PDF formats, and as hardcopy via LaTeX, see [How can R be installed?](https://cran.r-project.org/doc/FAQ/R-FAQ.html#How-can-R-be-installed_003f). An up-to-date HTML version is always available for web browsing at [https://stat.ethz.ch/R-manual/](https://stat.ethz.ch/R-manual/).</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; The R distribution also comes with the following manuals.</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; - “An Introduction to R” (`R-intro`) includes information on data types, programming elements, statistical modeling and graphics. This document is based on the “Notes on S-PLUS” by Bill Venables and David Smith.</span></span>
+<span><span class="co">#&gt; - “Writing R Extensions” (`R-exts`) currently describes the process of creating R add-on packages, writing R documentation, R’s system and foreign language interfaces, and the R API.</span></span>
+<span><span class="co">#&gt; - “R Data Import/Export” (`R-data`) is a guide to importing and exporting data to and from R.</span></span>
+<span><span class="co">#&gt; - “The R Language Definition” (`R-lang`), a first version of the “Kernighan &amp; Ritchie of R”, explains evaluation, parsing, object oriented programming, computing on the language, and so forth.</span></span>
+<span><span class="co">#&gt; - “R Installation and Administration” (`R-admin`).</span></span>
+<span><span class="co">#&gt; - “R Internals” (`R-ints`) is a guide to R’s internal structures. (Added in R 2.4.0.)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; An annotated bibliography (BibTeX format) of R-related publications can be found at</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; ```</span></span>
+<span><span class="co">#&gt; https://www.R-project.org/doc/bib/R.bib</span></span>
+<span><span class="co">#&gt; ```</span></span></code></pre>
+<p>The Markdown renders back to the same structure. For example, with
+the commonmark package, which zuhtml does not depend on:</p>
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">back</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/html_parse.html">html_parse</a></span><span class="op">(</span><span class="fu">commonmark</span><span class="fu">::</span><span class="fu">markdown_html</span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu"><a href="../reference/html_markdown.html">html_markdown</a></span><span class="op">(</span><span class="va">parts</span><span class="op">)</span>, collapse <span class="op">=</span> <span class="st">"\n\n"</span><span class="op">)</span></span>
+<span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/html_text_clean.html">html_text_clean</a></span><span class="op">(</span><span class="fu"><a href="../reference/html_elements.html">html_elements</a></span><span class="op">(</span><span class="va">back</span>, <span class="st">"h3"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="../reference/html_elements.html">html_elements</a></span><span class="op">(</span><span class="va">back</span>, <span class="st">"li"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="../reference/html_elements.html">html_elements</a></span><span class="op">(</span><span class="va">back</span>, <span class="st">"pre"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="directory-listings">Directory listings<a class="anchor" aria-label="anchor" href="#directory-listings"></a>
@@ -372,7 +415,7 @@ both are easy to read with the right tool.</p>
 <p>Apache’s fancy index, used by CRAN and by GNU’s mirror, is a table: a
 header row, a row holding only a rule (<code>&lt;hr&gt;</code>), then
 one row per entry, the first being “Parent Directory”.</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">r4_url</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">cran</span>, <span class="st">"src/base/R-4/"</span><span class="op">)</span></span>
 <span><span class="va">r4</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/html_parse.html">html_read</a></span><span class="op">(</span><span class="fu">fetch</span><span class="op">(</span><span class="va">r4_url</span><span class="op">)</span>, base_url <span class="op">=</span> <span class="va">r4_url</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/html_text_clean.html">html_text_clean</a></span><span class="op">(</span><span class="fu"><a href="../reference/html_elements.html">html_element</a></span><span class="op">(</span><span class="va">r4</span>, <span class="st">"title"</span><span class="op">)</span><span class="op">)</span></span>
@@ -390,7 +433,7 @@ empty and adds nothing to the names. The first column holds only an
 icon. Its <code>alt</code> text says what each entry is, which the
 table’s cleaned text cannot see, so read it separately, starting from
 the link in each entry’s second cell:</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">entries</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/html_elements.html">html_elements</a></span><span class="op">(</span><span class="va">r4</span>, <span class="st">"tr td:nth-child(2) a"</span><span class="op">)</span></span>
 <span><span class="va">kind</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/html_attr.html">html_attr</a></span><span class="op">(</span><span class="fu"><a href="../reference/html_elements.html">html_element</a></span><span class="op">(</span><span class="fu"><a href="../reference/html_children.html">html_parent</a></span><span class="op">(</span><span class="fu"><a href="../reference/html_children.html">html_parent</a></span><span class="op">(</span><span class="va">entries</span><span class="op">)</span><span class="op">)</span>, <span class="st">"img"</span><span class="op">)</span>, <span class="st">"alt"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">kind</span><span class="op">)</span></span>
@@ -413,7 +456,7 @@ the link in each entry’s second cell:</p>
 <code>/src/base/</code>, and <code><a href="../reference/html_url.html">html_url()</a></code> resolves it against
 the listing’s address, so walking up a level is one more
 <code><a href="../reference/html_parse.html">html_read()</a></code>:</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">parent_url</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/html_url.html">html_url</a></span><span class="op">(</span><span class="fu"><a href="../reference/html_elements.html">html_element</a></span><span class="op">(</span><span class="va">r4</span>, <span class="st">"a:not([href^='?'])"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">parent_url</span></span>
 <span><span class="co">#&gt; [1] "https://cran.r-project.org/src/base/"</span></span>
@@ -426,7 +469,7 @@ the listing’s address, so walking up a level is one more
 <span><span class="co">#&gt; [1] "Historic/" "R-0/"      "R-1/"      "R-2/"      "R-3/"      "R-4/"</span></span></code></pre></div>
 <p>The sizes (<code>32M</code>) are text. A small helper turns the
 suffixes into bytes:</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">size_bytes</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">x</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/trimws.html" class="external-link">trimws</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span></span>
 <span>  <span class="va">mult</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>K <span class="op">=</span> <span class="fl">2</span><span class="op">^</span><span class="fl">10</span>, M <span class="op">=</span> <span class="fl">2</span><span class="op">^</span><span class="fl">20</span>, G <span class="op">=</span> <span class="fl">2</span><span class="op">^</span><span class="fl">30</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/substr.html" class="external-link">substring</a></span><span class="op">(</span><span class="va">x</span>, <span class="fu"><a href="https://rdrr.io/r/base/nchar.html" class="external-link">nchar</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">)</span><span class="op">]</span></span>
@@ -453,7 +496,7 @@ size, then a newline, for each file.</p>
 each link, and
 <code>html_next_sibling(..., elements_only = FALSE)</code> returns
 exactly that, one per link, aligned:</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">kernel_url</span> <span class="op">&lt;-</span> <span class="st">"https://cdn.kernel.org/pub/linux/kernel/v6.x/"</span></span>
 <span><span class="va">kernel</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/html_parse.html">html_read</a></span><span class="op">(</span><span class="fu">fetch</span><span class="op">(</span><span class="va">kernel_url</span><span class="op">)</span>, base_url <span class="op">=</span> <span class="va">kernel_url</span><span class="op">)</span></span>
 <span><span class="va">links</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/html_elements.html">html_elements</a></span><span class="op">(</span><span class="va">kernel</span>, <span class="st">"pre &gt; a:not([href='../'])"</span><span class="op">)</span></span>
@@ -489,7 +532,7 @@ exactly that, one per link, aligned:</p>
 <span><span class="co">#&gt; 2960 linux-6.19.14.tar.xz 22-Apr-2026 156237824</span></span></code></pre></div>
 <p>The dates are written like <code>03-Oct-2022</code>; month names are
 English whatever the locale, so parse them in the C locale:</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">old</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/locales.html" class="external-link">Sys.getlocale</a></span><span class="op">(</span><span class="st">"LC_TIME"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/invisible.html" class="external-link">invisible</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/locales.html" class="external-link">Sys.setlocale</a></span><span class="op">(</span><span class="st">"LC_TIME"</span>, <span class="st">"C"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">tarballs</span><span class="op">$</span><span class="va">date</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.Date.html" class="external-link">as.Date</a></span><span class="op">(</span><span class="va">tarballs</span><span class="op">$</span><span class="va">date</span>, format <span class="op">=</span> <span class="st">"%d-%b-%Y"</span><span class="op">)</span></span>
@@ -500,7 +543,7 @@ English whatever the locale, so parse them in the C locale:</p>
 but tables are off, as on archive.apache.org. The header links there
 sort the listing (<code>?C=N;O=D</code>), and an attribute selector
 leaves them out:</p>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">httpd_url</span> <span class="op">&lt;-</span> <span class="st">"https://archive.apache.org/dist/httpd/"</span></span>
 <span><span class="va">httpd</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/html_parse.html">html_read</a></span><span class="op">(</span><span class="fu">fetch</span><span class="op">(</span><span class="va">httpd_url</span><span class="op">)</span>, base_url <span class="op">=</span> <span class="va">httpd_url</span><span class="op">)</span></span>
 <span><span class="va">all_links</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/html_elements.html">html_elements</a></span><span class="op">(</span><span class="va">httpd</span>, <span class="st">"pre a"</span><span class="op">)</span></span>
@@ -519,7 +562,7 @@ leaves them out:</p>
 <p>CRAN’s check summary, with one row per package and one column per
 check flavor, is tens of megabytes of HTML: larger than the default
 <code>max_input</code> of 16 MiB.</p>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">summary_page</span> <span class="op">&lt;-</span> <span class="fu">fetch</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">cran</span>, <span class="st">"web/checks/check_summary_by_package.html"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/file.info.html" class="external-link">file.size</a></span><span class="op">(</span><span class="va">summary_page</span><span class="op">)</span> <span class="op">/</span> <span class="fl">2</span><span class="op">^</span><span class="fl">20</span></span>
 <span><span class="co">#&gt; [1] 52.26899</span></span>
@@ -528,7 +571,7 @@ check flavor, is tens of megabytes of HTML: larger than the default
 <span><span class="co">#&gt; [1] "max_input"</span></span></code></pre></div>
 <p>Limits are per call, so a trusted page can simply be given more
 room:</p>
-<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">big</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/html_limits.html">html_limits</a></span><span class="op">(</span>max_input <span class="op">=</span> <span class="fl">128</span> <span class="op">*</span> <span class="fl">2</span><span class="op">^</span><span class="fl">20</span>, max_memory <span class="op">=</span> <span class="fl">4</span> <span class="op">*</span> <span class="fl">2</span><span class="op">^</span><span class="fl">30</span><span class="op">)</span></span>
 <span><span class="va">checks</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/html_parse.html">html_read</a></span><span class="op">(</span><span class="va">summary_page</span>, limits <span class="op">=</span> <span class="va">big</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/html_info.html">html_info</a></span><span class="op">(</span><span class="va">checks</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"nodes"</span>, <span class="st">"native_bytes"</span>, <span class="st">"parse_peak_bytes"</span><span class="op">)</span><span class="op">]</span></span>
@@ -552,7 +595,7 @@ room:</p>
 they are written <code>r-devel&lt;br&gt;Linux&lt;br&gt;...</code>, and
 cleaned text turns <code>&lt;br&gt;</code> into <code>"\n"</code>.
 Replace them if single-line names suit better:</p>
-<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">status</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">gsub</a></span><span class="op">(</span><span class="st">"\n"</span>, <span class="st">" "</span>, <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">status</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">status</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">4</span><span class="op">]</span></span>
 <span><span class="co">#&gt; [1] "Package"                             "Version"                            </span></span>

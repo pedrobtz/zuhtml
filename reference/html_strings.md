@@ -38,6 +38,7 @@ missing node. A text node is its own single piece.
 
 Other node values:
 [`html_attr()`](https://pedrobtz.github.io/zuhtml/reference/html_attr.md),
+[`html_markdown()`](https://pedrobtz.github.io/zuhtml/reference/html_markdown.md),
 [`html_name()`](https://pedrobtz.github.io/zuhtml/reference/html_name.md),
 [`html_serialize()`](https://pedrobtz.github.io/zuhtml/reference/html_serialize.md),
 [`html_text()`](https://pedrobtz.github.io/zuhtml/reference/html_text.md),

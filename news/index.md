@@ -131,6 +131,14 @@ First release.
   leading zeros as text.
 
 - New
+  [`html_markdown()`](https://pedrobtz.github.io/zuhtml/reference/html_markdown.md)
+  converts nodes to CommonMark: headings, paragraphs, emphasis, code,
+  fenced code blocks, block quotes, nested lists, links and images with
+  resolved URLs, and GFM pipe tables for data tables.
+  Markdown-significant characters in text are escaped, and only emphasis
+  that CommonMark parses back is written.
+
+- New
   [`html_serialize()`](https://pedrobtz.github.io/zuhtml/reference/html_serialize.md)
   (and [`as.character()`](https://rdrr.io/r/base/character.html) on
   nodesets) writes nodes as normalized HTML following the WHATWG

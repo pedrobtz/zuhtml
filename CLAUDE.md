@@ -134,12 +134,14 @@ live in `tools/conformance/`. So far `R/attributes.R`, `R/conditions.R`,
 scripts in `tools/` exist.
 
     R/                 parse.R, conditions.R, info.R, node.R, nodeset.R, select.R,
-                       attributes.R, text.R, write.R, list.R, table.R, links.R
+                       attributes.R, text.R, write.R, list.R, table.R, links.R,
+                       metadata.R, markdown.R
     src/               init.c, r_api.c                       R-facing glue only
                        zuh_gumbo.c                            version-specific Gumbo adapter
                        zuh_memory.c                           allocation ledger, abort, limits
                        zuh_document.[ch]                      frozen immutable arena
-                       zuh_selector.c, zuh_text.c, zuh_table.c, zuh_write.c
+                       zuh_selector.c, zuh_text.c, zuh_table.c, zuh_write.c,
+                       zuh_markdown.c
                        Makevars, vendor/gumbo/, vendor/PROVENANCE
     tools/             gate scripts, patches/, conformance/ fixtures (not in the tarball)
     fuzz/              libFuzzer targets over the C core

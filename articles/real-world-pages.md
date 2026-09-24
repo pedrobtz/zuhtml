@@ -148,7 +148,7 @@ year <- substr(recent$Date, 1, 4)
 tail(table(year), 8)
 #> year
 #> 2019 2020 2021 2022 2023 2024 2025 2026 
-#>  611  919 1152 1640 2278 2768 5279 8963
+#>  611  919 1152 1640 2278 2768 5278 8964
 ```
 
 Dates stay character, as every cell does: convert them when you know
@@ -345,6 +345,61 @@ length(bullets)
 html_list(bullets[[1]])
 #> [1] "How can R be installed (Unix-like)" "How can R be installed (Windows)"  
 #> [3] "How can R be installed (Mac)"
+```
+
+To keep a section’s structure (headings, lists, code and links) rather
+than just its text,
+[`html_markdown()`](https://pedrobtz.github.io/zuhtml/reference/html_markdown.md)
+writes it as Markdown. Links are resolved against the page’s address,
+which
+[`html_read()`](https://pedrobtz.github.io/zuhtml/reference/html_parse.md)
+does not know, so the page is parsed again with a `base_url`. The
+navigation bar and the rule under it are left out by selecting the
+section’s other children:
+
+``` r
+
+faq_url <- paste0(cran, "doc/FAQ/R-FAQ.html")
+faq <- html_read(fetch(faq_url), base_url = faq_url)
+sections <- html_elements(faq, "div.section-level-extent")
+s <- sections[startsWith(html_text_clean(html_element(sections, "h3")),
+                         "2.7 ")]
+parts <- html_elements(s, ":scope > :not(.nav-panel):not(hr)")
+cat(head(html_markdown(parts), 7), sep = "\n\n")
+```
+
+    #> ### 2.7 What documentation exists for R? [¶](https://cran.r-project.org/doc/FAQ/R-FAQ.html#What-documentation-exists-for-R_003f-1)
+    #> 
+    #> Online documentation for most of the functions and variables in R exists, and can be printed on-screen by typing `help(name)` (or `?name`) at the R prompt, where name is the name of the topic help is sought for. (In the case of unary and binary operators and control-flow special forms, the name may need to be quoted.)
+    #> 
+    #> This documentation can also be made available as one reference manual for on-line reading in HTML and PDF formats, and as hardcopy via LaTeX, see [How can R be installed?](https://cran.r-project.org/doc/FAQ/R-FAQ.html#How-can-R-be-installed_003f). An up-to-date HTML version is always available for web browsing at [https://stat.ethz.ch/R-manual/](https://stat.ethz.ch/R-manual/).
+    #> 
+    #> The R distribution also comes with the following manuals.
+    #> 
+    #> - “An Introduction to R” (`R-intro`) includes information on data types, programming elements, statistical modeling and graphics. This document is based on the “Notes on S-PLUS” by Bill Venables and David Smith.
+    #> - “Writing R Extensions” (`R-exts`) currently describes the process of creating R add-on packages, writing R documentation, R’s system and foreign language interfaces, and the R API.
+    #> - “R Data Import/Export” (`R-data`) is a guide to importing and exporting data to and from R.
+    #> - “The R Language Definition” (`R-lang`), a first version of the “Kernighan & Ritchie of R”, explains evaluation, parsing, object oriented programming, computing on the language, and so forth.
+    #> - “R Installation and Administration” (`R-admin`).
+    #> - “R Internals” (`R-ints`) is a guide to R’s internal structures. (Added in R 2.4.0.)
+    #> 
+    #> An annotated bibliography (BibTeX format) of R-related publications can be found at
+    #> 
+    #> ```
+    #> https://www.R-project.org/doc/bib/R.bib
+    #> ```
+
+The Markdown renders back to the same structure. For example, with the
+commonmark package, which zuhtml does not depend on:
+
+``` r
+
+back <- html_parse(commonmark::markdown_html(
+  paste(html_markdown(parts), collapse = "\n\n")
+))
+html_text_clean(html_elements(back, "h3"))
+length(html_elements(back, "li"))
+length(html_elements(back, "pre"))
 ```
 
 ## Directory listings

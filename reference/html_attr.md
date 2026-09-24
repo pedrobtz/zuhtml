@@ -53,6 +53,7 @@ once, the first wins, as the HTML parser decides.
 ## See also
 
 Other node values:
+[`html_markdown()`](https://pedrobtz.github.io/zuhtml/reference/html_markdown.md),
 [`html_name()`](https://pedrobtz.github.io/zuhtml/reference/html_name.md),
 [`html_serialize()`](https://pedrobtz.github.io/zuhtml/reference/html_serialize.md),
 [`html_strings()`](https://pedrobtz.github.io/zuhtml/reference/html_strings.md),
