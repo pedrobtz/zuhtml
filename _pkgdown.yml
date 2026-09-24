@@ -22,6 +22,7 @@ reference:
       - html_text_clean
       - html_text
       - html_strings
+      - html_markdown
       - html_attr
       - html_name
       - html_serialize

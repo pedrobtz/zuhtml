@@ -218,6 +218,35 @@ length(bullets)
 html_list(bullets[[1]])
 ```
 
+To keep a section's structure (headings, lists, code and links) rather
+than just its text, `html_markdown()` writes it as Markdown. Links are
+resolved against the page's address, which `html_read()` does not know,
+so the page is parsed again with a `base_url`. The navigation bar and
+the rule under it are left out by selecting the section's other
+children:
+
+```{r}
+faq_url <- paste0(cran, "doc/FAQ/R-FAQ.html")
+faq <- html_read(fetch(faq_url), base_url = faq_url)
+sections <- html_elements(faq, "div.section-level-extent")
+s <- sections[startsWith(html_text_clean(html_element(sections, "h3")),
+                         "2.7 ")]
+parts <- html_elements(s, ":scope > :not(.nav-panel):not(hr)")
+cat(head(html_markdown(parts), 7), sep = "\n\n")
+```
+
+The Markdown renders back to the same structure. For example, with the
+commonmark package, which zuhtml does not depend on:
+
+```{r, eval = requireNamespace("commonmark", quietly = TRUE)}
+back <- html_parse(commonmark::markdown_html(
+  paste(html_markdown(parts), collapse = "\n\n")
+))
+html_text_clean(html_elements(back, "h3"))
+length(html_elements(back, "li"))
+length(html_elements(back, "pre"))
+```
+
 ## Directory listings
 
 Web servers that list a directory's files write the oldest-style pages

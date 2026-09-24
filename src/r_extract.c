@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include "zuh_document.h"
+#include "zuh_markdown.h"
 #include "zuh_r.h"
 #include "zuh_table.h"
 #include "zuh_text.h"
@@ -66,6 +67,67 @@ C_zuh_text_clean(SEXP ptr, SEXP ids, SEXP opts) {
       Rf_error("out of memory extracting text");
     if (b.len > (size_t) INT_MAX)
       Rf_error("text too long for an R string");
+    SET_STRING_ELT(out, i, Rf_mkCharLenCE(b.buf, (int) b.len, CE_UTF8));
+    vmaxset(vmax);
+    if ((i & 0xFFF) == 0xFFF)
+      R_CheckUserInterrupt();
+  }
+  UNPROTECT(1);
+  return out;
+}
+
+/* Aligned: html_markdown() of each node. `url_ids` (ascending) and `urls`
+ * are the resolved link and image URLs, NA where the attribute is to be
+ * used as written. NA for missing nodes and for nodes other than elements,
+ * documents, fragments and text. */
+SEXP
+C_zuh_markdown(SEXP ptr, SEXP ids, SEXP url_ids, SEXP urls) {
+  const zuh_doc *doc = doc_ids(ptr, ids);
+  zuh_md_urls u;
+  zuh_id *uid;
+  const char **ustr;
+  R_xlen_t i, n, nu;
+  SEXP out;
+  if (doc == NULL || TYPEOF(url_ids) != INTSXP || TYPEOF(urls) != STRSXP ||
+      XLENGTH(url_ids) != XLENGTH(urls))
+    return R_NilValue;
+  nu = XLENGTH(url_ids);
+  uid = (zuh_id *) R_alloc((size_t) nu + 1, sizeof(zuh_id));
+  ustr = (const char **) R_alloc((size_t) nu + 1, sizeof(char *));
+  for (i = 0; i < nu; i++) {
+    int id = INTEGER(url_ids)[i];
+    SEXP s = STRING_ELT(urls, i);
+    if (id == NA_INTEGER || id < 0 || (i > 0 && (zuh_id) id <= uid[i - 1]))
+      return R_NilValue;
+    uid[i] = (zuh_id) id;
+    ustr[i] = s == NA_STRING ? NULL : Rf_translateCharUTF8(s);
+  }
+  u.ids = uid;
+  u.urls = ustr;
+  u.n = (size_t) nu;
+  n = XLENGTH(ids);
+  out = PROTECT(Rf_allocVector(STRSXP, n));
+  for (i = 0; i < n; i++) {
+    int id = INTEGER(ids)[i];
+    uint8_t type;
+    const void *vmax;
+    zuh_buf b;
+    if (id == NA_INTEGER) {
+      SET_STRING_ELT(out, i, NA_STRING);
+      continue;
+    }
+    type = doc->nodes[id].type;
+    if (type != ZUH_NODE_ELEMENT && type != ZUH_NODE_DOCUMENT &&
+        type != ZUH_NODE_TEXT) {
+      SET_STRING_ELT(out, i, NA_STRING);
+      continue;
+    }
+    vmax = vmaxget();
+    zuh_buf_init(&b, zuh_r_alloc, NULL);
+    if (zuh_markdown(doc, (zuh_id) id, &u, &b) != ZUH_OK)
+      Rf_error("out of memory writing Markdown");
+    if (b.len > (size_t) INT_MAX)
+      Rf_error("Markdown too long for an R string");
     SET_STRING_ELT(out, i, Rf_mkCharLenCE(b.buf, (int) b.len, CE_UTF8));
     vmaxset(vmax);
     if ((i & 0xFFF) == 0xFFF)

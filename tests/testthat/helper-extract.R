@@ -10,3 +10,6 @@ cells <- function(html, ...) {
   doc <- html_parse(html, base_url = "https://x.test/d/")
   html_table_cells(html_element(doc, "table"), ...)
 }
+
+# The Markdown of a whole document, from HTML.
+md <- function(html, ...) html_markdown(html_parse(html, ...))

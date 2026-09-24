@@ -269,6 +269,27 @@ The round trip is checked against every applicable conformance case: 1,785 of 1,
 
 *(Deferred.)* Source positions are provenance hints of little value in repaired trees: inserted/reconstructed nodes may have no direct source span, and repair can reorder source content. If they return, expose start-tag and end-tag positions separately with `NA` where unavailable, and never a contiguous "original subtree HTML" slice.
 
+`html_markdown(x)` (roadmap Stage 13, `src/zuh_markdown.c`) is one iterative walk like `zuh_text.c`'s, with a stack of frames in a `zuh_buf` from the caller's allocator, never the C stack. Output is lazy:
+- Separators (a space, block breaks, hard breaks) and the openers of inline markup (emphasis, links, heading markers) wait for visible content. An empty element therefore writes nothing, and whitespace never lands inside a delimiter.
+- Line prefixes for quotes and list items come from the frames at each line start.
+- Inline markup open at a block break is closed and reopened.
+
+Emphasis is written only where CommonMark's flanking rules parse it back:
+- An opener before whitespace, or between a letter and punctuation, is left out.
+- Adjacent emphasis of one kind is merged.
+- A closer that could not close, judged by a document-order lookahead, has its opener removed from the buffer instead.
+
+Tables:
+- GFM pipe tables are only for data tables: no spans, and only inline content in cells.
+- Layout tables, which the corpus showed are common, are written as their content, one paragraph per row. This keeps their headings and lists.
+
+URLs:
+- Resolution stays in R. `html_markdown()` resolves every `a[href]` and `img[src]` with `html_url()` and passes node IDs and URLs to C, which falls back to the attribute as written for `NA`.
+
+Skipping:
+- Beyond `html_text_clean()`'s, it also skips `<head>`, `<svg>` (a word boundary), `<iframe>`, `<noembed>` and `<noframes>`.
+- No-break spaces collapse, and empty list items are left out: a bare `-` under text is a setext underline.
+
 ## 8. Lists: `html_list()` and `html_lists()`
 
 ```r

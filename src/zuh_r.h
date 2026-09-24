@@ -38,6 +38,7 @@ SEXP C_zuh_node_serialize(SEXP ptr, SEXP ids, SEXP outer, SEXP pretty);
 SEXP C_zuh_node_strings(SEXP ptr, SEXP ids);
 SEXP C_zuh_select(SEXP ptr, SEXP ids, SEXP css, SEXP mode, SEXP work_limit);
 SEXP C_zuh_text_clean(SEXP ptr, SEXP ids, SEXP opts);
+SEXP C_zuh_markdown(SEXP ptr, SEXP ids, SEXP url_ids, SEXP urls);
 SEXP C_zuh_outermost(SEXP ptr, SEXP ids);
 SEXP C_zuh_table(SEXP ptr, SEXP id, SEXP max_cells);
 

@@ -58,6 +58,7 @@ html_classes(nodes)
 }
 \seealso{
 Other node values:
+\code{\link[=html_markdown]{html_markdown()}},
 \code{\link[=html_name]{html_name()}},
 \code{\link[=html_serialize]{html_serialize()}},
 \code{\link[=html_strings]{html_strings()}},
