@@ -1,0 +1,4 @@
+source	repo	commit	path	include	license	notes
+readability	https://github.com/mozilla/readability	ab4027a8b37669745016869a37a504727992b2ba	test/test-pages	/(source|expected)\.html$	Apache-2.0	Real articles saved from news and blog sites, and the article markup Readability extracts from each
+htmlparser-benchmark	https://github.com/AndreasMadsen/htmlparser-benchmark	463b249bd949a0ae9089328146b0366e87f344ea	files	\.html$	MIT	Front pages of about 250 popular sites, the corpus JavaScript HTML parsers benchmark on
+pandas	https://github.com/pandas-dev/pandas	3f573414b99fe1f32676ed94784217af78c8751b	pandas/tests/io/data/html	\.html$	BSD-3-Clause	The saved pages pandas tests read_html() on: real tables with spans, footnotes and formatting

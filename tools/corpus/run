@@ -1,0 +1,67 @@
+#!/bin/sh
+# Read the external corpus and report every file whose outcome changed.
+#
+#   tools/corpus/run              compare against tools/corpus/expected.tsv
+#   tools/corpus/run --record     rewrite that baseline
+#   tools/corpus/run --canary     compare against a baseline with one row
+#                                 altered; must FAIL, or the diff sees nothing
+#
+# Needs tools/corpus/fetch first. Installs the working tree into a throwaway
+# library, so the result is about this checkout. Never runs under R CMD
+# check: tools/ is excluded from the built package.
+set -eu
+
+ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
+cd "$ROOT"
+
+FILES=tools/corpus/files
+EXPECTED=tools/corpus/expected.tsv
+if [ ! -d "$FILES" ]; then
+  echo "tools/corpus/files is missing; run tools/corpus/fetch first" >&2
+  exit 1
+fi
+
+LIB=$(mktemp -d)
+tmp=$(mktemp)
+trap 'rm -rf "$LIB" "$tmp" "$tmp".*' EXIT
+echo "==> installing zuhtml" >&2
+R CMD INSTALL --no-test-load --library="$LIB" . >/dev/null 2>&1 ||
+  { echo "install failed" >&2; exit 1; }
+echo "==> reading $(find "$FILES" -name '*.html' | wc -l | tr -d ' ') files" >&2
+R_LIBS="$LIB" Rscript tools/corpus/sweep.R "$FILES" > "$tmp"
+
+if [ "${1:-}" = "--record" ]; then
+  cp "$tmp" "$EXPECTED"
+  printf 'wrote %s (%d files)\n' "$EXPECTED" "$(($(wc -l < "$EXPECTED") - 1))"
+  exit 0
+fi
+if [ ! -f "$EXPECTED" ]; then
+  echo "$EXPECTED is missing; run tools/corpus/run --record first" >&2
+  exit 1
+fi
+if [ "${1:-}" = "--canary" ]; then
+  # Alter the text hash of the first page and require the comparison to
+  # notice.
+  awk -F'\t' -v OFS='\t' 'NR == 2 { $8 = $8 "x" } { print }' "$EXPECTED" \
+    > "$tmp.planted"
+  if diff -q "$tmp.planted" "$tmp" >/dev/null; then
+    echo "CANARY FAILED: an altered baseline still matched" >&2
+    exit 1
+  fi
+  echo "canary OK: the altered row was reported"
+  exit 0
+fi
+
+# Every column is compared: a file whose text, tables or tree change is a
+# change to understand, not only one that starts or stops parsing.
+if diff -u "$EXPECTED" "$tmp" > "$tmp.diff"; then
+  n=$(($(wc -l < "$tmp") - 1))
+  ok=$(awk -F'\t' 'NR > 1 && $2 ~ /^ok/' "$tmp" | wc -l | tr -d ' ')
+  rt=$(awk -F'\t' 'NR > 1 && $9 == "TRUE"' "$tmp" | wc -l | tr -d ' ')
+  printf 'ok  %d of %d files parsed, %d round-trip; matches %s\n' \
+    "$ok" "$n" "$rt" "$EXPECTED"
+  exit 0
+fi
+echo "corpus outcomes changed (- recorded, + now):" >&2
+sed -n '3,$p' "$tmp.diff" | grep '^[-+]' >&2
+exit 1

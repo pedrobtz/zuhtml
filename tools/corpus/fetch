@@ -1,0 +1,116 @@
+#!/bin/sh
+# Fetch the external HTML corpus into tools/corpus/files/.
+#
+#   tools/corpus/fetch            download what is missing or stale, verify all
+#   tools/corpus/fetch --check    re-verify tools/corpus/files/ without network
+#   tools/corpus/fetch --pin      rebuild checksums.sha256 from sources.tsv
+#
+# Network is required except for --check. A maintainer and CI script: never
+# run during R CMD check (tools/ is .Rbuildignore'd). The files are not
+# committed; checksums.sha256 is, and it pins every byte a fetch may produce
+# and is also the list of what to fetch.
+#
+# --pin lists each source's files at its pinned commit through the GitHub
+# API, keeps those matching the source's `include` pattern, downloads them
+# and records their sha256. Run it after changing sources.tsv, and review the
+# diff of checksums.sha256.
+set -eu
+
+ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
+cd "$ROOT"
+
+SOURCES=tools/corpus/sources.tsv
+SUMS=tools/corpus/checksums.sha256
+DEST=tools/corpus/files
+
+sha256_of() {
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$1" | cut -d' ' -f1
+  else
+    shasum -a 256 "$1" | cut -d' ' -f1
+  fi
+}
+
+download() { # url dest
+  mkdir -p "$(dirname "$2")"
+  curl -sSL --fail --retry 3 --retry-delay 2 --max-time 120 -o "$2" "$1"
+}
+
+api() { # path under api.github.com
+  curl -sSL --fail --retry 3 \
+    ${GITHUB_TOKEN:+-H "Authorization: Bearer $GITHUB_TOKEN"} \
+    "https://api.github.com/$1"
+}
+
+raw_base() { # repo commit path
+  printf '%s/%s/%s' "$(echo "$1" | sed 's|https://github.com|https://raw.githubusercontent.com|')" "$2" "$3"
+}
+
+mode=${1:-fetch}
+
+if [ "$mode" = "--pin" ]; then
+  tmp=$(mktemp)
+  trap 'rm -f "$tmp"' EXIT
+  tail -n +2 "$SOURCES" |
+  while IFS="$(printf '\t')" read -r name repo commit path include license notes; do
+    slug=$(echo "$repo" | sed 's|https://github.com/||')
+    printf '==> listing %s at %s\n' "$name" "$commit" >&2
+    # List only the source's own subtree: a whole-repository listing is
+    # truncated for large repositories. Walk the tree from the commit's
+    # root, one path component at a time.
+    tree=$commit
+    for part in $(echo "$path" | tr '/' ' '); do
+      tree=$(api "repos/$slug/git/trees/$tree" |
+        Rscript tools/corpus/github.R subtree "$part")
+    done
+    api "repos/$slug/git/trees/$tree?recursive=1" |
+      Rscript tools/corpus/github.R paths "$include" |
+    while read -r rel; do
+      download "$(raw_base "$repo" "$commit" "$path")/$rel" "$DEST/$name/$rel"
+      printf '%s  %s/%s\n' "$(sha256_of "$DEST/$name/$rel")" "$name" "$rel"
+    done
+  done > "$tmp"
+  LC_ALL=C sort -k2 "$tmp" > "$SUMS"
+  printf 'wrote %s (%d files)\n' "$SUMS" "$(wc -l < "$SUMS" | tr -d ' ')"
+  exit 0
+fi
+
+if [ "$mode" != "--check" ]; then
+  tail -n +2 "$SOURCES" |
+  while IFS="$(printf '\t')" read -r name repo commit path include license notes; do
+    printf '==> %s at %s\n' "$name" "$commit"
+    fetched=0
+    kept=0
+    grep "  $name/" "$SUMS" > "$DEST.$name.list" 2>/dev/null || true
+    mkdir -p "$DEST"
+    while read -r want file; do
+      rel=${file#"$name"/}
+      # Skip only a file that is already the right one: a cached file that
+      # upstream rewrote under the same name must be fetched again.
+      if [ -f "$DEST/$file" ] && [ "$(sha256_of "$DEST/$file")" = "$want" ]; then
+        kept=$((kept + 1))
+        continue
+      fi
+      download "$(raw_base "$repo" "$commit" "$path")/$rel" "$DEST/$file" &&
+        fetched=$((fetched + 1)) ||
+        printf '    MISSING %s\n' "$file"
+    done < "$DEST.$name.list"
+    rm -f "$DEST.$name.list"
+    printf '    %s downloaded, %s already present\n' "$fetched" "$kept"
+  done
+fi
+
+printf '==> verifying against %s\n' "$SUMS"
+fail=0
+while read -r want file; do
+  if [ ! -f "$DEST/$file" ] || [ "$(sha256_of "$DEST/$file")" != "$want" ]; then
+    printf 'FAIL %s\n' "$file" >&2
+    fail=$((fail + 1))
+  fi
+done < "$SUMS"
+total=$(wc -l < "$SUMS" | tr -d ' ')
+if [ "$fail" -ne 0 ]; then
+  printf 'FAIL %d of %d files missing or mismatched\n' "$fail" "$total" >&2
+  exit 1
+fi
+printf 'ok  %d files match %s\n' "$total" "$SUMS"
