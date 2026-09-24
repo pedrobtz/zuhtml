@@ -505,6 +505,9 @@ static GumboNode* new_document_node(GumboParser* parser) {
   document->name = NULL;
   document->public_identifier = NULL;
   document->system_identifier = NULL;
+  // A fragment parse never sees a doctype token, but the table start-tag
+  // handler still reads the quirks mode.
+  document->doc_type_quirks_mode = GUMBO_DOCTYPE_NO_QUIRKS;
   return document_node;
 }
 

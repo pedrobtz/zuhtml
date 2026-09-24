@@ -15,6 +15,7 @@ Vendored dependency: Gumbo HTML5 parser (codeberg fork)
                  0003-modification-notices.patch
                  0004-selectedcontent-descendant.patch
                  0005-selectedcontent-end-tag.patch
+                 0006-document-quirks-init.patch
 
 src/vendor/gumbo/ is the files listed in tools/gumbo-files.txt, copied from
 the archive under their basenames, with exactly the patches above applied.

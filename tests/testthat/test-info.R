@@ -5,7 +5,8 @@ test_that("zuhtml_info() reports the pinned Gumbo and its patches", {
   expect_identical(
     info$gumbo_patches,
     c("0001-max-tree-depth", "0002-no-stdio", "0003-modification-notices",
-      "0004-selectedcontent-descendant", "0005-selectedcontent-end-tag")
+      "0004-selectedcontent-descendant", "0005-selectedcontent-end-tag",
+      "0006-document-quirks-init")
   )
   expect_identical(
     info$zuhtml_version,

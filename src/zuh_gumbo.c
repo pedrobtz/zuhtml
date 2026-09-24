@@ -24,7 +24,8 @@ static const char *const zuh_patch_ids[] = {
   "0002-no-stdio",
   "0003-modification-notices",
   "0004-selectedcontent-descendant",
-  "0005-selectedcontent-end-tag"
+  "0005-selectedcontent-end-tag",
+  "0006-document-quirks-init"
 };
 
 const char *

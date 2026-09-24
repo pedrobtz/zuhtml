@@ -44,6 +44,14 @@ test_that("html_fragment() passes named options on to the parser", {
                class = "zuhtml_limit_error")
 })
 
+test_that("a fragment's quirks mode is defined (patch 0006)", {
+  # Gumbo left it uninitialized for fragments; valgrind caught the read.
+  f <- html_fragment("<p>a<table><tr><td>b</table>")
+  expect_identical(html_info(f)$quirks_mode, "no-quirks")
+  # In no-quirks mode <table> closes an open <p>.
+  expect_identical(html_name(html_children(html_root(f))), c("p", "table"))
+})
+
 test_that("fragments print their context", {
   out <- capture.output(print(html_fragment("<td>x", context = "tr")))
   expect_match(out, "fragment: in <tr>", all = FALSE, fixed = TRUE)

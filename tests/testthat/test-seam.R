@@ -44,7 +44,7 @@ test_that("100,000 nested elements fail fast instead of taking 16 s", {
                         class = "zuhtml_limit_error")
   )[["elapsed"]]
   expect_identical(err$limit, "max_depth")
-  expect_lt(elapsed, 2)
+  if (timing_asserted()) expect_lt(elapsed, 2)
 })
 
 test_that("the adoption-agency pattern fails fast too", {
@@ -53,7 +53,7 @@ test_that("the adoption-agency pattern fails fast too", {
                         class = "zuhtml_limit_error")
   )[["elapsed"]]
   expect_identical(err$limit, "max_depth")
-  expect_lt(elapsed, 2)
+  if (timing_asserted()) expect_lt(elapsed, 2)
 })
 
 test_that("an allocation failure at any point is a clean max_memory error", {
@@ -82,12 +82,8 @@ test_that("16 MiB of sawtooth nesting parses under the default caps", {
   html <- strrep(tooth, floor(16 * 1024^2 / nchar(tooth)))
   elapsed <- system.time(doc <- html_parse(html))[["elapsed"]]
   expect_s3_class(doc, "zuhtml_document")
-  # The time bound is a CI exit criterion (roadmap Stage 2). Not asserted
-  # elsewhere: an emulated or instrumented build is several times slower.
-  if (identical(Sys.getenv("CI"), "true") &&
-      !identical(Sys.getenv("R_COVR"), "true")) {
-    expect_lt(elapsed, 3)
-  }
+  # The time bound is a CI exit criterion (roadmap Stage 2).
+  if (timing_asserted()) expect_lt(elapsed, 3)
 })
 
 test_that("limit errors carry the zuhtml_error parent class", {

@@ -47,6 +47,9 @@ jobs:
         --leak-check=full
         --show-leak-kinds=definite,indirect
         --errors-for-leak-kinds=definite,indirect
+      # R's own do_iconv() leaks a buffer when it errors on an unknown
+      # encoding, which a test provokes; the file has the mechanism.
+      suppressions: "tools/valgrind.supp"
 
   gctorture:
     uses: pedrobtz/r-actions/.github/workflows/gctorture.yml@v1

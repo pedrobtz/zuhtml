@@ -5,7 +5,8 @@
   add a parse-time nesting-depth limit, remove the library's only
   `printf()`, and fix two memory-safety bugs in its `<selectedcontent>`
   support that fuzzing found (a use-after-free and a NULL dereference, both
-  reachable from untrusted HTML). No system library is needed.
+  reachable from untrusted HTML) and an uninitialized read in fragment
+  parsing. No system library is needed.
 
 * New `html_parse()` and `html_read()` parse HTML from a string, raw vector
   or local file under explicit resource limits from the new
