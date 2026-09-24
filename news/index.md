@@ -4,8 +4,11 @@
 
 - Bundles the ‘Gumbo’ HTML5 parser 0.14.0 from the maintained fork at
   <https://codeberg.org/gumbo-parser/gumbo-parser>, with local patches
-  that add a parse-time nesting-depth limit and remove the library’s
-  only `printf()`. No system library is needed.
+  that add a parse-time nesting-depth limit, remove the library’s only
+  `printf()`, and fix two memory-safety bugs in its `<selectedcontent>`
+  support that fuzzing found (a use-after-free and a NULL dereference,
+  both reachable from untrusted HTML) and an uninitialized read in
+  fragment parsing. No system library is needed.
 
 - New
   [`html_parse()`](https://pedrobtz.github.io/zuhtml/reference/html_parse.md)
@@ -52,7 +55,11 @@
   [`html_text()`](https://pedrobtz.github.io/zuhtml/reference/html_text.md).
   [`html_info()`](https://pedrobtz.github.io/zuhtml/reference/html_info.md)
   describes a document. [`lapply()`](https://rdrr.io/r/base/lapply.html)
-  and friends over a nodeset pass one node at a time.
+  and friends over a nodeset pass one node at a time;
+  [`rep()`](https://rdrr.io/r/base/rep.html),
+  [`rev()`](https://rdrr.io/r/base/rev.html),
+  [`unique()`](https://rdrr.io/r/base/unique.html) and
+  [`c()`](https://rdrr.io/r/base/c.html) keep nodesets nodesets.
 
 - New extraction functions.
   [`html_text_clean()`](https://pedrobtz.github.io/zuhtml/reference/html_text_clean.md)

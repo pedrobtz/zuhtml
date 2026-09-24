@@ -25,7 +25,7 @@ parse-time nesting limit stops a deeply nested document).
 zuhtml_info()
 #> zuhtml 0.0.0.9000
 #> Gumbo:        0.14.0
-#> Patches:      0001-max-tree-depth, 0002-no-stdio, 0003-modification-notices
+#> Patches:      0001-max-tree-depth, 0002-no-stdio, 0003-modification-notices, 0004-selectedcontent-descendant, 0005-selectedcontent-end-tag, 0006-document-quirks-init
 #> Parser:       ok
 #> Depth limit:  ok
 ```

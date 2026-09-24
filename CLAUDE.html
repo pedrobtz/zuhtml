@@ -44,7 +44,7 @@
 </div>
 <div class="section level2">
 <h2 id="current-state">Current state<a class="anchor" aria-label="anchor" href="#current-state"></a></h2>
-<p>Stages 0 to 7 are done: every 0.1.0 export exists. Gumbo 0.14.0 is vendored with a three-patch series; parsing runs under the allocation ledger with every limit enforced and converts into a frozen, index-addressed document (<code>src/zuh_document.h</code>). On top: the node API, <code><a href="reference/html_serialize.html">html_serialize()</a></code>, CSS selection, and extraction (<code><a href="reference/html_text_clean.html">html_text_clean()</a></code>, <code><a href="reference/html_list.html">html_list()</a></code>, <code><a href="reference/html_table.html">html_table()</a></code>/<code><a href="reference/html_table.html">html_tables()</a></code>, <code><a href="reference/html_links.html">html_links()</a></code>, <code><a href="reference/html_url.html">html_url()</a></code>). Stage 8 (hardening) is next. The probe harness (<a href=".agents/probe-gumbo.c">.agents/probe-gumbo.c</a>) holds the measurements the roadmap cites.</p>
+<p>Stages 0 to 8 are done: every 0.1.0 export exists and the hardening gates are in place. Gumbo 0.14.0 is vendored with a six-patch series; parsing runs under the allocation ledger with every limit enforced and converts into a frozen, index-addressed document (<code>src/zuh_document.h</code>). On top: the node API, <code><a href="reference/html_serialize.html">html_serialize()</a></code>, CSS selection and extraction. Stage 9 (documentation, benchmarks, CRAN preparation) is next. The probe harness (<a href=".agents/probe-gumbo.c">.agents/probe-gumbo.c</a>) holds the measurements the roadmap cites.</p>
 <p>The roadmap’s <strong>Status:</strong> line under each stage is authoritative for progress; update it there, not here.</p>
 </div>
 <div class="section level2">
@@ -80,19 +80,23 @@
 <span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="ex">tools/verify-vendor</span>            <span class="co"># vendor tree == archive + patches   (CI: hardening)</span></span>
 <span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="ex">tools/verify-vendor</span> <span class="at">--canary</span>   <span class="co"># must pass by seeing a dropped patch (CI: hardening)</span></span>
 <span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="ex">tools/run-lint</span>                 <span class="co"># strict warnings; no stdio symbols  (CI: hardening)</span></span>
-<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="ex">tools/run-lint</span> <span class="at">--canary</span>        <span class="co"># symbol check sees 0002 reversed    (CI: hardening)</span></span>
-<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="ex">tools/run-conformance</span>          <span class="co"># html5lib tree-construction fixtures vs the tree</span></span>
-<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>                               <span class="co"># dump, plus a serialize-reparse round trip;</span></span>
-<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>                               <span class="co"># --canary and --canary-serialize must fail</span></span>
-<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>                               <span class="co">#                                    (CI: hardening)</span></span>
-<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a><span class="ex">tools/run-fuzz</span> <span class="pp">[</span><span class="ss">secs</span><span class="pp">]</span>          <span class="co"># libFuzzer targets in fuzz/ (standalone mutation</span></span>
-<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a>                               <span class="co"># loop where libFuzzer is missing, e.g. macOS);</span></span>
-<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a>                               <span class="co"># fuzz_canary must crash first    (CI: hardening)</span></span>
-<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a><span class="ex">tools/run-sanitizers</span>           <span class="co"># ASan+UBSan seam driver, fault injection at every</span></span>
-<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a>                               <span class="co"># allocation index, overflow canary; leak check and</span></span>
-<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a>                               <span class="co"># leak canary with ASAN_OPTIONS=detect_leaks=1</span></span>
-<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a>                               <span class="co">#                                    (CI: hardening)</span></span></code></pre></div>
-<p>The roadmap adds more fuzz targets and <code>run-benchmarks</code> at later stages. Add each here when it lands, and say whether CI runs it.</p>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="ex">tools/run-lint</span> <span class="at">--canary</span>        <span class="co"># flags reject a planted warning; symbol</span></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>                               <span class="co"># check sees 0002 reversed        (CI: hardening)</span></span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="ex">tools/run-conformance</span>          <span class="co"># html5lib tree-construction fixtures vs the tree</span></span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>                               <span class="co"># dump, plus a serialize-reparse round trip;</span></span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>                               <span class="co"># --canary and --canary-serialize must fail</span></span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a>                               <span class="co">#                                    (CI: hardening)</span></span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a><span class="ex">tools/run-fuzz</span> <span class="pp">[</span><span class="ss">secs</span><span class="pp">]</span>          <span class="co"># fuzz_selector, fuzz_parse, fuzz_roundtrip under</span></span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a>                               <span class="co"># ASan+UBSan: libFuzzer, or a standalone mutation</span></span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a>                               <span class="co"># loop where it is missing (macOS); seeds include</span></span>
+<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a>                               <span class="co"># every conformance #data block; fuzz_canary must</span></span>
+<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a>                               <span class="co"># crash first. 60 s per push, 30 min nightly</span></span>
+<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a>                               <span class="co">#                                    (CI: hardening)</span></span>
+<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a><span class="ex">tools/run-sanitizers</span>           <span class="co"># ASan+UBSan seam driver, fault injection at every</span></span>
+<span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a>                               <span class="co"># allocation index, overflow canary; leak check and</span></span>
+<span id="cb2-19"><a href="#cb2-19" tabindex="-1"></a>                               <span class="co"># leak canary with ASAN_OPTIONS=detect_leaks=1</span></span>
+<span id="cb2-20"><a href="#cb2-20" tabindex="-1"></a>                               <span class="co">#                                    (CI: hardening)</span></span></code></pre></div>
+<p>The roadmap adds <code>run-benchmarks</code> at Stage 9. Add each here when it lands, and say whether CI runs it.</p>
 </div>
 <div class="section level2">
 <h2 id="architecture">Architecture<a class="anchor" aria-label="anchor" href="#architecture"></a></h2>
@@ -174,7 +178,9 @@ fuzz/              libFuzzer targets over the C core
 <li>
 <strong>Fault injection from R</strong> goes through the internal <code>zuh_parse_bytes(..., fail_at = k)</code>. The exhaustive run over every index, with leak detection, is <code>tools/run-sanitizers</code>.</li>
 <li>
-<strong>Timing assertions run on CI only</strong> (<code>CI=true</code> and not under covr): the local R may be emulated (x86_64 under Rosetta is about 4× slower).</li>
+<strong>Interrupts are tested with <code><a href="https://rdrr.io/r/base/setTimeLimit.html" class="external-link">setTimeLimit()</a></code></strong>, which R enforces where the C loops poll <code>R_CheckUserInterrupt()</code> (<code>test-interrupt.R</code>). Every R-facing loop over the frozen document polls.</li>
+<li>
+<strong>Timing assertions are opt-in</strong>: wrap them in <code>timing_asserted()</code> (<code>helper-timing.R</code>), true only where <code>ZUHTML_TIMING_TESTS=true</code>, which only <code>R-CMD-check.yaml</code> sets. Sanitizer, valgrind, gctorture, coverage and emulated builds are many times slower; the first native-checks run failed on exactly that.</li>
 <li>
 <strong>Stage pull requests carry the <code>full-ci</code> label</strong>, so the full R CMD check matrix (all three platforms) runs before merge rather than only after.</li>
 <li>
@@ -196,7 +202,7 @@ fuzz/              libFuzzer targets over the C core
 </ul></div>
 <div class="section level2">
 <h2 id="continuous-integration">Continuous integration<a class="anchor" aria-label="anchor" href="#continuous-integration"></a></h2>
-<p>Workflows come from <code>pedrobtz/r-actions</code>, pinned at <code>@v1</code>: <code>r-cmd-check.yml</code> (quick profile on pull requests, full on <code>main</code> or with the <code>full-ci</code> label), <code>coverage.yml</code> (writes the badge under <code>.github/badges/</code>) and <code>pkgdown.yml</code>. <code>hardening.yaml</code> runs the vendor and lint gates with their canaries; later stages add sanitizers, fuzzing and conformance to it.</p>
+<p>Workflows come from <code>pedrobtz/r-actions</code>, pinned at <code>@v1</code>: <code>r-cmd-check.yml</code> (quick profile on pull requests, full on <code>main</code> or with the <code>full-ci</code> label), <code>coverage.yml</code> (writes the badge under <code>.github/badges/</code>) and <code>pkgdown.yml</code>. <code>hardening.yaml</code> runs every gate above with its canary, plus a nightly long fuzz run. <code>native-checks.yaml</code> runs R CMD check instrumented, through r-actions: UBSan and ASan, valgrind with leak checking, gctorture and rchk (hard-failing). The R CMD check matrix adds Windows on R-devel to r-actions’ defaults.</p>
 </div>
 <div class="section level2">
 <h2 id="vendored-native-code">Vendored native code<a class="anchor" aria-label="anchor" href="#vendored-native-code"></a></h2>
@@ -205,7 +211,7 @@ fuzz/              libFuzzer targets over the C core
 <li>Record the tag, the commit and the checksums in <code>src/vendor/PROVENANCE</code>, and keep <code>tools/update-gumbo</code> mechanical: download, verify, extract the file list, apply <code>tools/patches/</code> in order.</li>
 <li>Keep upstream <code>COPYING</code> under <code>src/vendor/gumbo/</code>, declare every copyright holder found in the vendored file headers as <code>cph</code> in <code>Authors@R</code> (Google Inc.; Bjoern Hoehrmann for the UTF-8 decoder in <code>utf8.c</code>), and keep <code>inst/COPYRIGHTS</code> and <code>LICENSE.note</code> current. Do not describe the whole package as MIT. The <code>License:</code>/<code>Copyright:</code> fields follow the CRAN precedent of <code>data.sketches</code> 0.1.1 (MIT package bundling Apache-2.0 code): <code>MIT + file LICENSE</code> and <code>Copyright: file inst/COPYRIGHTS</code>.</li>
 <li>Only the 12 parser translation units, their headers and <code>doc/COPYING</code> are vendored (<code>tools/gumbo-files.txt</code>): no Python bindings, tests, benchmarks, examples, <code>visualc/</code>, Meson or autotools.</li>
-<li>The patch series is <code>tools/patches/0001-max-tree-depth.patch</code>, <code>0002-no-stdio.patch</code> and <code>0003-modification-notices.patch</code>. 0003 is licence-mandated (Apache-2.0 §4(b)), local only, and stays last: extend it whenever an earlier patch touches a new file. <code>tools/verify-vendor</code> fails on a modified file without the notice. The patch identifiers are also listed in <code>src/zuh_gumbo.c</code> and reported by <code><a href="reference/zuhtml_info.html">zuhtml_info()</a></code>.</li>
+<li>The patch series is <code>tools/patches/0001-max-tree-depth.patch</code>, <code>0002-no-stdio.patch</code>, <code>0003-modification-notices.patch</code>, <code>0004-selectedcontent-descendant.patch</code>, <code>0005-selectedcontent-end-tag.patch</code> and <code>0006-document-quirks-init.patch</code>. 0003 is licence-mandated (Apache-2.0 §4(b)) and local only; it must mark every file the series touches, so extend it when a new patch touches a new file. <code>tools/verify-vendor</code> fails on a modified file without the notice. 0004 and 0005 fix upstream memory-safety bugs the fuzzer found, and 0006 an uninitialized read valgrind found (issue #22). Every patch identifier is also listed in <code>src/zuh_gumbo.c</code>, reported by <code><a href="reference/zuhtml_info.html">zuhtml_info()</a></code> and asserted in <code>test-info.R</code>: update all three together.</li>
 </ul></div>
 <div class="section level2">
 <h2 id="commits-and-pull-requests">Commits and pull requests<a class="anchor" aria-label="anchor" href="#commits-and-pull-requests"></a></h2>
