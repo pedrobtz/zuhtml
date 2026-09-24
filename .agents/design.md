@@ -202,7 +202,16 @@ Support type and universal selectors; `#id`; `.class`; attribute presence and `=
 
 Specify CSS whitespace, identifier escapes, string escapes, and attribute `i`/`s` flags in parser tests. HTML tag names are ASCII-insensitive; class and ID values remain case-sensitive. Attribute values follow the implemented HTML/CSS case rules, with explicit flags taking precedence. Structural pseudo-classes count element siblings, not text/comments. For `:empty`, use the established Selectors Level 3 behavior: an element with any nonempty text child, including whitespace, is not empty; comments do not matter. Operate in standards-mode selector semantics even for quirks-mode documents and document these compatibility choices.
 
-Reject unsupported syntax with `zuhtml_selector_error`, including `:has()`, pseudo-elements, XPath, Parsel's `::text`/`::attr`, and namespace prefixes in 0.1. No silent partial matching. Unprefixed type selectors initially target HTML-namespace elements; expose namespace-aware tag search separately before advertising SVG/MathML CSS coverage. `html_name()` and `html_namespace()` still permit inspection of foreign content.
+Reject unsupported syntax with `zuhtml_selector_error`, including `:has()`, pseudo-elements, XPath, Parsel's `::text`/`::attr`, and namespace prefixes in 0.1. No silent partial matching. Unprefixed type selectors match HTML elements ASCII-case-insensitively and SVG/MathML elements by exact local name, as browsers do in HTML documents (`foreignObject` matches, `foreignobject` does not). This extends the original "HTML-namespace only" plan: it is the standard behaviour, and refusing to match `svg` would surprise more than it protects. There is still no namespace syntax. `html_name()` and `html_namespace()` still permit inspection of foreign content.
+
+As built (`src/zuh_selector.c`, `src/r_select.c`):
+- **Syntax.** CSS comments are rejected. An attribute name written with an escaped colon (`[xlink\:href]`) names the namespaced attribute, as `html_attr()` does.
+- **Error fields.** A `zuhtml_selector_error` carries `selector`, a 1-based character `position`, a `reason` and `unsupported` (valid CSS outside the subset, as opposed to malformed).
+- **Complexity bounds.** A complex selector may have at most 128 compounds and `:not()` may nest 32 deep; beyond either, the selector fails to compile.
+- **`:scope`** is the context element. In a document search it is the `<html>` element; in a fragment search it is nothing. `:root` is the element whose parent is the document node, never in a fragment.
+- **Matching** is right to left with the restart statuses of Servo's `selectors` crate, so descendant and sibling combinators do not backtrack exponentially. A work counter (10⁹ compound tests per call) raises `zuhtml_limit_error` with `limit = "selector_work"`, and the R-facing loop polls for interrupts.
+- **Length limit.** The selection functions take no `limits` argument in 0.1.0, so `max_selector_length` is `html_limits()`'s default there.
+- **Ownership.** The compiled selector is owned by an external pointer created before compiling, so an interrupt cannot leak it. Sibling-position caches come from `R_alloc`.
 
 Implement a small selector parser producing a native query plan and match right-to-left. Compile once per call; there is no per-document cache. Bound selector length, combinator count, nesting, and matching work; the R-facing loop polls `R_CheckUserInterrupt()` over the frozen document. Gumbo does not provide this engine. Do not claim full CSS Selectors Level 4 support.
 

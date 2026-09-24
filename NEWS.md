@@ -30,6 +30,16 @@
   `html_attrs()`, `html_classes()` and `html_text()`. `html_info()`
   describes a document.
 
+* New `html_elements()`, `html_element()`, `html_matches()` and
+  `html_filter()` select elements with a documented subset of CSS
+  selectors: type, universal, ID, class and attribute selectors (with the
+  `i` and `s` flags), the four combinators, selector lists, `:scope`,
+  `:root`, `:empty`, `:first-child`, `:last-child`, `:only-child`,
+  `:nth-child()`, `:nth-of-type()` and `:not()`. Anything else is a
+  `zuhtml_selector_error` pointing at the offending position.
+  `html_element()` keeps one result per input node, so extracted columns
+  stay aligned.
+
 * New `html_serialize()` (and `as.character()` on nodesets) writes nodes
   as normalized HTML following the WHATWG serialization algorithm, outer
   or inner.

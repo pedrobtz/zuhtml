@@ -1,0 +1,93 @@
+#!/bin/sh
+# Fuzz the C core under ASan and UBSan. Run from the package root.
+#
+#   tools/run-fuzz [seconds-per-target]      default 60
+#
+# Uses libFuzzer where the compiler has it (clang on Linux). Apple clang
+# ships no libFuzzer runtime, so there the targets are linked with
+# fuzz/standalone.c, a small mutation loop with the same entry point.
+#
+# fuzz/fuzz_canary.c runs first and must crash: a green run then means a
+# crash would have been seen. Findings land in fuzz/artifacts/ (libFuzzer).
+# The grown corpus goes to $ZUH_FUZZ_CORPUS/<target> if set (CI caches it),
+# else to a temporary directory; the seeds in fuzz/corpus/ are never
+# modified. The exit status is the fuzzer's: nonzero on any finding.
+set -eu
+SECS=${1:-60}
+CC=${CC:-clang}
+WORK=$(mktemp -d)
+trap 'rm -rf "$WORK"' EXIT
+
+GUMBO="src/vendor/gumbo/attribute.c src/vendor/gumbo/char_ref.c
+  src/vendor/gumbo/char_ref_gperf.c src/vendor/gumbo/error.c
+  src/vendor/gumbo/parser.c src/vendor/gumbo/string_buffer.c
+  src/vendor/gumbo/string_piece.c src/vendor/gumbo/tag.c
+  src/vendor/gumbo/tokenizer.c src/vendor/gumbo/utf8.c
+  src/vendor/gumbo/util.c src/vendor/gumbo/vector.c"
+CORE="src/zuh_gumbo.c src/zuh_memory.c src/zuh_document.c src/zuh_write.c
+  src/zuh_selector.c"
+TARGETS="fuzz_selector"
+
+printf 'int LLVMFuzzerTestOneInput(const unsigned char *d, unsigned long n)\n{ (void) d; (void) n; return 0; }\n' > "$WORK/probe.c"
+if "$CC" -fsanitize=fuzzer "$WORK/probe.c" -o "$WORK/probe" 2>/dev/null; then
+  MODE=libfuzzer
+  SAN="-fsanitize=fuzzer,address,undefined"
+  EXTRA=""
+else
+  MODE=standalone
+  SAN="-fsanitize=address,undefined"
+  EXTRA="fuzz/standalone.c"
+fi
+echo "==> $MODE mode"
+
+build() {
+  # shellcheck disable=SC2086
+  "$CC" -std=c99 -g -O1 -DNDEBUG $SAN -fno-sanitize-recover=undefined \
+    -fno-omit-frame-pointer -I src -I src/vendor/gumbo -w \
+    -o "$WORK/$1" "fuzz/$1.c" $EXTRA $CORE $GUMBO
+}
+
+run() {
+  target=$1
+  secs=$2
+  if [ "$MODE" = libfuzzer ]; then
+    corpus="${ZUH_FUZZ_CORPUS:-$WORK/corpus}/$target"
+    mkdir -p "$corpus" fuzz/artifacts
+    "$WORK/$target" -max_total_time="$secs" -max_len=4096 -timeout=10 \
+      -artifact_prefix=fuzz/artifacts/ "$corpus" "fuzz/corpus/$target"
+  else
+    "$WORK/$target" "$secs" fuzz/corpus/"$target"/*
+  fi
+}
+
+echo "==> canary: a target that must crash"
+build fuzz_canary
+mkdir -p "$WORK/canary-seed"
+printf 'x' > "$WORK/canary-seed/seed"
+mkdir -p fuzz/corpus/fuzz_canary 2>/dev/null || true
+if [ "$MODE" = libfuzzer ]; then
+  if "$WORK/fuzz_canary" -runs=10 -artifact_prefix="$WORK/" \
+    "$WORK/canary-seed" > "$WORK/canary.log" 2>&1; then
+    echo "CANARY FAILED: the fuzzer did not report a crash" >&2
+    exit 2
+  fi
+else
+  if "$WORK/fuzz_canary" 1 "$WORK/canary-seed/seed" > "$WORK/canary.log" 2>&1; then
+    echo "CANARY FAILED: the fuzzer did not report a crash" >&2
+    exit 2
+  fi
+fi
+grep -q "heap-buffer-overflow" "$WORK/canary.log" || {
+  cat "$WORK/canary.log" >&2
+  echo "CANARY FAILED: the target failed, but not with the planted crash" >&2
+  exit 2
+}
+rmdir fuzz/corpus/fuzz_canary 2>/dev/null || true
+echo "    reported"
+
+for t in $TARGETS; do
+  echo "==> $t for ${SECS}s"
+  build "$t"
+  run "$t" "$SECS"
+done
+echo "==> fuzzing found nothing"
