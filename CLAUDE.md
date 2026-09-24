@@ -25,11 +25,12 @@ scripts and CRAN comments. zuhtml does not depend on it or share code with it.
 
 ## Current state
 
-Verified 2026-09-24. **Nothing is implemented.** The repository is the
-`usethis` skeleton plus the design, the roadmap and a probe harness
-([.agents/probe-gumbo.c](.agents/probe-gumbo.c)) whose measurements the roadmap
-cites. There is no `src/`, no vendored Gumbo, no exported function, and the one
-test is the template's. Stage 0 of the roadmap has not started.
+Stage 0 is done: the design carries the seven amendments, `DESCRIPTION` is
+real, and `src/init.c` registers one smoke entry point (`C_zuh_loaded`) with
+dynamic lookup off and symbols forced. There is no vendored Gumbo and no
+exported function yet. The probe harness
+([.agents/probe-gumbo.c](.agents/probe-gumbo.c)) holds the measurements the
+roadmap cites.
 
 The roadmap's **Status:** line under each stage is authoritative for progress;
 update it there, not here.
@@ -40,7 +41,7 @@ Progress toward the next version is tracked as GitHub sub-issues, so the
 parent issue shows a progress bar such as "6 of 7".
 
 - **One parent issue per target version**, titled with the bare version, for
-  example `v0.1.0`. Not yet created; opening it is a Stage 0 task.
+  example `v0.1.0` (#2). Stages 0 to 10 are sub-issues #3 to #13.
 - **One sub-issue per roadmap stage**, titled as the roadmap titles it, for
   example `Stage 2 — Ledger, abort and limits (the safety seam)`, linking to
   that section's anchor. The roadmap has eleven stages, 0 to 10.
@@ -170,6 +171,8 @@ tables, serialization) reads the arena and never touches Gumbo. Only
 - **Never test through Python.** Beautiful Soup and pandas are exploratory
   comparators only; nothing under `tests/` may need them.
 - **Helpers live in `tests/testthat/helper-*.R`.** None yet.
+- **Stage pull requests carry the `full-ci` label**, so the full R CMD check
+  matrix (all three platforms) runs before merge rather than only after.
 - **Keep the suite inside the CRAN time budget.** No runtime to report yet.
 
 ## Definition of done
