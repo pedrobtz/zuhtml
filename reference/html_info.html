@@ -70,6 +70,10 @@ that owns it.</p></dd>
 <li><p><code>parse_peak_bytes</code>: the most memory the parser held at once;</p></li>
 <li><p><code>input_bytes</code>: size of the decoded UTF-8 input;</p></li>
 <li><p><code>encoding</code>: the encoding the input was decoded from;</p></li>
+<li><p><code>encoding_source</code>: where that encoding came from: <code>"bom"</code> (a
+byte-order mark), <code>"argument"</code> (the <code>encoding</code> argument), <code>"meta"</code>
+(a <code>&lt;meta&gt;</code> declaration), <code>"default"</code> (none of these, so UTF-8), or
+<code>"string"</code> for character input, which is already decoded;</p></li>
 <li><p><code>base_url</code>: the <code>base_url</code> given to <code><a href="html_parse.html">html_parse()</a></code>, or <code>NA</code>;</p></li>
 <li><p><code>quirks_mode</code>: <code>"no-quirks"</code>, <code>"quirks"</code> or <code>"limited-quirks"</code>, as
 the doctype selected;</p></li>
@@ -98,6 +102,7 @@ the doctype selected;</p></li>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   parse_peak_bytes   2,307</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   input_bytes        39</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   encoding           UTF-8</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   encoding_source    string</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   base_url           NA</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   quirks_mode        no-quirks</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   problems           0</span>

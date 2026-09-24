@@ -16,7 +16,7 @@ library(zuhtml)
 ```
 
 zuhtml never downloads anything. Each page is fetched once into a
-temporary file, and
+temporary file, with a few retries for a busy server, and
 [`html_read()`](https://pedrobtz.github.io/zuhtml/reference/html_parse.md)
 parses the file:
 
@@ -24,7 +24,14 @@ parses the file:
 
 fetch <- function(url) {
   path <- tempfile(fileext = ".html")
-  utils::download.file(url, path, quiet = TRUE, mode = "wb")
+  for (attempt in 1:4) {
+    ok <- tryCatch({
+      utils::download.file(url, path, quiet = TRUE, mode = "wb")
+      TRUE
+    }, error = function(e) if (attempt == 4) stop(e) else FALSE)
+    if (ok) break
+    Sys.sleep(5 * attempt)
+  }
   path
 }
 cran <- "https://cran.r-project.org/"
@@ -148,7 +155,7 @@ year <- substr(recent$Date, 1, 4)
 tail(table(year), 8)
 #> year
 #> 2019 2020 2021 2022 2023 2024 2025 2026 
-#>  611  919 1152 1640 2278 2768 5278 8964
+#>  611  919 1152 1640 2278 2768 5275 8967
 ```
 
 Dates stay character, as every cell does: convert them when you know
@@ -590,7 +597,7 @@ flavor, is tens of megabytes of HTML: larger than the default
 
 summary_page <- fetch(paste0(cran, "web/checks/check_summary_by_package.html"))
 file.size(summary_page) / 2^20
-#> [1] 52.26899
+#> [1] 52.27206
 err <- tryCatch(html_read(summary_page), zuhtml_limit_error = function(e) e)
 err$limit
 #> [1] "max_input"
@@ -604,16 +611,16 @@ big <- html_limits(max_input = 128 * 2^20, max_memory = 4 * 2^30)
 checks <- html_read(summary_page, limits = big)
 html_info(checks)[c("nodes", "native_bytes", "parse_peak_bytes")]
 #> $nodes
-#> [1] 2574918
+#> [1] 2575290
 #> 
 #> $native_bytes
-#> [1] 166262103
+#> [1] 166280204
 #> 
 #> $parse_peak_bytes
-#> [1] 621933184
+#> [1] 622005333
 status <- html_tables(checks, limits = big)[[1]]
 dim(status)
-#> [1] 25725    17
+#> [1] 25731    17
 names(status)[1:4]
 #> [1] "Package"                               
 #> [2] "Version"                               
@@ -634,5 +641,5 @@ names(status)[1:4]
 table(status[[3]])[1:5]
 #> 
 #>       ERROR  NOTE NOTE*    OK 
-#>   642    64  5615    12 19345
+#>   648    64  5615    12 19345
 ```

@@ -33,6 +33,11 @@ An object of class `zuhtml_doc_info`: a list with
 
 - `encoding`: the encoding the input was decoded from;
 
+- `encoding_source`: where that encoding came from: `"bom"` (a
+  byte-order mark), `"argument"` (the `encoding` argument), `"meta"` (a
+  `<meta>` declaration), `"default"` (none of these, so UTF-8), or
+  `"string"` for character input, which is already decoded;
+
 - `base_url`: the `base_url` given to
   [`html_parse()`](https://pedrobtz.github.io/zuhtml/reference/html_parse.md),
   or `NA`;
@@ -65,6 +70,7 @@ html_info(html_parse("<!DOCTYPE html><title>t</title><p>Hello"))
 #>   parse_peak_bytes   2,307
 #>   input_bytes        39
 #>   encoding           UTF-8
+#>   encoding_source    string
 #>   base_url           NA
 #>   quirks_mode        no-quirks
 #>   problems           0

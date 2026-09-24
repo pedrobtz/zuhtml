@@ -62,8 +62,8 @@ doc <- html_parse("<p>Small page</p>", limits = strict)
 ## Encodings
 
 A string is already text: it is used as UTF-8. Raw bytes are decoded, in
-order of preference, with the `encoding` you give, a byte-order mark, or
-UTF-8:
+order of preference, with a byte-order mark, the `encoding` you give,
+the page’s own `<meta>` declaration, or UTF-8:
 
 ``` r
 
@@ -80,9 +80,30 @@ try(html_parse(bytes))
 #> Error in html_parse(bytes) : The input is not valid UTF-8.
 ```
 
-zuhtml does not guess encodings from `<meta charset>`. When you fetch a
-page, pass the charset from the HTTP `Content-Type` header as
-`encoding`.
+The declaration is found as a browser finds it, by scanning the first
+1024 bytes for `<meta charset>` or its `http-equiv` form. Labels mean
+what they mean to browsers, so `iso-8859-1` is read as windows-1252,
+which makes byte 0x93 a curly quote rather than a control character:
+
+``` r
+
+page <- c(charToRaw("<meta charset=iso-8859-1><p>"), as.raw(0x93),
+          charToRaw("Quoted"), as.raw(0x94))
+doc <- html_parse(page)
+html_text_clean(doc)
+#> [1] "“Quoted”"
+html_info(doc)[c("encoding", "encoding_source")]
+#> $encoding
+#> [1] "windows-1252"
+#> 
+#> $encoding_source
+#> [1] "meta"
+```
+
+When you fetch a page, pass the charset from the HTTP `Content-Type`
+header as `encoding`: it takes precedence over the page’s declaration,
+as it does in a browser. A byte-order mark takes precedence over both;
+one that contradicts `encoding` is an error.
 
 ## Errors are classed
 

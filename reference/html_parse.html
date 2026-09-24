@@ -79,7 +79,7 @@ rejected. <code>html_read()</code> reads and parses one local file.</p>
 
 <dt id="arg-encoding">encoding<a class="anchor" aria-label="anchor" href="#arg-encoding"></a></dt>
 <dd><p>The encoding of raw input, as a name <code><a href="https://rdrr.io/r/base/iconv.html" class="external-link">iconv()</a></code> accepts;
-<code>NULL</code> to use a byte-order mark or UTF-8.</p></dd>
+<code>NULL</code> to use a byte-order mark, the page's declaration, or UTF-8.</p></dd>
 
 
 <dt id="arg-base-url">base_url<a class="anchor" aria-label="anchor" href="#arg-base-url"></a></dt>
@@ -119,12 +119,25 @@ as a file name or URL, and <code>html_read()</code> never downloads.</p>
 <p>A character string is taken as text: it is converted to UTF-8 with
 <code><a href="https://rdrr.io/r/base/Encoding.html" class="external-link">enc2utf8()</a></code>, and <code>encoding</code> must be <code>NULL</code> or <code>"UTF-8"</code>. A string marked
 as <code>"bytes"</code> is rejected; pass a raw vector instead.</p>
-<p>A raw vector is decoded with, in order of precedence, <code>encoding</code>, a
-byte-order mark (UTF-8, UTF-16LE or UTF-16BE), or UTF-8. A byte-order mark
-that contradicts <code>encoding</code> is an error, and so is any byte sequence that
-is invalid in the chosen encoding: nothing is replaced silently.
-<code>&lt;meta charset&gt;</code> declarations are not consulted. A fetcher that knows the
-HTTP charset should pass it as <code>encoding</code>.</p>
+<p>A raw vector is decoded with, in order of precedence, a byte-order mark
+(UTF-8, UTF-16LE or UTF-16BE), <code>encoding</code>, a declaration in the page, or
+UTF-8. A byte-order mark that contradicts <code>encoding</code> is an error, and so
+is any byte sequence that is invalid in the chosen encoding: nothing is
+replaced silently. A fetcher that knows the HTTP charset should pass it
+as <code>encoding</code>.</p>
+<p>The declaration is found as browsers find it, by the HTML standard's
+prescan of the first 1024 bytes for <code>&lt;meta charset="..."&gt;</code> or
+<code>&lt;meta http-equiv="Content-Type" content="...; charset=..."&gt;</code>. The
+prescan skips comments and the insides of tags, but not the text of
+scripts. Labels are those of the Encoding Standard, which maps several
+to a superset: <code>"iso-8859-1"</code>, <code>"latin1"</code> and <code>"us-ascii"</code> mean
+windows-1252, <code>"gb2312"</code> means GBK, and a UTF-16 label means UTF-8 (the
+bytes read as ASCII, so they are not UTF-16). An unknown label is
+ignored. <code><a href="html_info.html">html_info()</a></code> reports the encoding used and its source.</p>
+<p>A file saved in another encoding without updating its declaration, as
+some tools do when they convert pages to UTF-8, decodes wrongly or fails
+to decode, as it would in a browser. Pass its real encoding as
+<code>encoding</code>.</p>
 <p>A leading byte-order mark is removed. Input containing a NUL character
 after decoding is rejected.</p>
     </div>

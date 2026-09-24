@@ -126,8 +126,9 @@ how much:</p>
 <h2 id="encodings">Encodings<a class="anchor" aria-label="anchor" href="#encodings"></a>
 </h2>
 <p>A string is already text: it is used as UTF-8. Raw bytes are decoded,
-in order of preference, with the <code>encoding</code> you give, a
-byte-order mark, or UTF-8:</p>
+in order of preference, with a byte-order mark, the
+<code>encoding</code> you give, the page’s own <code>&lt;meta&gt;</code>
+declaration, or UTF-8:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">bytes</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/raw.html" class="external-link">as.raw</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0x3c</span>, <span class="fl">0x70</span>, <span class="fl">0x3e</span>, <span class="fl">0x63</span>, <span class="fl">0x61</span>, <span class="fl">0x66</span>, <span class="fl">0xe9</span><span class="op">)</span><span class="op">)</span>  <span class="co"># "&lt;p&gt;caf\xe9"</span></span>
 <span><span class="fu"><a href="../reference/html_text_clean.html">html_text_clean</a></span><span class="op">(</span><span class="fu"><a href="../reference/html_parse.html">html_parse</a></span><span class="op">(</span><span class="va">bytes</span>, encoding <span class="op">=</span> <span class="st">"latin1"</span><span class="op">)</span><span class="op">)</span></span>
@@ -136,16 +137,34 @@ byte-order mark, or UTF-8:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/try.html" class="external-link">try</a></span><span class="op">(</span><span class="fu"><a href="../reference/html_parse.html">html_parse</a></span><span class="op">(</span><span class="va">bytes</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Error in html_parse(bytes) : The input is not valid UTF-8.</span></span></code></pre></div>
-<p>zuhtml does not guess encodings from
-<code>&lt;meta charset&gt;</code>. When you fetch a page, pass the
-charset from the HTTP <code>Content-Type</code> header as
-<code>encoding</code>.</p>
+<p>The declaration is found as a browser finds it, by scanning the first
+1024 bytes for <code>&lt;meta charset&gt;</code> or its
+<code>http-equiv</code> form. Labels mean what they mean to browsers, so
+<code>iso-8859-1</code> is read as windows-1252, which makes byte 0x93 a
+curly quote rather than a control character:</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">page</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rawConversion.html" class="external-link">charToRaw</a></span><span class="op">(</span><span class="st">"&lt;meta charset=iso-8859-1&gt;&lt;p&gt;"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/raw.html" class="external-link">as.raw</a></span><span class="op">(</span><span class="fl">0x93</span><span class="op">)</span>,</span>
+<span>          <span class="fu"><a href="https://rdrr.io/r/base/rawConversion.html" class="external-link">charToRaw</a></span><span class="op">(</span><span class="st">"Quoted"</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/raw.html" class="external-link">as.raw</a></span><span class="op">(</span><span class="fl">0x94</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">doc</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/html_parse.html">html_parse</a></span><span class="op">(</span><span class="va">page</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/html_text_clean.html">html_text_clean</a></span><span class="op">(</span><span class="va">doc</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "“Quoted”"</span></span>
+<span><span class="fu"><a href="../reference/html_info.html">html_info</a></span><span class="op">(</span><span class="va">doc</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"encoding"</span>, <span class="st">"encoding_source"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt; $encoding</span></span>
+<span><span class="co">#&gt; [1] "windows-1252"</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $encoding_source</span></span>
+<span><span class="co">#&gt; [1] "meta"</span></span></code></pre></div>
+<p>When you fetch a page, pass the charset from the HTTP
+<code>Content-Type</code> header as <code>encoding</code>: it takes
+precedence over the page’s declaration, as it does in a browser. A
+byte-order mark takes precedence over both; one that contradicts
+<code>encoding</code> is an error.</p>
 </div>
 <div class="section level2">
 <h2 id="errors-are-classed">Errors are classed<a class="anchor" aria-label="anchor" href="#errors-are-classed"></a>
 </h2>
 <p>Handle errors by class, never by message text:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="../reference/html_elements.html">html_elements</a></span><span class="op">(</span><span class="fu"><a href="../reference/html_parse.html">html_parse</a></span><span class="op">(</span><span class="st">"&lt;p&gt;"</span><span class="op">)</span>, <span class="st">"p:hover"</span><span class="op">)</span>,</span>
 <span>  zuhtml_selector_error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="st">"unsupported at"</span>, <span class="va">e</span><span class="op">$</span><span class="va">position</span><span class="op">)</span></span>

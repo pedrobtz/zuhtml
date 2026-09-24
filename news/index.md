@@ -21,9 +21,9 @@ First release.
   [`html_limits()`](https://pedrobtz.github.io/zuhtml/reference/html_limits.md).
   Nesting depth is bounded while parsing, and all parser memory goes
   through an allocation ledger with a budget, so a failed parse always
-  releases everything. Raw input is decoded from an explicit encoding, a
-  byte-order mark or UTF-8; invalid input is an error, never silently
-  replaced.
+  releases everything. Raw input is decoded from a byte-order mark, an
+  explicit encoding, the page’s `<meta>` declaration or UTF-8; invalid
+  input is an error, never silently replaced.
 
 - Parsed documents are converted into a compact immutable tree that
   holds no reference to the parser or the input. All 1,686 applicable
@@ -137,6 +137,12 @@ First release.
   resolved URLs, and GFM pipe tables for data tables.
   Markdown-significant characters in text are escaped, and only emphasis
   that CommonMark parses back is written.
+
+- The `<meta>` declaration of raw input is found as browsers find it, by
+  the HTML standard’s prescan of the first 1024 bytes, and read with the
+  Encoding Standard’s labels (so `iso-8859-1` means windows-1252).
+  [`html_info()`](https://pedrobtz.github.io/zuhtml/reference/html_info.md)
+  reports where the encoding came from in `encoding_source`.
 
 - New
   [`html_serialize()`](https://pedrobtz.github.io/zuhtml/reference/html_serialize.md)

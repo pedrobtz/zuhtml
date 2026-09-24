@@ -29,7 +29,7 @@ html_read(path, ...)
 
   The encoding of raw input, as a name
   [`iconv()`](https://rdrr.io/r/base/iconv.html) accepts; `NULL` to use
-  a byte-order mark or UTF-8.
+  a byte-order mark, the page's declaration, or UTF-8.
 
 - base_url:
 
@@ -68,12 +68,29 @@ A character string is taken as text: it is converted to UTF-8 with
 must be `NULL` or `"UTF-8"`. A string marked as `"bytes"` is rejected;
 pass a raw vector instead.
 
-A raw vector is decoded with, in order of precedence, `encoding`, a
-byte-order mark (UTF-8, UTF-16LE or UTF-16BE), or UTF-8. A byte-order
-mark that contradicts `encoding` is an error, and so is any byte
-sequence that is invalid in the chosen encoding: nothing is replaced
-silently. `<meta charset>` declarations are not consulted. A fetcher
-that knows the HTTP charset should pass it as `encoding`.
+A raw vector is decoded with, in order of precedence, a byte-order mark
+(UTF-8, UTF-16LE or UTF-16BE), `encoding`, a declaration in the page, or
+UTF-8. A byte-order mark that contradicts `encoding` is an error, and so
+is any byte sequence that is invalid in the chosen encoding: nothing is
+replaced silently. A fetcher that knows the HTTP charset should pass it
+as `encoding`.
+
+The declaration is found as browsers find it, by the HTML standard's
+prescan of the first 1024 bytes for `<meta charset="...">` or
+`<meta http-equiv="Content-Type" content="...; charset=...">`. The
+prescan skips comments and the insides of tags, but not the text of
+scripts. Labels are those of the Encoding Standard, which maps several
+to a superset: `"iso-8859-1"`, `"latin1"` and `"us-ascii"` mean
+windows-1252, `"gb2312"` means GBK, and a UTF-16 label means UTF-8 (the
+bytes read as ASCII, so they are not UTF-16). An unknown label is
+ignored.
+[`html_info()`](https://pedrobtz.github.io/zuhtml/reference/html_info.md)
+reports the encoding used and its source.
+
+A file saved in another encoding without updating its declaration, as
+some tools do when they convert pages to UTF-8, decodes wrongly or fails
+to decode, as it would in a browser. Pass its real encoding as
+`encoding`.
 
 A leading byte-order mark is removed. Input containing a NUL character
 after decoding is rejected.

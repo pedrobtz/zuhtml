@@ -83,11 +83,19 @@ built.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/pedrobtz/zuhtml" class="external-link">zuhtml</a></span><span class="op">)</span></span></code></pre></div>
 <p>zuhtml never downloads anything. Each page is fetched once into a
-temporary file, and <code><a href="../reference/html_parse.html">html_read()</a></code> parses the file:</p>
+temporary file, with a few retries for a busy server, and
+<code><a href="../reference/html_parse.html">html_read()</a></code> parses the file:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fetch</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">url</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="va">path</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".html"</span><span class="op">)</span></span>
-<span>  <span class="fu">utils</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/utils/download.file.html" class="external-link">download.file</a></span><span class="op">(</span><span class="va">url</span>, <span class="va">path</span>, quiet <span class="op">=</span> <span class="cn">TRUE</span>, mode <span class="op">=</span> <span class="st">"wb"</span><span class="op">)</span></span>
+<span>  <span class="kw">for</span> <span class="op">(</span><span class="va">attempt</span> <span class="kw">in</span> <span class="fl">1</span><span class="op">:</span><span class="fl">4</span><span class="op">)</span> <span class="op">{</span></span>
+<span>    <span class="va">ok</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="op">{</span></span>
+<span>      <span class="fu">utils</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/utils/download.file.html" class="external-link">download.file</a></span><span class="op">(</span><span class="va">url</span>, <span class="va">path</span>, quiet <span class="op">=</span> <span class="cn">TRUE</span>, mode <span class="op">=</span> <span class="st">"wb"</span><span class="op">)</span></span>
+<span>      <span class="cn">TRUE</span></span>
+<span>    <span class="op">}</span>, error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="kw">if</span> <span class="op">(</span><span class="va">attempt</span> <span class="op">==</span> <span class="fl">4</span><span class="op">)</span> <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="kw">else</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span>    <span class="kw">if</span> <span class="op">(</span><span class="va">ok</span><span class="op">)</span> <span class="kw">break</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/Sys.sleep.html" class="external-link">Sys.sleep</a></span><span class="op">(</span><span class="fl">5</span> <span class="op">*</span> <span class="va">attempt</span><span class="op">)</span></span>
+<span>  <span class="op">}</span></span>
 <span>  <span class="va">path</span></span>
 <span><span class="op">}</span></span>
 <span><span class="va">cran</span> <span class="op">&lt;-</span> <span class="st">"https://cran.r-project.org/"</span></span></code></pre></div>
@@ -195,7 +203,7 @@ the page’s address.</p>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">year</span><span class="op">)</span>, <span class="fl">8</span><span class="op">)</span></span>
 <span><span class="co">#&gt; year</span></span>
 <span><span class="co">#&gt; 2019 2020 2021 2022 2023 2024 2025 2026 </span></span>
-<span><span class="co">#&gt;  611  919 1152 1640 2278 2768 5278 8964</span></span></code></pre></div>
+<span><span class="co">#&gt;  611  919 1152 1640 2278 2768 5275 8967</span></span></code></pre></div>
 <p>Dates stay character, as every cell does: convert them when you know
 they are dates.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
@@ -565,7 +573,7 @@ check flavor, is tens of megabytes of HTML: larger than the default
 <div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">summary_page</span> <span class="op">&lt;-</span> <span class="fu">fetch</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">cran</span>, <span class="st">"web/checks/check_summary_by_package.html"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/file.info.html" class="external-link">file.size</a></span><span class="op">(</span><span class="va">summary_page</span><span class="op">)</span> <span class="op">/</span> <span class="fl">2</span><span class="op">^</span><span class="fl">20</span></span>
-<span><span class="co">#&gt; [1] 52.26899</span></span>
+<span><span class="co">#&gt; [1] 52.27206</span></span>
 <span><span class="va">err</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="fu"><a href="../reference/html_parse.html">html_read</a></span><span class="op">(</span><span class="va">summary_page</span><span class="op">)</span>, zuhtml_limit_error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="va">e</span><span class="op">)</span></span>
 <span><span class="va">err</span><span class="op">$</span><span class="va">limit</span></span>
 <span><span class="co">#&gt; [1] "max_input"</span></span></code></pre></div>
@@ -576,16 +584,16 @@ room:</p>
 <span><span class="va">checks</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/html_parse.html">html_read</a></span><span class="op">(</span><span class="va">summary_page</span>, limits <span class="op">=</span> <span class="va">big</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/html_info.html">html_info</a></span><span class="op">(</span><span class="va">checks</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"nodes"</span>, <span class="st">"native_bytes"</span>, <span class="st">"parse_peak_bytes"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt; $nodes</span></span>
-<span><span class="co">#&gt; [1] 2574918</span></span>
+<span><span class="co">#&gt; [1] 2575290</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $native_bytes</span></span>
-<span><span class="co">#&gt; [1] 166262103</span></span>
+<span><span class="co">#&gt; [1] 166280204</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $parse_peak_bytes</span></span>
-<span><span class="co">#&gt; [1] 621933184</span></span>
+<span><span class="co">#&gt; [1] 622005333</span></span>
 <span><span class="va">status</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/html_table.html">html_tables</a></span><span class="op">(</span><span class="va">checks</span>, limits <span class="op">=</span> <span class="va">big</span><span class="op">)</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">status</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 25725    17</span></span>
+<span><span class="co">#&gt; [1] 25731    17</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">status</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">4</span><span class="op">]</span></span>
 <span><span class="co">#&gt; [1] "Package"                               </span></span>
 <span><span class="co">#&gt; [2] "Version"                               </span></span>
@@ -603,7 +611,7 @@ Replace them if single-line names suit better:</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">status</span><span class="op">[[</span><span class="fl">3</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;       ERROR  NOTE NOTE*    OK </span></span>
-<span><span class="co">#&gt;   642    64  5615    12 19345</span></span></code></pre></div>
+<span><span class="co">#&gt;   648    64  5615    12 19345</span></span></code></pre></div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
