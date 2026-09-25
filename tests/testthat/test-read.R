@@ -32,6 +32,8 @@ test_that("a URL is recognised by scheme and becomes the base URL", {
 })
 
 test_that("a path that only contains :// is a path", {
+  # Windows forbids ":" in a directory name.
+  skip_on_os("windows")
   dir <- withr::local_tempdir()
   dir.create(file.path(dir, "http:"))
   path <- file.path(dir, "http:", "x.html")
