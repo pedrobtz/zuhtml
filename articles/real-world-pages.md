@@ -53,10 +53,10 @@ html_info(by_name)[c("nodes", "input_bytes", "native_bytes")]
 #> [1] 226948
 #> 
 #> $input_bytes
-#> [1] 4166270
+#> [1] 4166278
 #> 
 #> $native_bytes
-#> [1] 13572258
+#> [1] 13572266
 
 packages <- html_tables(by_name)[[1]]
 dim(packages)
@@ -155,7 +155,7 @@ year <- substr(recent$Date, 1, 4)
 tail(table(year), 8)
 #> year
 #> 2019 2020 2021 2022 2023 2024 2025 2026 
-#>  611  919 1152 1639 2276 2768 5266 8982
+#>  611  919 1152 1639 2275 2768 5265 8984
 ```
 
 Dates stay character, as every cell does: convert them when you know
@@ -525,7 +525,7 @@ kernel_url <- "https://cdn.kernel.org/pub/linux/kernel/v6.x/"
 kernel <- html_read(fetch(kernel_url), base_url = kernel_url)
 links <- html_elements(kernel, "pre > a:not([href='../'])")
 length(links)
-#> [1] 3703
+#> [1] 3708
 
 after <- html_text(html_next_sibling(links, elements_only = FALSE))
 fields <- strsplit(trimws(after), "[[:space:]]+")
@@ -548,12 +548,12 @@ releases <- data.frame(
 )
 tarballs <- releases[grepl("^linux-6\\.[0-9.]+\\.tar\\.xz$", releases$name), ]
 nrow(tarballs)
-#> [1] 740
+#> [1] 741
 tail(tarballs[, c("name", "date", "size")], 3)
 #>                      name        date      size
-#> 2954 linux-6.19.12.tar.xz 11-Apr-2026 156237824
-#> 2957 linux-6.19.13.tar.xz 18-Apr-2026 156237824
-#> 2960 linux-6.19.14.tar.xz 22-Apr-2026 156237824
+#> 2958 linux-6.19.12.tar.xz 11-Apr-2026 156237824
+#> 2961 linux-6.19.13.tar.xz 18-Apr-2026 156237824
+#> 2964 linux-6.19.14.tar.xz 22-Apr-2026 156237824
 ```
 
 The dates are written like `03-Oct-2022`; month names are English
@@ -566,7 +566,7 @@ invisible(Sys.setlocale("LC_TIME", "C"))
 tarballs$date <- as.Date(tarballs$date, format = "%d-%b-%Y")
 invisible(Sys.setlocale("LC_TIME", old))
 range(tarballs$date)
-#> [1] "2022-10-03" "2026-09-21"
+#> [1] "2022-10-03" "2026-09-25"
 ```
 
 Apache writes the same preformatted layout when fancy indexing is on but
@@ -597,7 +597,7 @@ flavor, is tens of megabytes of HTML: larger than the default
 
 summary_page <- fetch(paste0(cran, "web/checks/check_summary_by_package.html"))
 file.size(summary_page) / 2^20
-#> [1] 52.28663
+#> [1] 52.30574
 err <- tryCatch(html_read(summary_page), zuhtml_limit_error = function(e) e)
 err$limit
 #> [1] "max_input"
@@ -611,16 +611,16 @@ big <- html_limits(max_input = 128 * 2^20, max_memory = 4 * 2^30)
 checks <- html_read(summary_page, limits = big)
 html_info(checks)[c("nodes", "native_bytes", "parse_peak_bytes")]
 #> $nodes
-#> [1] 2576112
+#> [1] 2577559
 #> 
 #> $native_bytes
-#> [1] 166330856
+#> [1] 166410406
 #> 
 #> $parse_peak_bytes
-#> [1] 622197249
+#> [1] 622504155
 status <- html_tables(checks, limits = big)[[1]]
 dim(status)
-#> [1] 25740    17
+#> [1] 25760    17
 names(status)[1:4]
 #> [1] "Package"                               
 #> [2] "Version"                               
@@ -640,6 +640,6 @@ names(status)[1:4]
 #> [3] "r-devel Linux x86_64 (Debian Clang)" "r-devel Linux x86_64 (Debian GCC)"
 table(status[[3]])[1:5]
 #> 
-#>       ERROR  NOTE NOTE*    OK 
-#>   657    64  5615    12 19345
+#>       ERROR  FAIL  NOTE NOTE* 
+#>   619    66     1  5603    12
 ```

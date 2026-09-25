@@ -114,10 +114,10 @@ per package, about 25,000 rows and several megabytes of HTML.</p>
 <span><span class="co">#&gt; [1] 226948</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $input_bytes</span></span>
-<span><span class="co">#&gt; [1] 4166270</span></span>
+<span><span class="co">#&gt; [1] 4166278</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $native_bytes</span></span>
-<span><span class="co">#&gt; [1] 13572258</span></span>
+<span><span class="co">#&gt; [1] 13572266</span></span>
 <span></span>
 <span><span class="va">packages</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/html_table.html">html_tables</a></span><span class="op">(</span><span class="va">by_name</span><span class="op">)</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">packages</span><span class="op">)</span></span>
@@ -203,7 +203,7 @@ the page’s address.</p>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">year</span><span class="op">)</span>, <span class="fl">8</span><span class="op">)</span></span>
 <span><span class="co">#&gt; year</span></span>
 <span><span class="co">#&gt; 2019 2020 2021 2022 2023 2024 2025 2026 </span></span>
-<span><span class="co">#&gt;  611  919 1152 1639 2276 2768 5266 8982</span></span></code></pre></div>
+<span><span class="co">#&gt;  611  919 1152 1639 2275 2768 5265 8984</span></span></code></pre></div>
 <p>Dates stay character, as every cell does: convert them when you know
 they are dates.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
@@ -509,7 +509,7 @@ exactly that, one per link, aligned:</p>
 <span><span class="va">kernel</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/html_parse.html">html_read</a></span><span class="op">(</span><span class="fu">fetch</span><span class="op">(</span><span class="va">kernel_url</span><span class="op">)</span>, base_url <span class="op">=</span> <span class="va">kernel_url</span><span class="op">)</span></span>
 <span><span class="va">links</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/html_elements.html">html_elements</a></span><span class="op">(</span><span class="va">kernel</span>, <span class="st">"pre &gt; a:not([href='../'])"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">links</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 3703</span></span>
+<span><span class="co">#&gt; [1] 3708</span></span>
 <span></span>
 <span><span class="va">after</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/html_text.html">html_text</a></span><span class="op">(</span><span class="fu"><a href="../reference/html_children.html">html_next_sibling</a></span><span class="op">(</span><span class="va">links</span>, elements_only <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">fields</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/strsplit.html" class="external-link">strsplit</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/trimws.html" class="external-link">trimws</a></span><span class="op">(</span><span class="va">after</span><span class="op">)</span>, <span class="st">"[[:space:]]+"</span><span class="op">)</span></span>
@@ -532,12 +532,12 @@ exactly that, one per link, aligned:</p>
 <span><span class="op">)</span></span>
 <span><span class="va">tarballs</span> <span class="op">&lt;-</span> <span class="va">releases</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"^linux-6\\.[0-9.]+\\.tar\\.xz$"</span>, <span class="va">releases</span><span class="op">$</span><span class="va">name</span><span class="op">)</span>, <span class="op">]</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">tarballs</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 740</span></span>
+<span><span class="co">#&gt; [1] 741</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="va">tarballs</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"name"</span>, <span class="st">"date"</span>, <span class="st">"size"</span><span class="op">)</span><span class="op">]</span>, <span class="fl">3</span><span class="op">)</span></span>
 <span><span class="co">#&gt;                      name        date      size</span></span>
-<span><span class="co">#&gt; 2954 linux-6.19.12.tar.xz 11-Apr-2026 156237824</span></span>
-<span><span class="co">#&gt; 2957 linux-6.19.13.tar.xz 18-Apr-2026 156237824</span></span>
-<span><span class="co">#&gt; 2960 linux-6.19.14.tar.xz 22-Apr-2026 156237824</span></span></code></pre></div>
+<span><span class="co">#&gt; 2958 linux-6.19.12.tar.xz 11-Apr-2026 156237824</span></span>
+<span><span class="co">#&gt; 2961 linux-6.19.13.tar.xz 18-Apr-2026 156237824</span></span>
+<span><span class="co">#&gt; 2964 linux-6.19.14.tar.xz 22-Apr-2026 156237824</span></span></code></pre></div>
 <p>The dates are written like <code>03-Oct-2022</code>; month names are
 English whatever the locale, so parse them in the C locale:</p>
 <div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
@@ -546,7 +546,7 @@ English whatever the locale, so parse them in the C locale:</p>
 <span><span class="va">tarballs</span><span class="op">$</span><span class="va">date</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.Date.html" class="external-link">as.Date</a></span><span class="op">(</span><span class="va">tarballs</span><span class="op">$</span><span class="va">date</span>, format <span class="op">=</span> <span class="st">"%d-%b-%Y"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/invisible.html" class="external-link">invisible</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/locales.html" class="external-link">Sys.setlocale</a></span><span class="op">(</span><span class="st">"LC_TIME"</span>, <span class="va">old</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/range.html" class="external-link">range</a></span><span class="op">(</span><span class="va">tarballs</span><span class="op">$</span><span class="va">date</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "2022-10-03" "2026-09-21"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "2022-10-03" "2026-09-25"</span></span></code></pre></div>
 <p>Apache writes the same preformatted layout when fancy indexing is on
 but tables are off, as on archive.apache.org. The header links there
 sort the listing (<code>?C=N;O=D</code>), and an attribute selector
@@ -573,7 +573,7 @@ check flavor, is tens of megabytes of HTML: larger than the default
 <div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">summary_page</span> <span class="op">&lt;-</span> <span class="fu">fetch</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">cran</span>, <span class="st">"web/checks/check_summary_by_package.html"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/file.info.html" class="external-link">file.size</a></span><span class="op">(</span><span class="va">summary_page</span><span class="op">)</span> <span class="op">/</span> <span class="fl">2</span><span class="op">^</span><span class="fl">20</span></span>
-<span><span class="co">#&gt; [1] 52.28663</span></span>
+<span><span class="co">#&gt; [1] 52.30574</span></span>
 <span><span class="va">err</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="fu"><a href="../reference/html_parse.html">html_read</a></span><span class="op">(</span><span class="va">summary_page</span><span class="op">)</span>, zuhtml_limit_error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="va">e</span><span class="op">)</span></span>
 <span><span class="va">err</span><span class="op">$</span><span class="va">limit</span></span>
 <span><span class="co">#&gt; [1] "max_input"</span></span></code></pre></div>
@@ -584,16 +584,16 @@ room:</p>
 <span><span class="va">checks</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/html_parse.html">html_read</a></span><span class="op">(</span><span class="va">summary_page</span>, limits <span class="op">=</span> <span class="va">big</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/html_info.html">html_info</a></span><span class="op">(</span><span class="va">checks</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"nodes"</span>, <span class="st">"native_bytes"</span>, <span class="st">"parse_peak_bytes"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt; $nodes</span></span>
-<span><span class="co">#&gt; [1] 2576112</span></span>
+<span><span class="co">#&gt; [1] 2577559</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $native_bytes</span></span>
-<span><span class="co">#&gt; [1] 166330856</span></span>
+<span><span class="co">#&gt; [1] 166410406</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $parse_peak_bytes</span></span>
-<span><span class="co">#&gt; [1] 622197249</span></span>
+<span><span class="co">#&gt; [1] 622504155</span></span>
 <span><span class="va">status</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/html_table.html">html_tables</a></span><span class="op">(</span><span class="va">checks</span>, limits <span class="op">=</span> <span class="va">big</span><span class="op">)</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">status</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 25740    17</span></span>
+<span><span class="co">#&gt; [1] 25760    17</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">status</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">4</span><span class="op">]</span></span>
 <span><span class="co">#&gt; [1] "Package"                               </span></span>
 <span><span class="co">#&gt; [2] "Version"                               </span></span>
@@ -610,8 +610,8 @@ Replace them if single-line names suit better:</p>
 <span><span class="co">#&gt; [3] "r-devel Linux x86_64 (Debian Clang)" "r-devel Linux x86_64 (Debian GCC)"</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">status</span><span class="op">[[</span><span class="fl">3</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;       ERROR  NOTE NOTE*    OK </span></span>
-<span><span class="co">#&gt;   657    64  5615    12 19345</span></span></code></pre></div>
+<span><span class="co">#&gt;       ERROR  FAIL  NOTE NOTE* </span></span>
+<span><span class="co">#&gt;   619    66     1  5603    12</span></span></code></pre></div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
