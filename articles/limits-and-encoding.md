@@ -127,9 +127,13 @@ See `?zuhtml-conditions` for the classes and their fields.
   treat
   [`html_serialize()`](https://pedrobtz.github.io/zuhtml/reference/html_serialize.md)
   output as safe to embed in another page.
-- It does not fetch pages or resolve anything over the network:
+- It has no HTTP client.
+  [`html_read()`](https://pedrobtz.github.io/zuhtml/reference/html_parse.md)
+  reads a URL with base R’s
+  [`url()`](https://rdrr.io/r/base/connections.html), without headers,
+  cookies or retries;
   [`html_url()`](https://pedrobtz.github.io/zuhtml/reference/html_url.md)
-  is string arithmetic.
+  is string arithmetic and fetches nothing.
 - It does not run JavaScript, compute CSS or layout, or know what is
   visible.
   [`html_text_clean()`](https://pedrobtz.github.io/zuhtml/reference/html_text_clean.md)

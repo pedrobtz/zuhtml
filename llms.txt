@@ -17,8 +17,12 @@ parser, so it needs no system library, and it has no hard dependencies.
 - Every call runs under explicit limits on input size, native memory and
   nesting depth, and every error is a classed condition.
 
-zuhtml does not fetch pages, run JavaScript or sanitize HTML: a fetcher
-hands it a string.
+[`html_read()`](https://pedrobtz.github.io/zuhtml/reference/html_parse.md)
+reads a file, a URL or any R connection. zuhtml has no HTTP client of
+its own: a URL goes through base R’s
+[`url()`](https://rdrr.io/r/base/connections.html), and a fetcher that
+needs headers or authentication hands it the body. zuhtml does not run
+JavaScript or sanitize HTML.
 
 ## Installation
 
@@ -63,6 +67,28 @@ data.frame(
 [`html_element()`](https://pedrobtz.github.io/zuhtml/reference/html_elements.md)
 returns one result per card, with a missing value where a card has no
 price, so the columns stay aligned.
+
+[`html_read()`](https://pedrobtz.github.io/zuhtml/reference/html_parse.md)
+reads a file, a connection or a URL. A URL becomes the document’s base
+URL, so relative links resolve against the page:
+
+``` r
+
+doc <- html_read("https://cran.r-project.org/web/views/")
+html_title(doc)
+#> [1] "CRAN Task Views"
+
+rows <- html_elements(doc, "table tr")
+views <- data.frame(
+  topic = html_text_clean(html_element(rows, "td:nth-child(2)")),
+  url   = html_url(html_element(rows, "a"))
+)
+head(views, 3)
+#>                  topic                                                        url
+#> 1    Actuarial Science https://cran.r-project.org/web/views/ActuarialScience.html
+#> 2 Agricultural Science      https://cran.r-project.org/web/views/Agriculture.html
+#> 3    Anomaly Detection https://cran.r-project.org/web/views/AnomalyDetection.html
+```
 
 The [getting started
 guide](https://pedrobtz.github.io/zuhtml/articles/zuhtml.html) walks

@@ -3,7 +3,7 @@
 `html_parse()` parses one string or raw vector of HTML the way a browser
 does: omitted end tags, unquoted attributes, character references and
 misnested elements are repaired by the HTML parsing algorithm, never
-rejected. `html_read()` reads and parses one local file.
+rejected. `html_read()` reads and parses one file, URL or connection.
 
 ## Usage
 
@@ -46,7 +46,8 @@ html_read(path, ...)
 
 - path:
 
-  Path of one local file.
+  One file path, URL or connection; see "Reading files, URLs and
+  connections".
 
 - ...:
 
@@ -58,8 +59,39 @@ A `zuhtml_document`.
 
 ## Details
 
-Neither function fetches anything. `html_parse()` never treats a string
-as a file name or URL, and `html_read()` never downloads.
+`html_parse()` never treats a string as a file name or URL.
+
+## Reading files, URLs and connections
+
+`html_read()` reads its input as raw bytes, then decodes and parses them
+as `html_parse()` does:
+
+- a string with an `http`, `https`, `ftp`, `ftps` or `file` scheme (in
+  any case) is read with
+  [`url()`](https://rdrr.io/r/base/connections.html), and becomes the
+  document's `base_url` unless `base_url` is given. A redirect is not
+  seen, so after one the base URL is the address asked for. HTTP headers
+  are not read either: the encoding comes from a byte-order mark,
+  `encoding` or the page's `<meta>`. For anything more (headers,
+  authentication, retries), fetch with an HTTP client and pass the body
+  to `html_parse()`;
+
+- any other string is a file path;
+
+- a connection, such as
+  [`gzfile()`](https://rdrr.io/r/base/connections.html) or
+  [`rawConnection()`](https://rdrr.io/r/base/rawConnection.html), is
+  read as [`readBin()`](https://rdrr.io/r/base/readBin.html) reads one:
+  an unopened connection is opened in `"rb"` mode and closed afterwards;
+  an open one must be in binary mode, is read from its current position,
+  and is left open. A non-blocking pipe or socket that has no data yet
+  is an error rather than a short read.
+
+Reading stops with a `zuhtml_limit_error` as soon as the input passes
+four times `max_input` bytes, before a larger file is read at all. A
+file that does not exist, an unreachable URL, and a connection that
+cannot be read are `zuhtml_input_error`s. The input is always read whole
+before parsing, because decoding needs all of it.
 
 ## Encoding
 
@@ -138,4 +170,20 @@ html_read(path)
 #> nodes:    8
 #> input:    33 bytes (UTF-8)
 #> problems: 1
+
+# From a compressed file, through a connection:
+gz <- tempfile(fileext = ".html.gz")
+writeLines("<p>Compressed", gzfile(gz))
+html_read(gzfile(gz))
+#> <zuhtml_document>
+#> root:     <html> with <head>, <body>
+#> nodes:    6
+#> input:    14 bytes (UTF-8)
+#> problems: 1
+
+# From a URL, when online; relative links resolve against it:
+if (interactive()) {
+  doc <- html_read("https://cran.r-project.org/web/packages/")
+  head(html_links(doc, absolute = TRUE))
+}
 ```

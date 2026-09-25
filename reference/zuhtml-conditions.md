@@ -8,8 +8,9 @@ the message text, which may change.
 ## Details
 
 - `zuhtml_input_error`: an argument is invalid, for example `x` is not a
-  single string or raw vector, a file does not exist, or a limit is not
-  a whole number in range. Field `arg` names the argument.
+  single string or raw vector, a file does not exist, a URL or
+  connection cannot be opened or read, or a limit is not a whole number
+  in range. Field `arg` names the argument.
 
 - `zuhtml_encoding_error`: raw input cannot be decoded: an unknown
   encoding, a byte sequence invalid in the declared encoding, or a

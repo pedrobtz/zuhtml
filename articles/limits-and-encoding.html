@@ -183,8 +183,9 @@ fields.</p>
 <code>javascript:</code> URLs. Do not treat
 <code><a href="../reference/html_serialize.html">html_serialize()</a></code> output as safe to embed in another
 page.</li>
-<li>It does not fetch pages or resolve anything over the network:
-<code><a href="../reference/html_url.html">html_url()</a></code> is string arithmetic.</li>
+<li>It has no HTTP client. <code><a href="../reference/html_parse.html">html_read()</a></code> reads a URL with
+base R’s <code><a href="https://rdrr.io/r/base/connections.html" class="external-link">url()</a></code>, without headers, cookies or retries;
+<code><a href="../reference/html_url.html">html_url()</a></code> is string arithmetic and fetches nothing.</li>
 <li>It does not run JavaScript, compute CSS or layout, or know what is
 visible. <code><a href="../reference/html_text_clean.html">html_text_clean()</a></code> follows fixed, documented
 rules.</li>

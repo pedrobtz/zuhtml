@@ -70,7 +70,7 @@
 <li>Extract text, attributes, links, lists and tables. Tables handle row and column spans and keep every column as character, so <code>"0012"</code> stays <code>"0012"</code>.</li>
 <li>Every call runs under explicit limits on input size, native memory and nesting depth, and every error is a classed condition.</li>
 </ul>
-<p>zuhtml does not fetch pages, run JavaScript or sanitize HTML: a fetcher hands it a string.</p>
+<p><code><a href="reference/html_parse.html">html_read()</a></code> reads a file, a URL or any R connection. zuhtml has no HTTP client of its own: a URL goes through base R’s <code><a href="https://rdrr.io/r/base/connections.html" class="external-link">url()</a></code>, and a fetcher that needs headers or authentication hands it the body. zuhtml does not run JavaScript or sanitize HTML.</p>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
@@ -105,6 +105,22 @@
 <span><span class="co">#&gt; 1    Sencha  3.50    https://example.org/shop/sencha.html</span></span>
 <span><span class="co">#&gt; 2 Genmaicha  &lt;NA&gt; https://example.org/shop/genmaicha.html</span></span></code></pre></div>
 <p><code><a href="reference/html_elements.html">html_element()</a></code> returns one result per card, with a missing value where a card has no price, so the columns stay aligned.</p>
+<p><code><a href="reference/html_parse.html">html_read()</a></code> reads a file, a connection or a URL. A URL becomes the document’s base URL, so relative links resolve against the page:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">doc</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/html_parse.html">html_read</a></span><span class="op">(</span><span class="st">"https://cran.r-project.org/web/views/"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="reference/html_title.html">html_title</a></span><span class="op">(</span><span class="va">doc</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "CRAN Task Views"</span></span>
+<span></span>
+<span><span class="va">rows</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/html_elements.html">html_elements</a></span><span class="op">(</span><span class="va">doc</span>, <span class="st">"table tr"</span><span class="op">)</span></span>
+<span><span class="va">views</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>  topic <span class="op">=</span> <span class="fu"><a href="reference/html_text_clean.html">html_text_clean</a></span><span class="op">(</span><span class="fu"><a href="reference/html_elements.html">html_element</a></span><span class="op">(</span><span class="va">rows</span>, <span class="st">"td:nth-child(2)"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  url   <span class="op">=</span> <span class="fu"><a href="reference/html_url.html">html_url</a></span><span class="op">(</span><span class="fu"><a href="reference/html_elements.html">html_element</a></span><span class="op">(</span><span class="va">rows</span>, <span class="st">"a"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">views</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="co">#&gt;                  topic                                                        url</span></span>
+<span><span class="co">#&gt; 1    Actuarial Science https://cran.r-project.org/web/views/ActuarialScience.html</span></span>
+<span><span class="co">#&gt; 2 Agricultural Science      https://cran.r-project.org/web/views/Agriculture.html</span></span>
+<span><span class="co">#&gt; 3    Anomaly Detection https://cran.r-project.org/web/views/AnomalyDetection.html</span></span></code></pre></div>
 <p>The <a href="https://pedrobtz.github.io/zuhtml/articles/zuhtml.html">getting started guide</a> walks through a complete extraction. There are also guides to <a href="https://pedrobtz.github.io/zuhtml/articles/selectors.html">selectors</a>, <a href="https://pedrobtz.github.io/zuhtml/articles/tables-and-lists.html">tables and lists</a>, and <a href="https://pedrobtz.github.io/zuhtml/articles/limits-and-encoding.html">limits, encodings and safety</a>.</p>
 </div>
 <div class="section level2">

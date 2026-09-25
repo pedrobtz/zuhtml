@@ -151,6 +151,13 @@ First release.
   every control type and the options of each select. It only inspects:
   nothing is submitted.
 
+- [`html_read()`](https://pedrobtz.github.io/zuhtml/reference/html_parse.md)
+  reads a URL (through base R’s
+  [`url()`](https://rdrr.io/r/base/connections.html), which also sets
+  the default `base_url`) or any connection, such as
+  [`gzfile()`](https://rdrr.io/r/base/connections.html), as well as a
+  file path. Reading stops once the input passes four times `max_input`.
+
 - New
   [`html_serialize()`](https://pedrobtz.github.io/zuhtml/reference/html_serialize.md)
   (and [`as.character()`](https://rdrr.io/r/base/character.html) on

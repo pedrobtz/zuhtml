@@ -2,8 +2,8 @@
 
 zuhtml turns real-world HTML into ordinary R values: character vectors,
 lists and data frames. It parses the way a browser does, so malformed
-markup is repaired rather than rejected, and it never fetches anything:
-you give it a string, raw bytes or a file.
+markup is repaired rather than rejected. You give it a string, raw
+bytes, a file, a URL or a connection.
 
 ``` r
 

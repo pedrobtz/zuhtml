@@ -11,9 +11,12 @@ Gumbo parser** (the maintained fork at
 from it: nodesets selected by a CSS subset, attributes, text, and
 ordinary data frames from lists, tables and links. No system HTML
 library, no libxml2, no Python, no browser. Zero hard runtime
-dependencies. It deliberately does not fetch, execute JavaScript,
-sanitize, mutate the DOM, or support XPath. A fetcher such as `zuhttp`
-hands it a string.
+dependencies. It deliberately has no HTTP client, and does not execute
+JavaScript, sanitize, mutate the DOM or support XPath.
+[`html_read()`](https://pedrobtz.github.io/zuhtml/reference/html_parse.md)
+reads a path, a URL (through base R’s
+[`url()`](https://rdrr.io/r/base/connections.html)) or a connection; a
+fetcher such as `zuhttp` hands it a string for anything more.
 
 Two documents outrank this file.
 [.agents/design.md](https://pedrobtz.github.io/zuhtml/.agents/design.md)
@@ -31,7 +34,7 @@ code with it.
 
 ## Current state
 
-Stages 0 to 15 are done. Stages 10 to 15 widened 0.1.0 after a survey of
+Stages 0 to 16 are done. Stages 10 to 15 widened 0.1.0 after a survey of
 other languages’ HTML libraries, adding: -
 [`html_closest()`](https://pedrobtz.github.io/zuhtml/reference/html_closest.md),
 [`html_strings()`](https://pedrobtz.github.io/zuhtml/reference/html_strings.md)
@@ -44,9 +47,12 @@ Every export is documented with runnable examples and a family. Four
 vignettes and a pkgdown-only article of real pages are written, and so
 is `cran-comments.md`. Gumbo 0.14.0 is vendored with a six-patch series.
 
-Stage 16 (the 0.1.0 release) is next. It refreshes the CRAN preparation
-and needs the maintainer: the CRAN submission and the upstream reports
-are theirs to make. The probe harness
+Stage 16 made
+[`html_read()`](https://pedrobtz.github.io/zuhtml/reference/html_parse.md)
+read URLs and connections. Stage 17 (the 0.1.0 release) is next. It
+refreshes the CRAN preparation and needs the maintainer: the CRAN
+submission and the upstream reports are theirs to make. The probe
+harness
 ([.agents/probe-gumbo.c](https://pedrobtz.github.io/zuhtml/.agents/probe-gumbo.c))
 holds the measurements the roadmap cites.
 
@@ -59,11 +65,13 @@ Progress toward the next version is tracked as GitHub sub-issues, so the
 parent issue shows a progress bar such as “6 of 7”.
 
 - **One parent issue per target version**, titled with the bare version,
-  for example `v0.1.0` (#2). Stages 0 to 10 are sub-issues \#3 to \#13.
+  for example `v0.1.0` (#2). Stages 0 to 9 are sub-issues \#3 to \#12,
+  Stages 10 to 15 are \#26 to \#31, Stage 16 is \#40 and Stage 17 (the
+  release) is \#13, renumbered twice.
 - **One sub-issue per roadmap stage**, titled as the roadmap titles it,
   for example `Stage 2 — Ledger, abort and limits (the safety seam)`,
-  linking to that section’s anchor. The roadmap has eleven stages, 0 to
-  10.
+  linking to that section’s anchor. The roadmap has eighteen stages, 0
+  to 17.
 - **Every tracking issue carries the `stage` label.**
 - **Close a stage by merging its pull request.** Put `Closes #<n>` in
   the body. Never close a stage whose exit criteria are not met; record
@@ -144,7 +152,8 @@ scripts in `tools/` exist.
 
     R/                 parse.R, conditions.R, info.R, node.R, nodeset.R, select.R,
                        attributes.R, text.R, write.R, list.R, table.R, links.R,
-                       metadata.R, markdown.R, sniff.R, forms.R
+                       metadata.R, markdown.R, sniff.R, forms.R,
+                       zu_source.R (copied verbatim from zuxml; edit there)
     src/               init.c, r_api.c                       R-facing glue only
                        zuh_gumbo.c                            version-specific Gumbo adapter
                        zuh_memory.c                           allocation ledger, abort, limits

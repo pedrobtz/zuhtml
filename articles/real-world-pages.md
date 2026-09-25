@@ -143,13 +143,13 @@ names(recent)
 #> [1] "Date"    "Package" "Title"
 head(recent, 3)
 #>         Date          Package
-#> 1 2026-09-24 AI4OfficialStats
-#> 2 2026-09-24      angstromATE
-#> 3 2026-09-24        autotestR
-#>                                                                       Title
-#> 1             Audit Statistical Fidelity of AI-Mediated Official Statistics
-#> 2 Imports Recipe and Log Files from Angstrom Engineering Thermal Evaporator
-#> 3                           Automated Functions for Basic Statistical Tests
+#> 1 2026-09-25       exametrika
+#> 2 2026-09-25            fangs
+#> 3 2026-09-24 AI4OfficialStats
+#>                                                           Title
+#> 1                                         Test Data Engineering
+#> 2       Feature Allocation Neighborhood Greedy Search Algorithm
+#> 3 Audit Statistical Fidelity of AI-Mediated Official Statistics
 
 year <- substr(recent$Date, 1, 4)
 tail(table(year), 8)
@@ -164,7 +164,7 @@ they are dates.
 ``` r
 
 range(as.Date(recent$Date))
-#> [1] "2011-09-07" "2026-09-24"
+#> [1] "2011-09-07" "2026-09-25"
 ```
 
 ## Many small tables: CRAN mirrors
@@ -597,7 +597,7 @@ flavor, is tens of megabytes of HTML: larger than the default
 
 summary_page <- fetch(paste0(cran, "web/checks/check_summary_by_package.html"))
 file.size(summary_page) / 2^20
-#> [1] 52.27206
+#> [1] 52.27459
 err <- tryCatch(html_read(summary_page), zuhtml_limit_error = function(e) e)
 err$limit
 #> [1] "max_input"
@@ -611,16 +611,16 @@ big <- html_limits(max_input = 128 * 2^20, max_memory = 4 * 2^30)
 checks <- html_read(summary_page, limits = big)
 html_info(checks)[c("nodes", "native_bytes", "parse_peak_bytes")]
 #> $nodes
-#> [1] 2575290
+#> [1] 2575600
 #> 
 #> $native_bytes
-#> [1] 166280204
+#> [1] 166295275
 #> 
 #> $parse_peak_bytes
-#> [1] 622005333
+#> [1] 622065444
 status <- html_tables(checks, limits = big)[[1]]
 dim(status)
-#> [1] 25731    17
+#> [1] 25736    17
 names(status)[1:4]
 #> [1] "Package"                               
 #> [2] "Version"                               
@@ -641,5 +641,5 @@ names(status)[1:4]
 table(status[[3]])[1:5]
 #> 
 #>       ERROR  NOTE NOTE*    OK 
-#>   648    64  5615    12 19345
+#>   653    64  5615    12 19345
 ```

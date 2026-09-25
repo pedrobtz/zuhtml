@@ -191,13 +191,13 @@ the page’s address.</p>
 <span><span class="co">#&gt; [1] "Date"    "Package" "Title"</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">recent</span>, <span class="fl">3</span><span class="op">)</span></span>
 <span><span class="co">#&gt;         Date          Package</span></span>
-<span><span class="co">#&gt; 1 2026-09-24 AI4OfficialStats</span></span>
-<span><span class="co">#&gt; 2 2026-09-24      angstromATE</span></span>
-<span><span class="co">#&gt; 3 2026-09-24        autotestR</span></span>
-<span><span class="co">#&gt;                                                                       Title</span></span>
-<span><span class="co">#&gt; 1             Audit Statistical Fidelity of AI-Mediated Official Statistics</span></span>
-<span><span class="co">#&gt; 2 Imports Recipe and Log Files from Angstrom Engineering Thermal Evaporator</span></span>
-<span><span class="co">#&gt; 3                           Automated Functions for Basic Statistical Tests</span></span>
+<span><span class="co">#&gt; 1 2026-09-25       exametrika</span></span>
+<span><span class="co">#&gt; 2 2026-09-25            fangs</span></span>
+<span><span class="co">#&gt; 3 2026-09-24 AI4OfficialStats</span></span>
+<span><span class="co">#&gt;                                                           Title</span></span>
+<span><span class="co">#&gt; 1                                         Test Data Engineering</span></span>
+<span><span class="co">#&gt; 2       Feature Allocation Neighborhood Greedy Search Algorithm</span></span>
+<span><span class="co">#&gt; 3 Audit Statistical Fidelity of AI-Mediated Official Statistics</span></span>
 <span></span>
 <span><span class="va">year</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/substr.html" class="external-link">substr</a></span><span class="op">(</span><span class="va">recent</span><span class="op">$</span><span class="va">Date</span>, <span class="fl">1</span>, <span class="fl">4</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">tail</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">year</span><span class="op">)</span>, <span class="fl">8</span><span class="op">)</span></span>
@@ -208,7 +208,7 @@ the page’s address.</p>
 they are dates.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/range.html" class="external-link">range</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/as.Date.html" class="external-link">as.Date</a></span><span class="op">(</span><span class="va">recent</span><span class="op">$</span><span class="va">Date</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "2011-09-07" "2026-09-24"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "2011-09-07" "2026-09-25"</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="many-small-tables-cran-mirrors">Many small tables: CRAN mirrors<a class="anchor" aria-label="anchor" href="#many-small-tables-cran-mirrors"></a>
@@ -573,7 +573,7 @@ check flavor, is tens of megabytes of HTML: larger than the default
 <div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">summary_page</span> <span class="op">&lt;-</span> <span class="fu">fetch</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">cran</span>, <span class="st">"web/checks/check_summary_by_package.html"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/file.info.html" class="external-link">file.size</a></span><span class="op">(</span><span class="va">summary_page</span><span class="op">)</span> <span class="op">/</span> <span class="fl">2</span><span class="op">^</span><span class="fl">20</span></span>
-<span><span class="co">#&gt; [1] 52.27206</span></span>
+<span><span class="co">#&gt; [1] 52.27459</span></span>
 <span><span class="va">err</span> <span class="op">&lt;-</span> <span class="kw"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch</a></span><span class="op">(</span><span class="fu"><a href="../reference/html_parse.html">html_read</a></span><span class="op">(</span><span class="va">summary_page</span><span class="op">)</span>, zuhtml_limit_error <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">e</span><span class="op">)</span> <span class="va">e</span><span class="op">)</span></span>
 <span><span class="va">err</span><span class="op">$</span><span class="va">limit</span></span>
 <span><span class="co">#&gt; [1] "max_input"</span></span></code></pre></div>
@@ -584,16 +584,16 @@ room:</p>
 <span><span class="va">checks</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/html_parse.html">html_read</a></span><span class="op">(</span><span class="va">summary_page</span>, limits <span class="op">=</span> <span class="va">big</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/html_info.html">html_info</a></span><span class="op">(</span><span class="va">checks</span><span class="op">)</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"nodes"</span>, <span class="st">"native_bytes"</span>, <span class="st">"parse_peak_bytes"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt; $nodes</span></span>
-<span><span class="co">#&gt; [1] 2575290</span></span>
+<span><span class="co">#&gt; [1] 2575600</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $native_bytes</span></span>
-<span><span class="co">#&gt; [1] 166280204</span></span>
+<span><span class="co">#&gt; [1] 166295275</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $parse_peak_bytes</span></span>
-<span><span class="co">#&gt; [1] 622005333</span></span>
+<span><span class="co">#&gt; [1] 622065444</span></span>
 <span><span class="va">status</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/html_table.html">html_tables</a></span><span class="op">(</span><span class="va">checks</span>, limits <span class="op">=</span> <span class="va">big</span><span class="op">)</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/dim.html" class="external-link">dim</a></span><span class="op">(</span><span class="va">status</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 25731    17</span></span>
+<span><span class="co">#&gt; [1] 25736    17</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">status</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">4</span><span class="op">]</span></span>
 <span><span class="co">#&gt; [1] "Package"                               </span></span>
 <span><span class="co">#&gt; [2] "Version"                               </span></span>
@@ -611,7 +611,7 @@ Replace them if single-line names suit better:</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">status</span><span class="op">[[</span><span class="fl">3</span><span class="op">]</span><span class="op">]</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;       ERROR  NOTE NOTE*    OK </span></span>
-<span><span class="co">#&gt;   648    64  5615    12 19345</span></span></code></pre></div>
+<span><span class="co">#&gt;   653    64  5615    12 19345</span></span></code></pre></div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
