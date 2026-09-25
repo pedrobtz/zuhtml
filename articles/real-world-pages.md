@@ -50,17 +50,17 @@ by_name <- html_read(
 )
 html_info(by_name)[c("nodes", "input_bytes", "native_bytes")]
 #> $nodes
-#> [1] 226921
+#> [1] 226948
 #> 
 #> $input_bytes
-#> [1] 4165777
+#> [1] 4166270
 #> 
 #> $native_bytes
-#> [1] 13570646
+#> [1] 13572258
 
 packages <- html_tables(by_name)[[1]]
 dim(packages)
-#> [1] 25204     2
+#> [1] 25207     2
 head(packages)
 #>              V1
 #> 1              
@@ -88,7 +88,7 @@ each package row has a link:
 
 rows <- html_elements(by_name, "table tr:not([id])")
 length(rows)
-#> [1] 25178
+#> [1] 25181
 
 packages <- data.frame(
   package = html_text_clean(html_element(rows, "td:first-child")),
@@ -121,7 +121,7 @@ first <- toupper(substr(packages$package, 1, 1))
 head(sort(table(first), decreasing = TRUE))
 #> first
 #>    S    R    C    M    P    G 
-#> 2841 2383 2033 2023 1810 1491
+#> 2841 2383 2033 2023 1811 1491
 head(packages$package[grepl("\\bshiny\\b", packages$title, ignore.case = TRUE)])
 #> [1] "a11yShiny"     "abstractr"     "activAnalyzer" "adepro"       
 #> [5] "AdverseEvents" "airGRteaching"
@@ -142,16 +142,20 @@ recent <- html_tables(by_date)[[1]]
 names(recent)
 #> [1] "Date"    "Package" "Title"
 head(recent, 3)
-#>         Date    Package                                                   Title
-#> 1 2026-09-25    canpumf                                Parse StatCan PUMF Files
-#> 2 2026-09-25 exametrika                                   Test Data Engineering
-#> 3 2026-09-25      fangs Feature Allocation Neighborhood Greedy Search Algorithm
+#>         Date       Package
+#> 1 2026-09-25    AbSolution
+#> 2 2026-09-25          adbi
+#> 3 2026-09-25 airGRteaching
+#>                                                                                             Title
+#> 1                                             Interactive Feature-Based Analysis of AIRR-Seq Data
+#> 2                                                    'DBI' Compliant Database Access Using 'ADBC'
+#> 3 Teaching Hydrological Modelling with the GR Rainfall-Runoff Models ('Shiny' Interface Included)
 
 year <- substr(recent$Date, 1, 4)
 tail(table(year), 8)
 #> year
 #> 2019 2020 2021 2022 2023 2024 2025 2026 
-#>  611  919 1152 1640 2278 2768 5275 8967
+#>  611  919 1152 1639 2276 2768 5266 8982
 ```
 
 Dates stay character, as every cell does: convert them when you know
@@ -593,7 +597,7 @@ flavor, is tens of megabytes of HTML: larger than the default
 
 summary_page <- fetch(paste0(cran, "web/checks/check_summary_by_package.html"))
 file.size(summary_page) / 2^20
-#> [1] 52.27608
+#> [1] 52.28663
 err <- tryCatch(html_read(summary_page), zuhtml_limit_error = function(e) e)
 err$limit
 #> [1] "max_input"
@@ -607,16 +611,16 @@ big <- html_limits(max_input = 128 * 2^20, max_memory = 4 * 2^30)
 checks <- html_read(summary_page, limits = big)
 html_info(checks)[c("nodes", "native_bytes", "parse_peak_bytes")]
 #> $nodes
-#> [1] 2575786
+#> [1] 2576112
 #> 
 #> $native_bytes
-#> [1] 166304294
+#> [1] 166330856
 #> 
 #> $parse_peak_bytes
-#> [1] 622101487
+#> [1] 622197249
 status <- html_tables(checks, limits = big)[[1]]
 dim(status)
-#> [1] 25739    17
+#> [1] 25740    17
 names(status)[1:4]
 #> [1] "Package"                               
 #> [2] "Version"                               
@@ -637,5 +641,5 @@ names(status)[1:4]
 table(status[[3]])[1:5]
 #> 
 #>       ERROR  NOTE NOTE*    OK 
-#>   656    64  5615    12 19345
+#>   657    64  5615    12 19345
 ```
