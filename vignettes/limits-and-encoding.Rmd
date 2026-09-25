@@ -107,8 +107,9 @@ See `?zuhtml-conditions` for the classes and their fields.
 * **It does not sanitize.** Parsing and serializing keep `<script>`
   elements, event-handler attributes and `javascript:` URLs. Do not treat
   `html_serialize()` output as safe to embed in another page.
-* It does not fetch pages or resolve anything over the network:
-  `html_url()` is string arithmetic.
+* It has no HTTP client. `html_read()` reads a URL with base R's `url()`,
+  without headers, cookies or retries; `html_url()` is string arithmetic
+  and fetches nothing.
 * It does not run JavaScript, compute CSS or layout, or know what is
   visible. `html_text_clean()` follows fixed, documented rules.
 * It has no XPath and does not edit documents.

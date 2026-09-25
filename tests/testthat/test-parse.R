@@ -160,11 +160,12 @@ test_that("html_read() passes arguments on to html_parse()", {
   expect_identical(doc$base_url, "https://x.org/")
 })
 
-test_that("html_read() rejects missing files, directories and URLs", {
+test_that("html_read() rejects missing files, directories and bad input", {
   expect_error(html_read(file.path(tempdir(), "no-such-file.html")),
                class = "zuhtml_input_error")
   expect_error(html_read(tempdir()), class = "zuhtml_input_error")
-  expect_error(html_read("https://example.org/"), class = "zuhtml_input_error")
+  expect_error(html_read(""), class = "zuhtml_input_error")
+  expect_error(html_read(1L), class = "zuhtml_input_error")
   expect_error(html_read(c("a", "b")), class = "zuhtml_input_error")
   expect_error(html_read(NA_character_), class = "zuhtml_input_error")
 })

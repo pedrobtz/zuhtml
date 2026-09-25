@@ -45,7 +45,7 @@ The principle: **an argument or export left out now can be added in 0.1.1 withou
 
 | Area | Exports | Cut from the design (and why) |
 |---|---|---|
-| Parse | `html_parse(x, encoding, base_url, comments, limits)`, `html_read(path, ...)`, `html_fragment(x, context, ...)`, `html_problems()`, `html_info()`, `html_limits()`, `zuhtml_info()` | `html_read_connection()` (a fetcher passes a string); `keep_source`, `html_source_position()` (repaired trees make positions hints of little value); `errors=` (real pages always have parse errors, so `"warn"`/`"error"` fire on everything — `html_problems()` is the honest interface); `html_extract_limits()` folded into `html_limits()`; fragment `namespace=` |
+| Parse | `html_parse(x, encoding, base_url, comments, limits)`, `html_read(path, ...)`, `html_fragment(x, context, ...)`, `html_problems()`, `html_info()`, `html_limits()`, `zuhtml_info()` | `html_read_connection()` (folded into `html_read()` at Stage 16); `keep_source`, `html_source_position()` (repaired trees make positions hints of little value); `errors=` (real pages always have parse errors, so `"warn"`/`"error"` fire on everything — `html_problems()` is the honest interface); `html_extract_limits()` folded into `html_limits()`; fragment `namespace=` |
 | Navigate | `html_elements(x, css)`, `html_element(x, css)`, `html_matches()`, `html_filter()`, `html_children()`, `html_parent()`, `html_ancestors()`, `html_next_sibling()`, `html_previous_sibling()`, `html_root()`, `html_document()`, `html_template_content()` | `group=` on `html_elements()` (`lapply` does it); `html_find()` (a second query language, plus regex on text, to maintain and secure) |
 | Values | `html_name()`, `html_namespace()`, `html_type()`, `html_attr(x, name, default)`, `html_attrs()`, `html_classes()`, `html_text(x, recursive)`, `html_text_clean(x, trim, nbsp)`, `html_serialize(x, outer)` | `html_has_attr()` (`!is.na(html_attr())`); `html_strings()`; `html_write()` (`writeLines(html_serialize())`) |
 | Extract | `html_list(x, mode = c("text", "tree"))`, `html_table(x, header, trim, na, limits)`, `html_tables(x, css)`, `html_links(x, absolute)`, `html_url(x, attr, base_url)` | `mode = "data.frame"`, `nested_text`, `html_lists()`; `html_dl()`; `span = "anchor"`, `col_types`/`decimal_mark`/`grouping_mark` (a typed-conversion sub-project; `type.convert()` and readr exist), `name_repair` (always `make.unique()`, blanks become `V<n>`), `nested=` (outermost only), `html_table_cells()`, `html_table_meta()`; `html_images()`, `html_headings()`, `html_meta()`, `html_title()`, `html_description()`, `html_canonical()`, `html_data()`; `strict=` on `html_url()` |
@@ -335,9 +335,24 @@ The exit case "scripts containing a fake `<meta>`" follows the standard: the pre
 
 ---
 
-## Stage 16 — 0.1.0 release · S
+## Stage 16 — Read from URLs and connections · S
 
-**Status:** not started. Renumbered from Stage 10 when Stages 10 to 15 were added.
+**Status:** done 2026-09-25. Added before the release at the maintainer's request, following zuxml's pedrobtz/zuxml#68.
+- `R/zu_source.R` is copied from that PR verbatim; its stated companion `src/zu_source.h` is not, because zuhtml has nothing to stream into.
+- zuxml refuses non-blocking connections in its C source with `R_GetConnection()`, which `R CMD check` on R 4.5 notes as a non-API call (reported on that PR). zuhtml has no C for this: an empty read that `isIncomplete()` calls unfinished is an error instead.
+- The bounded read and the default `base_url` are zuhtml's own and live in `R/parse.R`, so the shared file stays a verbatim copy.
+
+- `html_read(path, ...)` accepts a file path, a URL (`http`, `https`, `ftp`, `ftps`, `file`, scheme in any case) or a connection, resolved by zuxml's `R/zu_source.R`, copied verbatim. A connection follows `readBin()`'s convention: opened in `"rb"` and closed if it was unopened, read from its position and left open if it was open. Text-mode connections are refused, and a non-blocking pipe or socket with no data yet is an error, not a short read.
+- The whole input is read before parsing, since Gumbo takes one buffer and decoding needs all the bytes. The read stops with `max_input` as soon as it passes four times the limit, and a file's size is checked first.
+- A URL is the default `base_url`. Open and read failures are `zuhtml_input_error`. There is no HTTP client: headers, redirects and retries stay a fetcher's job.
+
+**Exit:** offline tests for paths, `file://` URLs (on Windows paths too), scheme case, unopened and open connections, `gzfile()`, `rawConnection()`, refused connections, no non-API C, unreadable URLs, the read bound and the default base URL; real HTTP only in an interactive example.
+
+---
+
+## Stage 17 — 0.1.0 release · S
+
+**Status:** not started. Renumbered from Stage 10 when Stages 10 to 15 were added, and from Stage 16 when Stage 16 was added.
 
 - Refresh the CRAN preparation of Stage 9 for the added exports: `cran-comments.md`, the vignettes and README where they apply, `urlchecker`, `R CMD check --as-cran` on the matrix.
 - Version to `0.1.0`; tag; submit via `devtools::submit_cran()` or the web form (the maintainer's action); respond to the CRAN incoming email within the same day; on acceptance, `usethis::use_github_release()`, pkgdown deploy, and open the 0.2.0 tracking issue with the "After 0.1.0" list.

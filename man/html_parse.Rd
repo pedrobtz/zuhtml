@@ -28,7 +28,8 @@ if unknown.}
 
 \item{limits}{Resource limits from \code{\link[=html_limits]{html_limits()}}.}
 
-\item{path}{Path of one local file.}
+\item{path}{One file path, URL or connection; see "Reading files, URLs
+and connections".}
 
 \item{...}{Arguments passed on to \code{html_parse()}.}
 }
@@ -39,12 +40,38 @@ A \code{zuhtml_document}.
 \code{html_parse()} parses one string or raw vector of HTML the way a browser
 does: omitted end tags, unquoted attributes, character references and
 misnested elements are repaired by the HTML parsing algorithm, never
-rejected. \code{html_read()} reads and parses one local file.
+rejected. \code{html_read()} reads and parses one file, URL or connection.
 }
 \details{
-Neither function fetches anything. \code{html_parse()} never treats a string
-as a file name or URL, and \code{html_read()} never downloads.
+\code{html_parse()} never treats a string as a file name or URL.
 }
+\section{Reading files, URLs and connections}{
+
+\code{html_read()} reads its input as raw bytes, then decodes and parses them
+as \code{html_parse()} does:
+\itemize{
+\item a string with an \code{http}, \code{https}, \code{ftp}, \code{ftps} or \code{file} scheme (in
+any case) is read with \code{\link[=url]{url()}}, and becomes the document's \code{base_url}
+unless \code{base_url} is given. A redirect is not seen, so after one the
+base URL is the address asked for. HTTP headers are not read either:
+the encoding comes from a byte-order mark, \code{encoding} or the page's
+\verb{<meta>}. For anything more (headers, authentication, retries), fetch
+with an HTTP client and pass the body to \code{html_parse()};
+\item any other string is a file path;
+\item a connection, such as \code{\link[=gzfile]{gzfile()}} or \code{\link[=rawConnection]{rawConnection()}}, is read as
+\code{\link[=readBin]{readBin()}} reads one: an unopened connection is opened in \code{"rb"} mode
+and closed afterwards; an open one must be in binary mode, is read
+from its current position, and is left open. A non-blocking pipe or
+socket that has no data yet is an error rather than a short read.
+}
+
+Reading stops with a \code{zuhtml_limit_error} as soon as the input passes
+four times \code{max_input} bytes, before a larger file is read at all. A
+file that does not exist, an unreachable URL, and a connection that
+cannot be read are \code{zuhtml_input_error}s. The input is always read
+whole before parsing, because decoding needs all of it.
+}
+
 \section{Encoding}{
 
 A character string is taken as text: it is converted to UTF-8 with
@@ -88,6 +115,17 @@ html_parse(as.raw(c(0x3c, 0x70, 0x3e, 0xe9)), encoding = "latin1")
 path <- tempfile(fileext = ".html")
 writeLines("<title>Saved page</title><p>Text", path)
 html_read(path)
+
+# From a compressed file, through a connection:
+gz <- tempfile(fileext = ".html.gz")
+writeLines("<p>Compressed", gzfile(gz))
+html_read(gzfile(gz))
+
+# From a URL, when online; relative links resolve against it:
+if (interactive()) {
+  doc <- html_read("https://cran.r-project.org/web/packages/")
+  head(html_links(doc, absolute = TRUE))
+}
 }
 \seealso{
 \code{\link[=html_problems]{html_problems()}} for the parse errors that were repaired;

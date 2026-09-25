@@ -18,7 +18,7 @@ Core decisions:
 - Expose an immutable document with vectorized accessors, broadly familiar to zuxml users.
 - Use CSS selectors for normal extraction, with a documented supported subset. Do not translate CSS to XPath or depend on libxml2.
 - Make `html_list()` and `html_table()` first-class extraction functions with deterministic handling of nested content and missing values.
-- Keep extraction separate from downloading, JavaScript execution, and form submission.
+- Keep extraction separate from downloading, JavaScript execution, and form submission. (Amended at roadmap Stage 16: `html_read()` reads a URL through base R's `url()`, with no HTTP client of its own; see §5.)
 - Default to character data rather than guessing types that can destroy identifiers or leading zeroes.
 - Make malformed-HTML recovery normal; distinguish it from resource exhaustion and unsupported selectors.
 - Treat safe allocation failure and bounded parser work as release gates, not properties obtained merely by choosing Gumbo.
@@ -150,9 +150,17 @@ html_limits(...)
 zuhtml_info()
 ```
 
-Deferred past 0.1.0: `html_read_connection()` (a fetcher passes a string), `keep_source`, `errors=` (real pages always have parse errors, so `"warn"` and `"error"` would fire on everything; `html_problems()` is the honest interface), and fragment `namespace=`.
+Deferred past 0.1.0: `html_read_connection()` (a fetcher passes a string; folded into `html_read()` at Stage 16), `keep_source`, `errors=` (real pages always have parse errors, so `"warn"` and `"error"` would fire on everything; `html_problems()` is the honest interface), and fragment `namespace=`.
 
 `html_parse()` accepts exactly one non-missing character string or one raw vector. It does not guess whether a string is a file path or URL, and does not concatenate character vectors. Empty input is valid and produces an empty HTML document with the implied structure. `html_read()` accepts one local file path, reads it as raw bytes, and never interprets a URL as a file to download.
+
+*Amended at roadmap Stage 16, following zuxml's pedrobtz/zuxml#68:* `html_read()` accepts a path, a URL or a connection.
+- **Resolving the input:** `R/zu_source.R` is copied verbatim from zuxml, carrying an origin line so drift between copies is visible. A string with an `http`, `https`, `ftp`, `ftps` or `file` scheme goes to `url()`, any other string to `file()`, and a connection is used as is, by `readBin()`'s open and close convention. zuxml refuses non-blocking connections in C through `R_ext/Connections.h`, but `R_GetConnection()` is a non-API entry point that `R CMD check` notes on R 4.5. zuhtml instead treats an empty read on a connection that `isIncomplete()` reports unfinished (a non-blocking pipe or socket with no data yet) as an error, rather than parsing part of a page.
+- **No streaming:** zuxml streams chunks into Expat, but zuhtml keeps no C byte source, because Gumbo parses one buffer and decoding (the BOM, the `<meta>` prescan, `iconv()`) needs the whole input.
+- **Bounded read:** the read stops at four times `max_input`, and a file's size is checked before reading.
+- **Base URL:** a URL becomes the default `base_url`. Redirects and HTTP headers are not visible through `url()`, so the encoding comes from the BOM, `encoding` or `<meta>`.
+- **Errors:** open and read failures are `zuhtml_input_error`.
+- **Still out of scope:** an HTTP client with headers, retries or authentication. `html_parse()` still never treats a string as a path or URL.
 
 Gumbo is a whole-buffer parser. Reading a connection in chunks does not make parsing incremental or constant-memory. Do not expose an Expat-like `feed()` API in the first version.
 
