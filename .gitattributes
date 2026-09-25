@@ -1,0 +1,2 @@
+# Test fixtures are data, not source: keep them out of the language stats.
+tests/testthat/fixtures/** linguist-vendored
