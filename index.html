@@ -11,8 +11,8 @@
 <script src="deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Parse HTML with a Bundled Gumbo Parser">
-<meta name="description" content="Parses real-world HTML with a bundled copy of the Gumbo parser (&lt;https://codeberg.org/gumbo-parser/gumbo-parser&gt;), which follows the WHATWG parsing algorithm, so that no system library is required. Documents become immutable trees navigated with a documented subset of CSS selectors. Attributes, text, lists, tables and links are extracted into ordinary character vectors, lists and data frames. Parsing is bounded by limits on input size, native memory and nesting depth.">
-<meta property="og:description" content="Parses real-world HTML with a bundled copy of the Gumbo parser (&lt;https://codeberg.org/gumbo-parser/gumbo-parser&gt;), which follows the WHATWG parsing algorithm, so that no system library is required. Documents become immutable trees navigated with a documented subset of CSS selectors. Attributes, text, lists, tables and links are extracted into ordinary character vectors, lists and data frames. Parsing is bounded by limits on input size, native memory and nesting depth.">
+<meta name="description" content="Parses real-world HTML with a bundled copy of the Gumbo parser (&lt;https://codeberg.org/gumbo-parser/gumbo-parser&gt;), which follows the WHATWG parsing algorithm, so that no system library is required. Documents become immutable trees navigated with a documented subset of CSS selectors. Attributes, text, lists, tables, links, forms and page metadata (JSON-LD, microdata) are extracted into ordinary character vectors, lists and data frames, and nodes convert to Markdown. Input is a string, raw bytes, a file, a URL or a connection, and raw input is decoded as browsers decode it, from a byte-order mark or a &lt;meta&gt; declaration. Parsing is bounded by limits on input size, native memory and nesting depth.">
+<meta property="og:description" content="Parses real-world HTML with a bundled copy of the Gumbo parser (&lt;https://codeberg.org/gumbo-parser/gumbo-parser&gt;), which follows the WHATWG parsing algorithm, so that no system library is required. Documents become immutable trees navigated with a documented subset of CSS selectors. Attributes, text, lists, tables, links, forms and page metadata (JSON-LD, microdata) are extracted into ordinary character vectors, lists and data frames, and nodes convert to Markdown. Input is a string, raw bytes, a file, a URL or a connection, and raw input is decoded as browsers decode it, from a byte-order mark or a &lt;meta&gt; declaration. Parsing is bounded by limits on input size, native memory and nesting depth.">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="index.html">zuhtml</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -67,7 +67,9 @@
 <ul>
 <li>Malformed markup is repaired by the HTML parsing algorithm, not rejected. <code><a href="reference/html_problems.html">html_problems()</a></code> lists what was repaired.</li>
 <li>Select elements with a documented subset of CSS. Anything outside the subset is an error, never a partial match.</li>
-<li>Extract text, attributes, links, lists and tables. Tables handle row and column spans and keep every column as character, so <code>"0012"</code> stays <code>"0012"</code>.</li>
+<li>Extract text, attributes, links, lists and tables. Tables handle row and column spans and keep every column as character unless you ask for conversion, so <code>"0012"</code> stays <code>"0012"</code>.</li>
+<li>Read page metadata (title, <code>&lt;meta&gt;</code> tags, JSON-LD, microdata) and forms, and convert any node to Markdown with <code><a href="reference/html_markdown.html">html_markdown()</a></code>.</li>
+<li>Raw bytes are decoded as a browser decodes them: from a byte-order mark, your <code>encoding</code>, or the page’s <code>&lt;meta charset&gt;</code>.</li>
 <li>Every call runs under explicit limits on input size, native memory and nesting depth, and every error is a classed condition.</li>
 </ul>
 <p><code><a href="reference/html_parse.html">html_read()</a></code> reads a file, a URL or any R connection. zuhtml has no HTTP client of its own: a URL goes through base R’s <code><a href="https://rdrr.io/r/base/connections.html" class="external-link">url()</a></code>, and a fetcher that needs headers or authentication hands it the body. zuhtml does not run JavaScript or sanitize HTML.</p>

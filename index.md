@@ -12,8 +12,13 @@ parser, so it needs no system library, and it has no hard dependencies.
 - Select elements with a documented subset of CSS. Anything outside the
   subset is an error, never a partial match.
 - Extract text, attributes, links, lists and tables. Tables handle row
-  and column spans and keep every column as character, so `"0012"` stays
-  `"0012"`.
+  and column spans and keep every column as character unless you ask for
+  conversion, so `"0012"` stays `"0012"`.
+- Read page metadata (title, `<meta>` tags, JSON-LD, microdata) and
+  forms, and convert any node to Markdown with
+  [`html_markdown()`](https://pedrobtz.github.io/zuhtml/reference/html_markdown.md).
+- Raw bytes are decoded as a browser decodes them: from a byte-order
+  mark, your `encoding`, or the page’s `<meta charset>`.
 - Every call runs under explicit limits on input size, native memory and
   nesting depth, and every error is a classed condition.
 

@@ -1,6 +1,6 @@
 # Changelog
 
-## zuhtml 0.0.0.9000
+## zuhtml 0.1.0
 
 First release.
 

@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">zuhtml</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.0.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -43,7 +43,7 @@
     </div>
 
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.0.0.9000" id="zuhtml-0009000">zuhtml 0.0.0.9000<a class="anchor" aria-label="anchor" href="#zuhtml-0009000"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.1.0" id="zuhtml-010">zuhtml 0.1.0<a class="anchor" aria-label="anchor" href="#zuhtml-010"></a></h2>
 <p>First release.</p>
 <ul><li><p>Bundles the ‘Gumbo’ HTML5 parser 0.14.0 from the maintained fork at <a href="https://codeberg.org/gumbo-parser/gumbo-parser" class="external-link uri">https://codeberg.org/gumbo-parser/gumbo-parser</a>, with local patches that add a parse-time nesting-depth limit, remove the library’s only <code>printf()</code>, and fix two memory-safety bugs in its <code>&lt;selectedcontent&gt;</code> support that fuzzing found (a use-after-free and a NULL dereference, both reachable from untrusted HTML) and an uninitialized read in fragment parsing. No system library is needed.</p></li>
 <li><p>New <code><a href="../reference/html_parse.html">html_parse()</a></code> and <code><a href="../reference/html_parse.html">html_read()</a></code> parse HTML from a string, raw vector or local file under explicit resource limits from the new <code><a href="../reference/html_limits.html">html_limits()</a></code>. Nesting depth is bounded while parsing, and all parser memory goes through an allocation ledger with a budget, so a failed parse always releases everything. Raw input is decoded from a byte-order mark, an explicit encoding, the page’s <code>&lt;meta&gt;</code> declaration or UTF-8; invalid input is an error, never silently replaced.</p></li>
