@@ -1,6 +1,6 @@
 Package: zuhtml
 Title: Parse 'HTML' with a Bundled 'Gumbo' Parser
-Version: 0.0.0.9000
+Version: 0.1.0
 Authors@R: c(
     person("Pedro", "Baltazar", , "pedrobtz@gmail.com",
            role = c("aut", "cre", "cph")),
@@ -12,9 +12,12 @@ Description: Parses real-world 'HTML' with a bundled copy of the 'Gumbo'
     parser (<https://codeberg.org/gumbo-parser/gumbo-parser>), which
     follows the 'WHATWG' parsing algorithm, so that no system library is
     required. Documents become immutable trees navigated with a documented
-    subset of 'CSS' selectors. Attributes, text, lists, tables and links
-    are extracted into ordinary character vectors, lists and data frames.
-    Parsing is bounded by limits on input size, native memory and nesting
+    subset of 'CSS' selectors. Attributes, text, lists, tables, links,
+    forms and page metadata ('JSON-LD', microdata) are extracted into
+    ordinary character vectors, lists and data frames, and nodes convert
+    to 'Markdown'. Input is a string, raw bytes, a file, a URL or a
+    connection, and raw input is decoded as browsers decode it, from a
+    byte-order mark or a '<meta>' declaration. Parsing is bounded by limits on input size, native memory and nesting
     depth.
 License: MIT + file LICENSE
 Copyright: file inst/COPYRIGHTS

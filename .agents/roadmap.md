@@ -352,7 +352,7 @@ The exit case "scripts containing a fake `<meta>`" follows the standard: the pre
 
 ## Stage 17 — 0.1.0 release · S
 
-**Status:** not started. Renumbered from Stage 10 when Stages 10 to 15 were added, and from Stage 16 when Stage 16 was added.
+**Status:** prepared 2026-09-25; submission is the maintainer's. Renumbered from Stage 10 when Stages 10 to 15 were added, and from Stage 16 when Stage 16 was added. The version is 0.1.0, and NEWS, the README, DESCRIPTION and `cran-comments.md` cover Stages 10 to 16: standards cited, the corpus gate, acceptance rows for Markdown, encoding, metadata, forms and URL input, and a note that tests and examples use no network. Local `R CMD check --as-cran` shows only a NOTE for the local HTML Tidy being too old. `urlchecker` flags only `https://example.org/shop/`, a string in a vignette code chunk that is not a link. Remaining: submit, answer the incoming email, then tag, release, deploy pkgdown and open the 0.2.0 issue.
 
 - Refresh the CRAN preparation of Stage 9 for the added exports: `cran-comments.md`, the vignettes and README where they apply, `urlchecker`, `R CMD check --as-cran` on the matrix.
 - Version to `0.1.0`; tag; submit via `devtools::submit_cran()` or the web form (the maintainer's action); respond to the CRAN incoming email within the same day; on acceptance, `usethis::use_github_release()`, pkgdown deploy, and open the 0.2.0 tracking issue with the "After 0.1.0" list.
