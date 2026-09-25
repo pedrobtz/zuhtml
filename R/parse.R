@@ -3,10 +3,32 @@
 #' `html_parse()` parses one string or raw vector of HTML the way a browser
 #' does: omitted end tags, unquoted attributes, character references and
 #' misnested elements are repaired by the HTML parsing algorithm, never
-#' rejected. `html_read()` reads and parses one local file.
+#' rejected. `html_read()` reads and parses one file, URL or connection.
 #'
-#' Neither function fetches anything. `html_parse()` never treats a string
-#' as a file name or URL, and `html_read()` never downloads.
+#' `html_parse()` never treats a string as a file name or URL.
+#'
+#' @section Reading files, URLs and connections:
+#' `html_read()` reads its input as raw bytes, then decodes and parses them
+#' as `html_parse()` does:
+#' * a string with an `http`, `https`, `ftp`, `ftps` or `file` scheme (in
+#'   any case) is read with [url()], and becomes the document's `base_url`
+#'   unless `base_url` is given. A redirect is not seen, so after one the
+#'   base URL is the address asked for. HTTP headers are not read either:
+#'   the encoding comes from a byte-order mark, `encoding` or the page's
+#'   `<meta>`. For anything more (headers, authentication, retries), fetch
+#'   with an HTTP client and pass the body to `html_parse()`;
+#' * any other string is a file path;
+#' * a connection, such as [gzfile()] or [rawConnection()], is read as
+#'   [readBin()] reads one: an unopened connection is opened in `"rb"` mode
+#'   and closed afterwards; an open one must be in binary mode, is read
+#'   from its current position, and is left open. A non-blocking pipe or
+#'   socket that has no data yet is an error rather than a short read.
+#'
+#' Reading stops with a `zuhtml_limit_error` as soon as the input passes
+#' four times `max_input` bytes, before a larger file is read at all. A
+#' file that does not exist, an unreachable URL, and a connection that
+#' cannot be read are `zuhtml_input_error`s. The input is always read
+#' whole before parsing, because decoding needs all of it.
 #'
 #' @section Encoding:
 #' A character string is taken as text: it is converted to UTF-8 with
@@ -45,7 +67,8 @@
 #'   if unknown.
 #' @param comments Whether to keep comment nodes.
 #' @param limits Resource limits from [html_limits()].
-#' @param path Path of one local file.
+#' @param path One file path, URL or connection; see "Reading files, URLs
+#'   and connections".
 #' @param ... Arguments passed on to `html_parse()`.
 #'
 #' @return A `zuhtml_document`.
@@ -65,6 +88,17 @@
 #' path <- tempfile(fileext = ".html")
 #' writeLines("<title>Saved page</title><p>Text", path)
 #' html_read(path)
+#'
+#' # From a compressed file, through a connection:
+#' gz <- tempfile(fileext = ".html.gz")
+#' writeLines("<p>Compressed", gzfile(gz))
+#' html_read(gzfile(gz))
+#'
+#' # From a URL, when online; relative links resolve against it:
+#' if (interactive()) {
+#'   doc <- html_read("https://cran.r-project.org/web/packages/")
+#'   head(html_links(doc, absolute = TRUE))
+#' }
 html_parse <- function(x, encoding = NULL, base_url = NULL, comments = TRUE,
                        limits = html_limits()) {
   zuh_parse(x, encoding, base_url, comments, limits, call = sys.call())
@@ -167,33 +201,111 @@ zuh_fragment_context <- function(context, call, namespace = 0L,
 #' @export
 html_read <- function(path, ...) {
   call <- sys.call()
-  if (!is.character(path) || length(path) != 1L || is.na(path) ||
-      !nzchar(path)) {
-    zuh_input_error("path", "`path` must be a single file path.", call = call)
-  }
-  if (!file.exists(path) || dir.exists(path)) {
-    zuh_input_error(
-      "path", sprintf("Cannot read '%s': no such file.", path),
-      call = call
-    )
-  }
   dots <- list(...)
   limits <- zuh_check_limits(
     if (is.null(dots$limits)) html_limits() else dots$limits,
     call = call
   )
-  # Four bytes per character is the most any supported encoding needs, so a
-  # larger file cannot decode to less than max_input. Checked before reading.
-  size <- file.size(path)
-  if (size > 4 * limits$max_input) {
-    zuh_limit_error(
-      "max_input", limits$max_input, size,
-      sprintf("'%s' is %.0f bytes, too large for max_input = %.0f.",
-              path, size, limits$max_input),
-      call = call
-    )
+  # Four bytes per character is the most any supported encoding needs, so
+  # more input than this cannot decode to less than max_input.
+  cap <- 4 * limits$max_input
+  is_url <- is.character(path) && length(path) == 1L && !is.na(path) &&
+    grepl("^(https?|ftps?|file)://", path, ignore.case = TRUE)
+  if (is.character(path) && length(path) == 1L && !is.na(path) && !is_url) {
+    if (!nzchar(path)) {
+      zuh_input_error("path", "`path` must not be empty.", call = call)
+    }
+    # A file's size is known: check it before reading anything.
+    size <- file.size(path)
+    if (!is.na(size) && !dir.exists(path) && size > cap) {
+      zuh_limit_error(
+        "max_input", limits$max_input, size,
+        sprintf("'%s' is %.0f bytes, too large for max_input = %.0f.",
+                path, size, limits$max_input),
+        call = call
+      )
+    }
   }
-  html_parse(readBin(path, "raw", n = size), ...)
+  src <- zuh_open(path, call)
+  if (src$close) on.exit(close(src$con), add = TRUE)
+  bytes <- zuh_read_capped(src$con, cap, limits, call)
+  if (is_url && !"base_url" %in% names(dots)) {
+    # Relative links resolve against the page's own address.
+    base <- sub("^([A-Za-z]+)://", "\\L\\1://", path, perl = TRUE)
+    return(html_parse(bytes, base_url = base, ...))
+  }
+  html_parse(bytes, ...)
+}
+
+# zu_open_input(), with its errors and those of opening the connection
+# (a missing file, an unreachable URL) raised as zuhtml_input_error.
+zuh_open <- function(path, call) {
+  warned <- NULL
+  tryCatch(
+    withCallingHandlers(
+      zu_open_input(path, what = "path", abort = function(arg, message) {
+        zuh_input_error(arg, paste0(toupper(substring(message, 1L, 1L)),
+                                    substring(message, 2L), "."),
+                        call = call)
+      }),
+      warning = function(w) {
+        warned <<- conditionMessage(w)
+        invokeRestart("muffleWarning")
+      }
+    ),
+    zuhtml_error = function(e) stop(e),
+    error = function(e) {
+      what <- if (is.character(path)) sprintf("'%s'", path) else
+        "the connection"
+      zuh_input_error(
+        "path",
+        sprintf("Cannot open %s: %s.", what,
+                if (is.null(warned)) conditionMessage(e) else warned),
+        call = call
+      )
+    }
+  )
+}
+
+# The rest of a connection as one raw vector, or a max_input error as soon
+# as it passes `cap` bytes, so an endless or huge stream is never held.
+zuh_read_capped <- function(con, cap, limits, call) {
+  chunks <- list()
+  total <- 0
+  repeat {
+    b <- tryCatch(
+      readBin(con, "raw", n = 65536L),
+      error = function(e) {
+        zuh_input_error("path",
+                        sprintf("Reading failed: %s", conditionMessage(e)),
+                        call = call)
+      }
+    )
+    if (length(b) == 0L) {
+      # On a non-blocking pipe or socket an empty read means "nothing yet";
+      # stopping there would parse part of the page.
+      if (isIncomplete(con)) {
+        zuh_input_error(
+          "path",
+          paste0("The connection has no data yet; open it with ",
+                 "`blocking = TRUE`."),
+          call = call
+        )
+      }
+      break
+    }
+    total <- total + length(b)
+    if (total > cap) {
+      zuh_limit_error(
+        "max_input", limits$max_input, total,
+        sprintf(paste0("The input is more than %.0f bytes, too large for ",
+                       "max_input = %.0f."), cap, limits$max_input),
+        call = call
+      )
+    }
+    chunks[[length(chunks) + 1L]] <- b
+  }
+  if (length(chunks) == 0L) raw() else unlist(chunks, use.names = FALSE)
 }
 
 # Decode `x` to UTF-8 bytes per the contract documented in html_parse().

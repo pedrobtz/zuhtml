@@ -93,6 +93,10 @@ First release.
   DOM values for every control type and the options of each select. It
   only inspects: nothing is submitted.
 
+* `html_read()` reads a URL (through base R's `url()`, which also sets the
+  default `base_url`) or any connection, such as `gzfile()`, as well as a
+  file path. Reading stops once the input passes four times `max_input`.
+
 * New `html_serialize()` (and `as.character()` on nodesets) writes nodes
   as normalized HTML following the WHATWG serialization algorithm, outer
   or inner.

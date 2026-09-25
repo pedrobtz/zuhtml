@@ -12,8 +12,8 @@ selected by a documented subset of CSS, attributes, text, lists, tables
 and links. It needs no system library and has no hard dependencies.
 }
 \details{
-It does not fetch, run JavaScript, sanitize, edit documents or support
-XPath: a fetcher hands it a string.
+It reads files, URLs and connections, but has no HTTP client of its own,
+and does not run JavaScript, sanitize, edit documents or support XPath.
 }
 \section{Getting started}{
 
