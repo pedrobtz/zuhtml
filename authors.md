@@ -13,7 +13,7 @@
 ## Citation
 
 Source:
-[`DESCRIPTION`](https://github.com/pedrobtz/zuhtml/blob/main/DESCRIPTION)
+[`DESCRIPTION`](https://github.com/pedrobtz/zuhtml/blob/0.1.0/DESCRIPTION)
 
 Baltazar P (2026). *zuhtml: Parse 'HTML' with a Bundled 'Gumbo' Parser*.
 R package version 0.1.0, <https://github.com/pedrobtz/zuhtml>.

@@ -2,6 +2,8 @@
 
 ## zuhtml 0.1.0
 
+CRAN release: 2026-10-06
+
 First release.
 
 - Bundles the ‘Gumbo’ HTML5 parser 0.14.0 from the maintained fork at

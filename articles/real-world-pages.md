@@ -50,17 +50,17 @@ by_name <- html_read(
 )
 html_info(by_name)[c("nodes", "input_bytes", "native_bytes")]
 #> $nodes
-#> [1] 227371
+#> [1] 228748
 #> 
 #> $input_bytes
-#> [1] 4174431
+#> [1] 4200766
 #> 
 #> $native_bytes
-#> [1] 13597950
+#> [1] 13681354
 
 packages <- html_tables(by_name)[[1]]
 dim(packages)
-#> [1] 25254     2
+#> [1] 25407     2
 head(packages)
 #>              V1
 #> 1              
@@ -88,7 +88,7 @@ each package row has a link:
 
 rows <- html_elements(by_name, "table tr:not([id])")
 length(rows)
-#> [1] 25228
+#> [1] 25381
 
 packages <- data.frame(
   package = html_text_clean(html_element(rows, "td:first-child")),
@@ -121,7 +121,7 @@ first <- toupper(substr(packages$package, 1, 1))
 head(sort(table(first), decreasing = TRUE))
 #> first
 #>    S    R    C    M    P    G 
-#> 2849 2384 2038 2032 1808 1497
+#> 2865 2400 2055 2037 1819 1504
 head(packages$package[grepl("\\bshiny\\b", packages$title, ignore.case = TRUE)])
 #> [1] "a11yShiny"     "abstractr"     "activAnalyzer" "adepro"       
 #> [5] "AdverseEvents" "airGRteaching"
@@ -142,20 +142,20 @@ recent <- html_tables(by_date)[[1]]
 names(recent)
 #> [1] "Date"    "Package" "Title"
 head(recent, 3)
-#>         Date      Package
-#> 1 2026-09-28 BayesPPDSurv
-#> 2 2026-09-28       Bessel
-#> 3 2026-09-28      bifrost
-#>                                                                       Title
-#> 1                         Bayesian Power Prior Design for Survival Outcomes
-#> 2                      Computations and Approximations for Bessel Functions
-#> 3 Branch-Level Inference Framework for Recognizing Optimal Shifts in Traits
+#>         Date   Package
+#> 1 2026-10-10 ardlverse
+#> 2 2026-10-10      bbqr
+#> 3 2026-10-10  estimatr
+#>                                                        Title
+#> 1   Comprehensive ARDL: Panel, Bootstrap and Fourier Methods
+#> 2 Bayesian Quantile Regression with Lasso and Adaptive Lasso
+#> 3                 Fast Estimators for Design-Based Inference
 
 year <- substr(recent$Date, 1, 4)
 tail(table(year), 8)
 #> year
 #> 2019 2020 2021 2022 2023 2024 2025 2026 
-#>  611  918 1151 1637 2273 2764 5238 9069
+#>  609  910 1148 1630 2262 2734 5150 9375
 ```
 
 Dates stay character, as every cell does: convert them when you know
@@ -164,7 +164,7 @@ they are dates.
 ``` r
 
 range(as.Date(recent$Date))
-#> [1] "2011-09-07" "2026-09-28"
+#> [1] "2011-09-07" "2026-10-10"
 ```
 
 ## Many small tables: CRAN mirrors
@@ -525,7 +525,7 @@ kernel_url <- "https://cdn.kernel.org/pub/linux/kernel/v6.x/"
 kernel <- html_read(fetch(kernel_url), base_url = kernel_url)
 links <- html_elements(kernel, "pre > a:not([href='../'])")
 length(links)
-#> [1] 3708
+#> [1] 3728
 
 after <- html_text(html_next_sibling(links, elements_only = FALSE))
 fields <- strsplit(trimws(after), "[[:space:]]+")
@@ -548,12 +548,12 @@ releases <- data.frame(
 )
 tarballs <- releases[grepl("^linux-6\\.[0-9.]+\\.tar\\.xz$", releases$name), ]
 nrow(tarballs)
-#> [1] 741
+#> [1] 745
 tail(tarballs[, c("name", "date", "size")], 3)
 #>                      name        date      size
-#> 2958 linux-6.19.12.tar.xz 11-Apr-2026 156237824
-#> 2961 linux-6.19.13.tar.xz 18-Apr-2026 156237824
-#> 2964 linux-6.19.14.tar.xz 22-Apr-2026 156237824
+#> 2974 linux-6.19.12.tar.xz 11-Apr-2026 156237824
+#> 2977 linux-6.19.13.tar.xz 18-Apr-2026 156237824
+#> 2980 linux-6.19.14.tar.xz 22-Apr-2026 156237824
 ```
 
 The dates are written like `03-Oct-2022`; month names are English
@@ -566,7 +566,7 @@ invisible(Sys.setlocale("LC_TIME", "C"))
 tarballs$date <- as.Date(tarballs$date, format = "%d-%b-%Y")
 invisible(Sys.setlocale("LC_TIME", old))
 range(tarballs$date)
-#> [1] "2022-10-03" "2026-09-25"
+#> [1] "2022-10-03" "2026-10-03"
 ```
 
 Apache writes the same preformatted layout when fancy indexing is on but
@@ -597,7 +597,7 @@ flavor, is tens of megabytes of HTML: larger than the default
 
 summary_page <- fetch(paste0(cran, "web/checks/check_summary_by_package.html"))
 file.size(summary_page) / 2^20
-#> [1] 52.41456
+#> [1] 52.76758
 err <- tryCatch(html_read(summary_page), zuhtml_limit_error = function(e) e)
 err$limit
 #> [1] "max_input"
@@ -611,16 +611,16 @@ big <- html_limits(max_input = 128 * 2^20, max_memory = 4 * 2^30)
 checks <- html_read(summary_page, limits = big)
 html_info(checks)[c("nodes", "native_bytes", "parse_peak_bytes")]
 #> $nodes
-#> [1] 2587971
+#> [1] 2604197
 #> 
 #> $native_bytes
-#> [1] 166945146
+#> [1] 168022842
 #> 
 #> $parse_peak_bytes
-#> [1] 624607735
+#> [1] 628610631
 status <- html_tables(checks, limits = big)[[1]]
 dim(status)
-#> [1] 25917    17
+#> [1] 26068    17
 names(status)[1:4]
 #> [1] "Package"                               
 #> [2] "Version"                               
@@ -640,6 +640,6 @@ names(status)[1:4]
 #> [3] "r-devel Linux x86_64 (Debian Clang)" "r-devel Linux x86_64 (Debian GCC)"
 table(status[[3]])[1:5]
 #> 
-#>       ERROR  FAIL  NOTE NOTE* 
-#>   799    60     1  5600    12
+#>         ERROR ERROR*   FAIL   NOTE 
+#>    730     37      1      1   5525
 ```
