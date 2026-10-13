@@ -50,17 +50,17 @@ by_name <- html_read(
 )
 html_info(by_name)[c("nodes", "input_bytes", "native_bytes")]
 #> $nodes
-#> [1] 228748
+#> [1] 228100
 #> 
 #> $input_bytes
-#> [1] 4200766
+#> [1] 4188675
 #> 
 #> $native_bytes
-#> [1] 13681354
+#> [1] 13642407
 
 packages <- html_tables(by_name)[[1]]
 dim(packages)
-#> [1] 25407     2
+#> [1] 25335     2
 head(packages)
 #>              V1
 #> 1              
@@ -88,7 +88,7 @@ each package row has a link:
 
 rows <- html_elements(by_name, "table tr:not([id])")
 length(rows)
-#> [1] 25381
+#> [1] 25309
 
 packages <- data.frame(
   package = html_text_clean(html_element(rows, "td:first-child")),
@@ -121,7 +121,7 @@ first <- toupper(substr(packages$package, 1, 1))
 head(sort(table(first), decreasing = TRUE))
 #> first
 #>    S    R    C    M    P    G 
-#> 2865 2400 2055 2037 1819 1504
+#> 2859 2396 2047 2027 1809 1502
 head(packages$package[grepl("\\bshiny\\b", packages$title, ignore.case = TRUE)])
 #> [1] "a11yShiny"     "abstractr"     "activAnalyzer" "adepro"       
 #> [5] "AdverseEvents" "airGRteaching"
@@ -142,20 +142,16 @@ recent <- html_tables(by_date)[[1]]
 names(recent)
 #> [1] "Date"    "Package" "Title"
 head(recent, 3)
-#>         Date   Package
-#> 1 2026-10-10 ardlverse
-#> 2 2026-10-10      bbqr
-#> 3 2026-10-10  estimatr
-#>                                                        Title
-#> 1   Comprehensive ARDL: Panel, Bootstrap and Fourier Methods
-#> 2 Bayesian Quantile Regression with Lasso and Adaptive Lasso
-#> 3                 Fast Estimators for Design-Based Inference
+#>         Date   Package                                             Title
+#> 1 2026-10-13 apsimwise         Unified Access to the APSIMWISE Ecosystem
+#> 2 2026-10-13   basefun Infrastructure for Computing with Basis Functions
+#> 3 2026-10-13     BAwiR                       Analysis of Basketball Data
 
 year <- substr(recent$Date, 1, 4)
 tail(table(year), 8)
 #> year
 #> 2019 2020 2021 2022 2023 2024 2025 2026 
-#>  609  910 1148 1630 2262 2734 5150 9375
+#>  591  879 1148 1629 2256 2729 5131 9446
 ```
 
 Dates stay character, as every cell does: convert them when you know
@@ -164,7 +160,7 @@ they are dates.
 ``` r
 
 range(as.Date(recent$Date))
-#> [1] "2011-09-07" "2026-10-10"
+#> [1] "2011-09-07" "2026-10-13"
 ```
 
 ## Many small tables: CRAN mirrors
@@ -177,7 +173,7 @@ the `<dd>` after it holds a table of that country’s mirrors.
 mirrors_page <- html_read(fetch(paste0(cran, "mirrors.html")))
 countries <- html_elements(mirrors_page, "dt")
 length(countries)
-#> [1] 41
+#> [1] 40
 head(html_text_clean(countries))
 #> [1] "0-Cloud"   "Argentina" "Australia" "Austria"   "Belgium"   "Brazil"
 ```
@@ -194,7 +190,7 @@ mirrors <- do.call(rbind, lapply(countries, function(dt) {
   data.frame(country = html_text_clean(dt), url = rows$V1, host = rows$V2)
 }))
 nrow(mirrors)
-#> [1] 83
+#> [1] 82
 head(mirrors[, c("country", "url")])
 #>     country                                    url
 #> 1   0-Cloud           https://cloud.r-project.org/
@@ -525,7 +521,7 @@ kernel_url <- "https://cdn.kernel.org/pub/linux/kernel/v6.x/"
 kernel <- html_read(fetch(kernel_url), base_url = kernel_url)
 links <- html_elements(kernel, "pre > a:not([href='../'])")
 length(links)
-#> [1] 3728
+#> [1] 3733
 
 after <- html_text(html_next_sibling(links, elements_only = FALSE))
 fields <- strsplit(trimws(after), "[[:space:]]+")
@@ -548,12 +544,12 @@ releases <- data.frame(
 )
 tarballs <- releases[grepl("^linux-6\\.[0-9.]+\\.tar\\.xz$", releases$name), ]
 nrow(tarballs)
-#> [1] 745
+#> [1] 746
 tail(tarballs[, c("name", "date", "size")], 3)
 #>                      name        date      size
-#> 2974 linux-6.19.12.tar.xz 11-Apr-2026 156237824
-#> 2977 linux-6.19.13.tar.xz 18-Apr-2026 156237824
-#> 2980 linux-6.19.14.tar.xz 22-Apr-2026 156237824
+#> 2978 linux-6.19.12.tar.xz 11-Apr-2026 156237824
+#> 2981 linux-6.19.13.tar.xz 18-Apr-2026 156237824
+#> 2984 linux-6.19.14.tar.xz 22-Apr-2026 156237824
 ```
 
 The dates are written like `03-Oct-2022`; month names are English
@@ -566,7 +562,7 @@ invisible(Sys.setlocale("LC_TIME", "C"))
 tarballs$date <- as.Date(tarballs$date, format = "%d-%b-%Y")
 invisible(Sys.setlocale("LC_TIME", old))
 range(tarballs$date)
-#> [1] "2022-10-03" "2026-10-03"
+#> [1] "2022-10-03" "2026-10-11"
 ```
 
 Apache writes the same preformatted layout when fancy indexing is on but
@@ -597,7 +593,7 @@ flavor, is tens of megabytes of HTML: larger than the default
 
 summary_page <- fetch(paste0(cran, "web/checks/check_summary_by_package.html"))
 file.size(summary_page) / 2^20
-#> [1] 52.76758
+#> [1] 52.69448
 err <- tryCatch(html_read(summary_page), zuhtml_limit_error = function(e) e)
 err$limit
 #> [1] "max_input"
@@ -611,16 +607,16 @@ big <- html_limits(max_input = 128 * 2^20, max_memory = 4 * 2^30)
 checks <- html_read(summary_page, limits = big)
 html_info(checks)[c("nodes", "native_bytes", "parse_peak_bytes")]
 #> $nodes
-#> [1] 2604197
+#> [1] 2606877
 #> 
 #> $native_bytes
-#> [1] 168022842
+#> [1] 168024547
 #> 
 #> $parse_peak_bytes
-#> [1] 628610631
+#> [1] 628751600
 status <- html_tables(checks, limits = big)[[1]]
 dim(status)
-#> [1] 26068    17
+#> [1] 26160    17
 names(status)[1:4]
 #> [1] "Package"                               
 #> [2] "Version"                               
@@ -640,6 +636,6 @@ names(status)[1:4]
 #> [3] "r-devel Linux x86_64 (Debian Clang)" "r-devel Linux x86_64 (Debian GCC)"
 table(status[[3]])[1:5]
 #> 
-#>         ERROR ERROR*   FAIL   NOTE 
-#>    730     37      1      1   5525
+#>       ERROR  NOTE NOTE*    OK 
+#>   877    36  5408    12 19786
 ```

@@ -21,7 +21,7 @@ html_json_ld(x, parse = FALSE)
 - parse:
 
   If `TRUE`, parse each block with
-  [`jsonlite::fromJSON()`](https://jeroen.r-universe.dev/jsonlite/reference/fromJSON.html)
+  [`jsonlite::fromJSON()`](https://rdrr.io/pkg/jsonlite/man/fromJSON.html)
   (with `simplifyVector = FALSE`, so objects are named lists and arrays
   are lists). This needs the jsonlite package. A wrapper around the
   whole block, `<![CDATA[ ... ]]>` or `<!-- ... -->`, optionally
