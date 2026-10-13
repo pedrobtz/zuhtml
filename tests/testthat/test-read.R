@@ -91,13 +91,28 @@ test_that("text-mode and closed connections are refused", {
   expect_identical(html_text_clean(html_read(nb)), "x")
   closed <- file(path, "rb")
   close(closed)
-  expect_error(html_read(closed))
+  expect_error(html_read(closed), class = "zuhtml_input_error")
 })
 
-test_that("unreadable URLs are input errors", {
+test_that("unreadable URLs are input errors, without a warning or a leak", {
+  # A file:// URL fails in open(), as an HTTP 404 does, without the network.
   missing <- file.path(withr::local_tempdir(), "none.html")
   url <- paste0(file_url(dirname(missing)), "/none.html")
-  expect_error(html_read(url), class = "zuhtml_input_error")
+  before <- nrow(showConnections(all = TRUE))
+  expect_no_warning(
+    err <- expect_error(html_read(url), class = "zuhtml_input_error")
+  )
+  expect_identical(err$arg, "path")
+  expect_identical(nrow(showConnections(all = TRUE)), before)
+})
+
+test_that("an invalid input's message is not wrapped as an open failure", {
+  expect_snapshot(html_read(1L), error = TRUE)
+  path <- withr::local_tempfile(fileext = ".html")
+  writeLines("<p>x", path)
+  con <- file(path, "r")
+  withr::defer(close(con))
+  expect_snapshot(html_read(con), error = TRUE)
 })
 
 test_that("reading stops at four times max_input", {

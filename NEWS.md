@@ -1,3 +1,15 @@
+# zuhtml 0.1.0.9000
+
+* `html_read()` raises a path, URL or connection that cannot be opened
+  through the new `fail` hook of the shared `zu_source.R` (copied again from
+  zuxml). It was already a `zuhtml_input_error` naming the cause, without
+  R's warning; the change is mostly internal. The connection that failed to
+  open is now destroyed at once rather than left to the garbage collector.
+
+* The message of an invalid `path` (not a string, a directory, a text-mode
+  connection) is no longer wrapped as "Cannot open ...: ..." with a
+  doubled full stop.
+
 # zuhtml 0.1.0
 
 First release.

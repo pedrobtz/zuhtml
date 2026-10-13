@@ -237,30 +237,33 @@ html_read <- function(path, ...) {
   html_parse(bytes, ...)
 }
 
-# zu_open_input(), with its errors and those of opening the connection
-# (a missing file, an unreachable URL) raised as zuhtml_input_error.
+# zu_open_input(), with its errors raised as zuhtml_input_error. A path or
+# URL that cannot be opened (a missing file, an unreachable URL) comes
+# through `fail`, with R's cause as the message and without R's warning.
 zuh_open <- function(path, call) {
-  warned <- NULL
+  what <- if (is.character(path)) sprintf("'%s'", path) else
+    "the connection"
   tryCatch(
-    withCallingHandlers(
-      zu_open_input(path, what = "path", abort = function(arg, message) {
+    zu_open_input(
+      path, what = "path",
+      abort = function(arg, message) {
         zuh_input_error(arg, paste0(toupper(substring(message, 1L, 1L)),
                                     substring(message, 2L), "."),
                         call = call)
-      }),
-      warning = function(w) {
-        warned <<- conditionMessage(w)
-        invokeRestart("muffleWarning")
+      },
+      fail = function(message) {
+        zuh_input_error("path", sprintf("Cannot open %s: %s.", what, message),
+                        call = call)
       }
     ),
-    zuhtml_error = function(e) stop(e),
     error = function(e) {
-      what <- if (is.character(path)) sprintf("'%s'", path) else
-        "the connection"
+      # The errors of `abort` and `fail` are already ours. (A separate
+      # zuhtml_error handler would re-raise into this one.)
+      if (inherits(e, "zuhtml_error")) stop(e)
+      # A connection that was closed, and so destroyed, fails in isOpen()
+      # before any open is tried: "invalid connection".
       zuh_input_error(
-        "path",
-        sprintf("Cannot open %s: %s.", what,
-                if (is.null(warned)) conditionMessage(e) else warned),
+        "path", sprintf("Cannot open %s: %s.", what, conditionMessage(e)),
         call = call
       )
     }
