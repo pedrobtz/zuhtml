@@ -1,6 +1,7 @@
 # zuhtml
 
 <!-- badges: start -->
+[![CRAN status](https://www.r-pkg.org/badges/version/zuhtml)](https://CRAN.R-project.org/package=zuhtml)
 [![R-CMD-check](https://github.com/pedrobtz/zuhtml/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/pedrobtz/zuhtml/actions/workflows/R-CMD-check.yaml)
 [![coverage](https://raw.githubusercontent.com/pedrobtz/zuhtml/main/.github/badges/coverage.svg)](https://github.com/pedrobtz/zuhtml/actions/workflows/coverage.yaml)
 <!-- badges: end -->
