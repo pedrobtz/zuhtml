@@ -11,3 +11,8 @@
 ^src/.*\.o$
 ^src/.*\.(so|dll|dylib|a)$
 ^vignettes/articles$
+^\.superpowers$
+^\.worktrees$
+^\.claude$
+^AGENTS\.md$
+^CRAN-SUBMISSION$
