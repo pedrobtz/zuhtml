@@ -47,82 +47,85 @@
 <!-- markdownlint-disable-next-line MD013 -->
 <p>This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.</p>
 <div class="section level2">
+<h2 id="shared-conventions">Shared conventions<a class="anchor" aria-label="anchor" href="#shared-conventions"></a></h2>
+<p>The portfolio’s shared rules are synced into <code>.claude/shared/</code> from <code>pedrobtz/packages:claude/shared/</code>. Never edit them here. Where this file and a shared file disagree, this file wins for this package.</p>
+<p>@.claude/shared/workflow.md @.claude/shared/r-package.md @.claude/shared/ci.md @.claude/shared/native-code.md @.claude/shared/correctness.md @.claude/shared/assurance.md</p>
+</div>
+<div class="section level2">
 <h2 id="what-this-is">What this is<a class="anchor" aria-label="anchor" href="#what-this-is"></a></h2>
 <p>An R package that parses real-world HTML with a <strong>vendored copy of the Gumbo parser</strong> (the maintained fork at <a href="https://codeberg.org/gumbo-parser/gumbo-parser" class="external-link uri">https://codeberg.org/gumbo-parser/gumbo-parser</a>) and extracts R objects from it: nodesets selected by a CSS subset, attributes, text, and ordinary data frames from lists, tables and links. No system HTML library, no libxml2, no Python, no browser. Zero hard runtime dependencies. It deliberately has no HTTP client, and does not execute JavaScript, sanitize, mutate the DOM or support XPath. <code><a href="reference/html_parse.html">html_read()</a></code> reads a path, a URL (through base R’s <code><a href="https://rdrr.io/r/base/connections.html" class="external-link">url()</a></code>) or a connection; a fetcher such as <code>zuhttp</code> hands it a string for anything more.</p>
 <p>Two documents outrank this file. <a href=".agents/design.html">.agents/design.md</a> is the specification of every contract. <a href=".agents/roadmap.html">.agents/roadmap.md</a> is the stage-by-stage plan to 0.1.0; its opening review records where the design was found wrong by measurement and the seven amendments the design still owes. <code>CLAUDE.md</code> orients, the design decides, the roadmap sequences.</p>
-<p>The sibling package <code>zuxml</code> (Expat, same author) is the pattern to copy for vendoring, the immutable index-addressed arena, vectorized nodesets, gate scripts and CRAN comments. zuhtml does not depend on it or share code with it.</p>
+<p>The sibling package <code>zuxml</code> (Expat, same author) is the pattern to copy for vendoring, the immutable index-addressed arena, vectorized nodesets, gate scripts and CRAN comments. zuhtml does not depend on it or share code with it, apart from <code>R/zu_source.R</code>, which is copied verbatim from zuxml.</p>
 </div>
 <div class="section level2">
 <h2 id="current-state">Current state<a class="anchor" aria-label="anchor" href="#current-state"></a></h2>
-<p>Stages 0 to 16 are done. Stages 10 to 15 widened 0.1.0 after a survey of other languages’ HTML libraries, adding: - <code><a href="reference/html_closest.html">html_closest()</a></code>, <code><a href="reference/html_strings.html">html_strings()</a></code> and <code>pretty =</code>; - page metadata; - table options; - <code><a href="reference/html_markdown.html">html_markdown()</a></code> in <code>src/zuh_markdown.c</code>; - <code>&lt;meta&gt;</code> encoding sniffing; - <code><a href="reference/html_forms.html">html_forms()</a></code>.</p>
-<p>Every export is documented with runnable examples and a family. Four vignettes and a pkgdown-only article of real pages are written, and so is <code>cran-comments.md</code>. Gumbo 0.14.0 is vendored with a six-patch series.</p>
-<p>Stage 16 made <code><a href="reference/html_parse.html">html_read()</a></code> read URLs and connections. Stage 17 (the 0.1.0 release) is next. It refreshes the CRAN preparation and needs the maintainer: the CRAN submission and the upstream reports are theirs to make. The probe harness (<a href=".agents/probe-gumbo.c">.agents/probe-gumbo.c</a>) holds the measurements the roadmap cites.</p>
-<p>The roadmap’s <strong>Status:</strong> line under each stage is authoritative for progress; update it there, not here.</p>
+<p>Version 0.1.0 is on CRAN, published 2026-10-06 (crandb, checked 2026-11-11). The default branch is <code>0.1.0.9000</code>; its <code>NEWS.md</code> section holds the <code><a href="reference/html_parse.html">html_read()</a></code> open-failure change made through <code>zu_source.R</code>’s <code>fail</code> hook.</p>
+<p>All eighteen roadmap stages, 0 to 17, are done; Stage 17 was the 0.1.0 release. Stages 10 to 15 widened 0.1.0 after a survey of other languages’ HTML libraries, adding:</p>
+<ul><li>
+<code><a href="reference/html_closest.html">html_closest()</a></code>, <code><a href="reference/html_strings.html">html_strings()</a></code> and <code>pretty =</code>;</li>
+<li>page metadata;</li>
+<li>table options;</li>
+<li>
+<code><a href="reference/html_markdown.html">html_markdown()</a></code> in <code>src/zuh_markdown.c</code>;</li>
+<li>
+<code>&lt;meta&gt;</code> encoding sniffing;</li>
+<li>
+<code><a href="reference/html_forms.html">html_forms()</a></code>.</li>
+</ul><p>Stage 16 made <code><a href="reference/html_parse.html">html_read()</a></code> read URLs and connections. Every export is documented with runnable examples and a family. Four vignettes and a pkgdown-only article of real pages are written. Gumbo 0.14.0 is vendored with a six-patch series. The upstream reports of the patched Gumbo bugs are the maintainer’s to make. The probe harness (<a href=".agents/probe-gumbo.c">.agents/probe-gumbo.c</a>) holds the measurements the roadmap cites.</p>
+<p>The roadmap’s <strong>Status:</strong> line under each stage is authoritative for progress; update it there, not here. Status never goes in a stage heading: it would change the anchor every stage issue links to.</p>
 </div>
 <div class="section level2">
-<h2 id="stage-tracking">Stage tracking<a class="anchor" aria-label="anchor" href="#stage-tracking"></a></h2>
-<p>Progress toward the next version is tracked as GitHub sub-issues, so the parent issue shows a progress bar such as “6 of 7”.</p>
-<ul><li>
-<strong>One parent issue per target version</strong>, titled with the bare version, for example <code>v0.1.0</code> (#2). Stages 0 to 9 are sub-issues #3 to #12, Stages 10 to 15 are #26 to #31, Stage 16 is #40 and Stage 17 (the release) is #13, renumbered twice.</li>
-<li>
-<strong>One sub-issue per roadmap stage</strong>, titled as the roadmap titles it, for example <code>Stage 2 — Ledger, abort and limits (the safety seam)</code>, linking to that section’s anchor. The roadmap has eighteen stages, 0 to 17.</li>
-<li><strong>Every tracking issue carries the <code>stage</code> label.</strong></li>
-<li>
-<strong>Close a stage by merging its pull request.</strong> Put <code>Closes #&lt;n&gt;</code> in the body. Never close a stage whose exit criteria are not met; record a deviation in the stage’s <strong>Status:</strong> line first.</li>
-<li>
-<strong>The roadmap stays authoritative.</strong> Adding, removing or renaming a stage means editing the roadmap and the sub-issues in the same change. Status never goes in a heading: it would change the anchor every issue links to.</li>
-<li>Close the parent issue when the version is tagged and released.</li>
-</ul></div>
-<div class="section level2">
-<h2 id="versioning">Versioning<a class="anchor" aria-label="anchor" href="#versioning"></a></h2>
-<p>The first CRAN release is <code>0.1.0</code>. Until then the public API may change freely; there are no reverse dependencies. After it, use the <code>.9000</code> development convention. The roadmap’s scope table lists the 33 exports that 0.1.0 ships and what is deferred; an argument or helper left out can be added in a patch release, one shipped is a commitment.</p>
+<h2 id="versions-and-dependents">Versions and dependents<a class="anchor" aria-label="anchor" href="#versions-and-dependents"></a></h2>
+<p>The current version’s parent issue is <code>#48</code> for <code>v0.1.1</code>. The <code>v0.1.0</code> parent was <code>#2</code>: Stages 0 to 9 were sub-issues #3 to #12, Stages 10 to 15 #26 to #31, Stage 16 #40 and Stage 17 (the release) #13, renumbered twice.</p>
+<p>Sibling packages that depend on this one: <code>zuhttp</code> lists <code>zuhtml (&gt;= 0.1.0)</code> in <code>Suggests</code> (local clones, 2026-11-11).</p>
+<p>The roadmap’s scope table lists the 33 exports that 0.1.0 ships and what is deferred. An argument or helper left out can be added in a patch release; one shipped is a commitment.</p>
 </div>
 <div class="section level2">
 <h2 id="commands">Commands<a class="anchor" aria-label="anchor" href="#commands"></a></h2>
-<p>Run from the package root.</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="ex">Rscript</span> <span class="at">-e</span> <span class="st">'devtools::load_all()'</span>                <span class="co"># compile src/ and load</span></span>
-<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="ex">Rscript</span> <span class="at">-e</span> <span class="st">'devtools::document()'</span>                <span class="co"># roxygen -&gt; NAMESPACE, man/</span></span>
-<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="ex">Rscript</span> <span class="at">-e</span> <span class="st">'devtools::test()'</span>                    <span class="co"># full testthat suite</span></span>
-<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a><span class="ex">Rscript</span> <span class="at">-e</span> <span class="st">'devtools::test(filter = "&lt;name&gt;")'</span>   <span class="co"># one test file</span></span>
-<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a><span class="ex">Rscript</span> <span class="at">-e</span> <span class="st">'devtools::test(shuffle = TRUE)'</span>      <span class="co"># order independence</span></span>
-<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a><span class="ex">Rscript</span> <span class="at">-e</span> <span class="st">'devtools::check()'</span>                   <span class="co"># R CMD check</span></span>
-<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a><span class="ex">air</span> format .                                     <span class="co"># format R sources</span></span></code></pre></div>
-<p>Gate scripts, each run from the package root:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="ex">tools/update-gumbo</span> 0.14.0      <span class="co"># re-vendor: download, verify, copy, patch, PROVENANCE</span></span>
-<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="ex">tools/verify-vendor</span>            <span class="co"># vendor tree == archive + patches   (CI: hardening)</span></span>
-<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="ex">tools/verify-vendor</span> <span class="at">--canary</span>   <span class="co"># must pass by seeing a dropped patch (CI: hardening)</span></span>
-<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="ex">tools/run-lint</span>                 <span class="co"># strict warnings; no stdio symbols  (CI: hardening)</span></span>
-<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="ex">tools/run-lint</span> <span class="at">--canary</span>        <span class="co"># flags reject a planted warning; symbol</span></span>
-<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>                               <span class="co"># check sees 0002 reversed        (CI: hardening)</span></span>
-<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a><span class="ex">tools/run-conformance</span>          <span class="co"># html5lib tree-construction fixtures vs the tree</span></span>
-<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>                               <span class="co"># dump, plus a serialize-reparse round trip;</span></span>
-<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>                               <span class="co"># --canary and --canary-serialize must fail</span></span>
-<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a>                               <span class="co">#                                    (CI: hardening)</span></span>
-<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a><span class="ex">tools/run-fuzz</span> <span class="pp">[</span><span class="ss">secs</span><span class="pp">]</span>          <span class="co"># fuzz_selector, fuzz_parse, fuzz_roundtrip under</span></span>
-<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a>                               <span class="co"># ASan+UBSan: libFuzzer, or a standalone mutation</span></span>
-<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a>                               <span class="co"># loop where it is missing (macOS); seeds include</span></span>
-<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a>                               <span class="co"># every conformance #data block; fuzz_canary must</span></span>
-<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a>                               <span class="co"># crash first. 60 s per push, 30 min nightly</span></span>
-<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a>                               <span class="co">#                                    (CI: hardening)</span></span>
-<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a><span class="ex">tools/run-sanitizers</span>           <span class="co"># ASan+UBSan seam driver, fault injection at every</span></span>
-<span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a>                               <span class="co"># allocation index, overflow canary; leak check and</span></span>
-<span id="cb2-19"><a href="#cb2-19" tabindex="-1"></a>                               <span class="co"># leak canary with ASAN_OPTIONS=detect_leaks=1</span></span>
-<span id="cb2-20"><a href="#cb2-20" tabindex="-1"></a>                               <span class="co">#                                    (CI: hardening)</span></span></code></pre></div>
-<p>tools/corpus/fetch # fetch the external HTML corpus: 522 real pages # from Readability, htmlparser-benchmark, pandas tools/corpus/run [–record] # compare what zuhtml makes of each page with # expected.tsv; –canary must fail (CI: corpus) tools/run-benchmarks # parse, select and table timings with native # memory, per input shape; not a CI gate Add each here when it lands, and say whether CI runs it.</p>
+<p>The everyday <code>devtools</code> commands are in <code>.claude/shared/r-package.md</code>. Gate scripts, each run from the package root:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="ex">tools/update-gumbo</span> 0.14.0      <span class="co"># re-vendor: download, verify, copy, patch, PROVENANCE</span></span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="ex">tools/verify-vendor</span>            <span class="co"># vendor tree == archive + patches   (CI: hardening)</span></span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a><span class="ex">tools/verify-vendor</span> <span class="at">--canary</span>   <span class="co"># must pass by seeing a dropped patch (CI: hardening)</span></span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a><span class="ex">tools/run-lint</span>                 <span class="co"># strict warnings; no stdio symbols  (CI: hardening)</span></span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a><span class="ex">tools/run-lint</span> <span class="at">--canary</span>        <span class="co"># flags reject a planted warning; symbol</span></span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a>                               <span class="co"># check sees 0002 reversed        (CI: hardening)</span></span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a><span class="ex">tools/run-conformance</span>          <span class="co"># html5lib tree-construction fixtures vs the tree</span></span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a>                               <span class="co"># dump, plus a serialize-reparse round trip;</span></span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a>                               <span class="co"># --canary and --canary-serialize must fail</span></span>
+<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a>                               <span class="co">#                                    (CI: hardening)</span></span>
+<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a><span class="ex">tools/run-fuzz</span> <span class="pp">[</span><span class="ss">secs</span><span class="pp">]</span>          <span class="co"># fuzz_selector, fuzz_parse, fuzz_roundtrip under</span></span>
+<span id="cb1-12"><a href="#cb1-12" tabindex="-1"></a>                               <span class="co"># ASan+UBSan: libFuzzer, or a standalone mutation</span></span>
+<span id="cb1-13"><a href="#cb1-13" tabindex="-1"></a>                               <span class="co"># loop where it is missing (macOS); seeds include</span></span>
+<span id="cb1-14"><a href="#cb1-14" tabindex="-1"></a>                               <span class="co"># every conformance #data block; fuzz_canary must</span></span>
+<span id="cb1-15"><a href="#cb1-15" tabindex="-1"></a>                               <span class="co"># crash first. 60 s per push, 30 min nightly</span></span>
+<span id="cb1-16"><a href="#cb1-16" tabindex="-1"></a>                               <span class="co">#                                    (CI: hardening)</span></span>
+<span id="cb1-17"><a href="#cb1-17" tabindex="-1"></a><span class="ex">tools/run-sanitizers</span>           <span class="co"># ASan+UBSan seam driver, fault injection at every</span></span>
+<span id="cb1-18"><a href="#cb1-18" tabindex="-1"></a>                               <span class="co"># allocation index, overflow canary; leak check and</span></span>
+<span id="cb1-19"><a href="#cb1-19" tabindex="-1"></a>                               <span class="co"># leak canary with ASAN_OPTIONS=detect_leaks=1</span></span>
+<span id="cb1-20"><a href="#cb1-20" tabindex="-1"></a>                               <span class="co">#                                    (CI: hardening)</span></span>
+<span id="cb1-21"><a href="#cb1-21" tabindex="-1"></a><span class="ex">tools/corpus/fetch</span>             <span class="co"># fetch the external HTML corpus: 522 real pages</span></span>
+<span id="cb1-22"><a href="#cb1-22" tabindex="-1"></a>                               <span class="co"># from Readability, htmlparser-benchmark, pandas</span></span>
+<span id="cb1-23"><a href="#cb1-23" tabindex="-1"></a><span class="ex">tools/corpus/run</span> <span class="pp">[--</span><span class="ss">record</span><span class="pp">]</span>    <span class="co"># compare what zuhtml makes of each page with</span></span>
+<span id="cb1-24"><a href="#cb1-24" tabindex="-1"></a>                               <span class="co"># expected.tsv; --canary must fail   (CI: corpus)</span></span>
+<span id="cb1-25"><a href="#cb1-25" tabindex="-1"></a><span class="ex">tools/run-benchmarks</span>           <span class="co"># parse, select and table timings with native</span></span>
+<span id="cb1-26"><a href="#cb1-26" tabindex="-1"></a>                               <span class="co"># memory, per input shape; not a CI gate</span></span></code></pre></div>
+<p>Add each new gate here when it lands, and say whether CI runs it.</p>
 </div>
 <div class="section level2">
 <h2 id="architecture">Architecture<a class="anchor" aria-label="anchor" href="#architecture"></a></h2>
-<p>Planned layout, from design §13 and the roadmap. The html5lib fixtures live in <code>tools/conformance/</code>. So far <code>R/attributes.R</code>, <code>R/conditions.R</code>, <code>R/info.R</code>, <code>R/limits.R</code>, <code>R/node.R</code>, <code>R/nodeset.R</code>, <code>R/parse.R</code>, <code>R/select.R</code>, <code>R/text.R</code>, <code>R/write.R</code>, <code>R/list.R</code>, <code>R/table.R</code>, <code>R/links.R</code>, <code>src/init.c</code>, <code>src/r_api.c</code>, <code>src/r_extract.c</code>, <code>src/r_node.c</code>, <code>src/r_select.c</code>, <code>src/zuh_buf.[ch]</code>, <code>src/zuh_selector.[ch]</code>, <code>src/zuh_table.[ch]</code>, <code>src/zuh_text.[ch]</code>, <code>src/zuh_write.[ch]</code>, <code>fuzz/</code>, <code>src/zuh_gumbo.[ch]</code>, <code>src/zuh_memory.[ch]</code>, <code>src/zuh_document.[ch]</code>, <code>src/zuh_status.h</code>, <code>src/zuh_r.h</code>, <code>src/vendor/</code> and the vendoring, lint and sanitizer scripts in <code>tools/</code> exist.</p>
-<pre><code>R/                 parse.R, conditions.R, info.R, node.R, nodeset.R, select.R,
+<p>The layout, from design §13 and the roadmap. The html5lib fixtures live in <code>tools/conformance/</code>.</p>
+<pre class="text"><code>R/                 parse.R, conditions.R, info.R, node.R, nodeset.R, select.R,
                    attributes.R, text.R, write.R, list.R, table.R, links.R,
                    metadata.R, markdown.R, sniff.R, forms.R,
                    zu_source.R (copied verbatim from zuxml; edit there)
-src/               init.c, r_api.c                       R-facing glue only
-                   zuh_gumbo.c                            version-specific Gumbo adapter
-                   zuh_memory.c                           allocation ledger, abort, limits
-                   zuh_document.[ch]                      frozen immutable arena
+src/               init.c, r_api.c, r_node.c, r_select.c, r_extract.c
+                                        R-facing glue only
+                   zuh_gumbo.c          version-specific Gumbo adapter
+                   zuh_memory.c         allocation ledger, abort, limits
+                   zuh_document.[ch]    frozen immutable arena
                    zuh_selector.c, zuh_text.c, zuh_table.c, zuh_write.c,
-                   zuh_markdown.c
+                   zuh_markdown.c, zuh_buf.c
+                   zuh_status.h, zuh_r.h
                    Makevars, vendor/gumbo/, vendor/PROVENANCE
 tools/             gate scripts, patches/, conformance/ fixtures (not in the tarball)
 fuzz/              libFuzzer targets over the C core
@@ -164,81 +167,83 @@ fuzz/              libFuzzer targets over the C core
 <li>
 <strong>Conversion allocations count toward fault injection.</strong> Use <code>conv_malloc()</code> in <code>zuh_gumbo.c</code> for anything conversion allocates, so “fail every allocation index” keeps covering it.</li>
 <li>
-<strong>Errors are classed conditions</strong> under <code>zuhtml_error</code>, with the subclasses listed in design §12. C returns a status enum (<code>src/zuh_status.h</code>); R maps the enumerator (<code>zuh_status_names</code> in <code>R/parse.R</code>, same order), never the message text.</li>
+<strong>Errors are classed conditions</strong> under <code>zuhtml_error</code>, with the subclasses listed in design §12. C returns a status enum (<code>src/zuh_status.h</code>); R maps the enumerator (<code>zuh_status_names</code> in <code>R/parse.R</code>, same order), never the message text. Tests assert <code>class = "zuhtml_&lt;kind&gt;_error"</code>.</li>
 <li>
 <strong>A document is owned by its external pointer from birth.</strong> <code>C_zuh_doc_new()</code> makes the pointer and finalizer before parsing; <code>C_zuh_parse()</code> stores the malloc’d document in it before Gumbo runs. Keep every R allocation outside the window between <code>zuh_doc_new()</code> and that store.</li>
 <li>
 <strong>Do not trust <code><a href="https://rdrr.io/r/base/iconv.html" class="external-link">iconv()</a></code>’s failure signal on raw input.</strong> It can return the input unchanged (macOS) or with a NUL in it (Windows). UTF-16 is decoded in R (<code>zuh_utf16()</code>); for the ASCII-compatible rest, <code>zuh_iconv()</code> converts twice with different <code>sub=</code> bytes and rejects unchanged non-ASCII output, any NUL, and invalid UTF-8.</li>
+<li>
+<strong>A contract change amends the design in the same commit.</strong> The contracts are the exports, the limits, the patch series and the arena layout.</li>
 </ul></div>
 <div class="section level2">
-<h2 id="testing-conventions">Testing conventions<a class="anchor" aria-label="anchor" href="#testing-conventions"></a></h2>
+<h2 id="editing-rules">Editing rules<a class="anchor" aria-label="anchor" href="#editing-rules"></a></h2>
+<p>Additions to, and deviations from, <code>.claude/shared/r-package.md</code>:</p>
 <ul><li>
-<strong>Self-sufficient.</strong> Every test builds its own inputs inside the <code>test_that()</code> block. No file-scope objects.</li>
-<li>
-<strong>Self-contained.</strong> Global state goes through <code>withr::local_*()</code>, randomised input through <code><a href="https://withr.r-lib.org/reference/with_seed.html" class="external-link">withr::local_seed()</a></code>. Tests write only under <code><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir()</a></code>.</li>
-<li>
-<strong>Assert on condition classes, never message text.</strong> Use <code>expect_error(..., class = "zuhtml_&lt;kind&gt;_error")</code>. Wording belongs in snapshot tests.</li>
-<li>
-<strong>Order independence.</strong> <code>devtools::test(shuffle = TRUE)</code> is part of the definition of done.</li>
-<li>
-<strong>Borrow a conformance suite before writing one.</strong> Gumbo 0.14.0 ships 61 html5lib/WPT tree-construction <code>.dat</code> files under <code>tests/tree_construction/</code>; they become <code>tools/conformance/</code> and the <code>run-conformance</code> gate, with a hand-picked dozen copied into <code>tests/testthat/fixtures/</code> for CRAN. They cover tree construction only, not selectors, text cleaning, tables or URLs. For URL resolution, RFC 3986 §5.4 lists the normal and abnormal examples verbatim; use them as-is. Serialization round-trip is an adjudicated oracle, not an axiom: the HTML spec does not guarantee it, so known non-fixed-points are listed rather than asserted away.</li>
-<li>
-<strong>Never test through Python.</strong> Beautiful Soup and pandas are exploratory comparators only; nothing under <code>tests/</code> may need them.</li>
+<strong>Deviation: there is no <code>README.Rmd</code>.</strong> Edit <code>README.md</code> directly, and keep its example output in step with the code by running it.</li>
+<li>Vignettes live in <code>vignettes/</code> and run under R CMD check (<code>^vignettes$</code> is not in <code>.Rbuildignore</code>); keep them fast. <code>_pkgdown.yml</code> lists every export and article: add new ones there.</li>
+<li>Exported functions are <code>html_*</code> plus <code><a href="reference/zuhtml_info.html">zuhtml_info()</a></code>; native symbols are prefixed <code>zuh_</code>.</li>
+<li>Base data frames and list-columns, never tibble.</li>
+<li>Every export needs <code>@return</code> and runnable <code>@examples</code>.</li>
+</ul></div>
+<div class="section level2">
+<h2 id="testing">Testing<a class="anchor" aria-label="anchor" href="#testing"></a></h2>
+<ul><li>
+<strong>Conformance suite.</strong> Gumbo 0.14.0 ships 61 html5lib/WPT tree-construction <code>.dat</code> files under <code>tests/tree_construction/</code>; they become <code>tools/conformance/</code> and the <code>run-conformance</code> gate. They cover tree construction only, not selectors, text cleaning, tables or URLs. For URL resolution, RFC 3986 §5.4 lists the normal and abnormal examples verbatim; use them as-is.</li>
 <li>
 <strong>The CRAN-sized conformance subset</strong> is <code>tests/testthat/fixtures/tree-construction.dat</code>: twelve cases copied verbatim, read by <code>read_dat()</code> in <code>helper-dat.R</code>. They are WPT material (3-Clause BSD): <code>inst/COPYRIGHTS</code> carries the notice, and any new fixture from elsewhere needs its own entry there.</li>
 <li>
+<strong>Round-trip non-fixed-points are adjudicated, not asserted away.</strong> Serialization round-trip is an adjudicated oracle, not an axiom: the HTML spec does not guarantee it. <code>tools/conformance/roundtrip-deviations.txt</code> lists each known non-fixed-point with its category and reason; the gate fails if the list and the results disagree either way.</li>
+<li>
+<strong>Never test through Python.</strong> Beautiful Soup and pandas are exploratory comparators only; nothing under <code>tests/</code> may need them.</li>
+<li>
 <strong>The external corpus records outcomes, not passes.</strong> <code>tools/corpus/</code> pins 522 real pages from other projects by commit and checksum (not committed) and records, per page, nodes, problems, table cells, list items, links, a hash of the cleaned text and the round-trip result. Any change in any column fails <code>tools/corpus/run</code>: understand it, then <code>--record</code>. A page that exposes a bug becomes a small fixture in <code>tests/testthat/</code>, never the page itself.</li>
 <li>
-<strong>Real-world fixtures must be redistributable.</strong> <code>tests/testthat/fixtures/ realworld/</code> ships pandas’ public-domain (FDIC, USDA) and synthetic tables and Readability’s synthetic pages with its expected output, which serves as an oracle for <code><a href="reference/html_text_clean.html">html_text_clean()</a></code> and <code><a href="reference/html_url.html">html_url()</a></code>. Saved news articles and site front pages stay in <code>tools/corpus/</code>: their content is the sites’ copyright, whatever licence the collecting project uses. Add a notice to <code>inst/COPYRIGHTS</code> with any new fixture source.</li>
+<strong>Real-world fixtures must be redistributable.</strong> <code>tests/testthat/fixtures/realworld/</code> ships pandas’ public-domain (FDIC, USDA) and synthetic tables and Readability’s synthetic pages with its expected output, which serves as an oracle for <code><a href="reference/html_text_clean.html">html_text_clean()</a></code> and <code><a href="reference/html_url.html">html_url()</a></code>. Saved news articles and site front pages stay in <code>tools/corpus/</code>: their content is the sites’ copyright, whatever licence the collecting project uses. Add a notice to <code>inst/COPYRIGHTS</code> with any new fixture source.</li>
 <li>
-<strong>Round-trip non-fixed-points are adjudicated, not asserted away.</strong> <code>tools/conformance/roundtrip-deviations.txt</code> lists each with its category and reason; the gate fails if the list and the results disagree either way.</li>
-<li>
-<strong>Helpers live in <code>tests/testthat/helper-*.R</code>.</strong> <code>helper-tree.R</code> renders a document in the html5lib test format (<code>tree_lines()</code>) through the internal <code>C_zuh_doc_dump</code>, which is also what the conformance gate compares; <code>doc_meta()</code> reads the internal document metadata.</li>
+<strong>Helpers.</strong> <code>helper-tree.R</code> renders a document in the html5lib test format (<code>tree_lines()</code>) through the internal <code>C_zuh_doc_dump</code>, which is also what the conformance gate compares; <code>doc_meta()</code> reads the internal document metadata. <code>helper-dat.R</code> has <code>read_dat()</code>; <code>helper-timing.R</code> has <code>timing_asserted()</code>.</li>
 <li>
 <strong>Fault injection from R</strong> goes through the internal <code>zuh_parse_bytes(..., fail_at = k)</code>. The exhaustive run over every index, with leak detection, is <code>tools/run-sanitizers</code>.</li>
 <li>
 <strong>Interrupts are tested with <code><a href="https://rdrr.io/r/base/setTimeLimit.html" class="external-link">setTimeLimit()</a></code></strong>, which R enforces where the C loops poll <code>R_CheckUserInterrupt()</code> (<code>test-interrupt.R</code>). Every R-facing loop over the frozen document polls.</li>
 <li>
-<strong>Timing assertions are opt-in</strong>: wrap them in <code>timing_asserted()</code> (<code>helper-timing.R</code>), true only where <code>ZUHTML_TIMING_TESTS=true</code>, which only <code>R-CMD-check.yaml</code> sets. Sanitizer, valgrind, gctorture, coverage and emulated builds are many times slower; the first native-checks run failed on exactly that.</li>
+<strong>Timing assertions are opt-in</strong>: wrap them in <code>timing_asserted()</code>, true only where <code>ZUHTML_TIMING_TESTS=true</code>, which only <code>R-CMD-check.yaml</code> sets. Sanitizer, valgrind, gctorture, coverage and emulated builds are many times slower; the first native-checks run failed on exactly that.</li>
 <li>
-<strong>Stage pull requests carry the <code>full-ci</code> label</strong>, so the full R CMD check matrix (all three platforms) runs before merge rather than only after.</li>
-<li>
-<strong>Keep the suite inside the CRAN time budget.</strong> About 4 s under <code>R CMD check</code> (2026-09-24); the heavy tests (16 MiB inputs, interrupts) are <code>skip_on_cran()</code>.</li>
+<strong>Runtime.</strong> About 4 s under <code>R CMD check</code> (2026-09-24); the heavy tests (16 MiB inputs, interrupts) are <code>skip_on_cran()</code>.</li>
+</ul><div class="section level3">
+<h3 id="definition-of-done-in-addition-to-the-shared-one">Definition of done, in addition to the shared one<a class="anchor" aria-label="anchor" href="#definition-of-done-in-addition-to-the-shared-one"></a></h3>
+<ul><li>
+<code>gctorture(TRUE)</code> clean when C changed.</li>
+<li>A stage is done when its exit criteria pass in CI on all three platforms, not when the code is written.</li>
+<li>A gate counts once it has been seen to fail.</li>
 </ul></div>
-<div class="section level2">
-<h2 id="definition-of-done">Definition of done<a class="anchor" aria-label="anchor" href="#definition-of-done"></a></h2>
-<p><code>devtools::document()</code> and <code>devtools::check()</code> clean, meaning 0 errors, 0 warnings and 0 notes. <code>devtools::test(shuffle = TRUE)</code> green. <code>gctorture(TRUE)</code> clean when C changed. CI green on every leg. A user-facing change also needs a test, roxygen documentation and a <code>NEWS.md</code> entry. A change to a contract (the exports, limits, the patch series, the arena layout) amends the design in the same commit. A stage is done when its exit criteria pass in CI on all three platforms, not when the code is written; a gate counts once it has been seen to fail.</p>
 </div>
-<div class="section level2">
-<h2 id="editing-rules">Editing rules<a class="anchor" aria-label="anchor" href="#editing-rules"></a></h2>
-<ul><li>roxygen comments are the source. Never edit <code>man/</code> or <code>NAMESPACE</code> by hand.</li>
-<li>There is no <code>README.Rmd</code>; edit <code>README.md</code> directly, and keep its example output in step with the code by running it.</li>
-<li>Vignettes live in <code>vignettes/</code> and run under R CMD check; keep them fast. <code>_pkgdown.yml</code> lists every export and article: add new ones there.</li>
-<li>Keep prose simple and short. One idea per sentence.</li>
-<li>Wrap roxygen text at 80 characters and run <code>air format .</code> on R sources.</li>
-<li>Use <code>lower_snake_case</code>; exported functions are <code>html_*</code> plus <code><a href="reference/zuhtml_info.html">zuhtml_info()</a></code>; native symbols are prefixed <code>zuh_</code>.</li>
-<li>Keep hard runtime dependencies at zero. Base data frames and list-columns, never tibble.</li>
-<li>Export and document public functions. Do not create roxygen topics for internal ones. Every export needs <code>@return</code> and runnable <code>@examples</code>.</li>
-</ul></div>
 <div class="section level2">
 <h2 id="continuous-integration">Continuous integration<a class="anchor" aria-label="anchor" href="#continuous-integration"></a></h2>
-<p>Workflows come from <code>pedrobtz/r-actions</code>, pinned at <code>@v1</code>: <code>r-cmd-check.yml</code> (quick profile on pull requests, full on <code>main</code> or with the <code>full-ci</code> label), <code>coverage.yml</code> (writes the badge under <code>.github/badges/</code>) and <code>pkgdown.yml</code>. <code>hardening.yaml</code> runs every gate above with its canary, plus a nightly long fuzz run. <code>native-checks.yaml</code> runs R CMD check instrumented, through r-actions: UBSan and ASan, valgrind with leak checking, gctorture and rchk (hard-failing). The R CMD check matrix adds Windows on R-devel to r-actions’ defaults.</p>
-</div>
+<ul><li>
+<code>R-CMD-check.yaml</code> calls r-actions’ <code>r-cmd-check.yml@v1</code> and adds Windows on R-devel to the default runners, the combination CRAN’s incoming pretest runs. <strong>Deviation from <code>ci.md</code>:</strong> it runs the quick profile on pull requests and the full profile on every push to <code>main</code> or with the <code>full-ci</code> label, rather than quick after merge. It alone sets <code>ZUHTML_TIMING_TESTS=true</code>.</li>
+<li>
+<strong>Deviation from <code>ci.md</code>:</strong> stage pull requests carried the <code>full-ci</code> label, so the full R CMD check matrix (all three platforms) ran before merge rather than only after.</li>
+<li>
+<code>coverage.yaml</code> calls <code>coverage.yml@v1</code> and writes the badge under <code>.github/badges/</code>.</li>
+<li>
+<code>native-checks.yaml</code> runs R CMD check instrumented through r-actions: <code>sanitizers.yml</code> (UBSan and ASan), <code>valgrind.yml</code> with leak checking, <code>gctorture.yml</code>, <code>rchk.yml</code> (hard-failing) and <code>cran-special.yml</code>.</li>
+<li>
+<code>hardening.yaml</code> (own) runs every gate script above with its canary, plus a nightly 30-minute fuzz run.</li>
+<li>
+<code>corpus.yaml</code> (own) fetches the external corpus and runs <code>tools/corpus/run</code>. It is separate because it fetches 52 MB over the network, which the package’s own checks must never depend on; one platform is enough.</li>
+<li>
+<code>pkgdown.yaml</code> (own, from r-lib/actions’ example) builds and deploys the site.</li>
+<li>The own workflows gate with <code>paths-ignore</code>, not <code>changes.yml</code> as <code>ci.md</code> asks; migrating them is open work.</li>
+</ul></div>
 <div class="section level2">
 <h2 id="vendored-native-code">Vendored native code<a class="anchor" aria-label="anchor" href="#vendored-native-code"></a></h2>
 <p>Gumbo, the codeberg fork, <strong>Apache-2.0</strong>, pinned at <strong>0.14.0</strong> (tag commit <code>f7145e6e7700</code>, archive SHA-256 <code>eac82480b916d520e4c7938cbd593ceda34c9241cba04022a078550d0d324cfe</code>), in <code>src/vendor/gumbo/</code> with provenance in <code>src/vendor/PROVENANCE</code>. Re-vendor with <code>tools/update-gumbo &lt;version&gt;</code>, never by hand.</p>
-<ul><li>Pin a stable upstream release, never <code>master</code> or a release candidate.</li>
-<li>Record the tag, the commit and the checksums in <code>src/vendor/PROVENANCE</code>, and keep <code>tools/update-gumbo</code> mechanical: download, verify, extract the file list, apply <code>tools/patches/</code> in order.</li>
+<ul><li>Record the tag, the commit and the checksums in <code>src/vendor/PROVENANCE</code>, and keep <code>tools/update-gumbo</code> mechanical: download, verify, extract the file list, apply <code>tools/patches/</code> in order.</li>
 <li>Keep upstream <code>COPYING</code> under <code>src/vendor/gumbo/</code>, declare every copyright holder found in the vendored file headers as <code>cph</code> in <code>Authors@R</code> (Google Inc.; Bjoern Hoehrmann for the UTF-8 decoder in <code>utf8.c</code>), and keep <code>inst/COPYRIGHTS</code> and <code>LICENSE.note</code> current. Do not describe the whole package as MIT. The <code>License:</code>/<code>Copyright:</code> fields follow the CRAN precedent of <code>data.sketches</code> 0.1.1 (MIT package bundling Apache-2.0 code): <code>MIT + file LICENSE</code> and <code>Copyright: file inst/COPYRIGHTS</code>.</li>
 <li>Only the 12 parser translation units, their headers and <code>doc/COPYING</code> are vendored (<code>tools/gumbo-files.txt</code>): no Python bindings, tests, benchmarks, examples, <code>visualc/</code>, Meson or autotools.</li>
-<li>The patch series is <code>tools/patches/0001-max-tree-depth.patch</code>, <code>0002-no-stdio.patch</code>, <code>0003-modification-notices.patch</code>, <code>0004-selectedcontent-descendant.patch</code>, <code>0005-selectedcontent-end-tag.patch</code> and <code>0006-document-quirks-init.patch</code>. 0003 is licence-mandated (Apache-2.0 §4(b)) and local only; it must mark every file the series touches, so extend it when a new patch touches a new file. <code>tools/verify-vendor</code> fails on a modified file without the notice. 0004 and 0005 fix upstream memory-safety bugs the fuzzer found, and 0006 an uninitialized read valgrind found (issue #22). Every patch identifier is also listed in <code>src/zuh_gumbo.c</code>, reported by <code><a href="reference/zuhtml_info.html">zuhtml_info()</a></code> and asserted in <code>test-info.R</code>: update all three together.</li>
+<li>The patch series is <code>tools/patches/0001-max-tree-depth.patch</code>, <code>0002-no-stdio.patch</code>, <code>0003-modification-notices.patch</code>, <code>0004-selectedcontent-descendant.patch</code>, <code>0005-selectedcontent-end-tag.patch</code> and <code>0006-document-quirks-init.patch</code>. 0003 is licence-mandated (Apache-2.0 §4(b)) and local only; it must mark every file the series touches, so extend it when a new patch touches a new file. <code>tools/verify-vendor</code> fails on a modified file without the notice. 0004 and 0005 fix upstream memory-safety bugs the fuzzer found, and 0006 an uninitialized read valgrind found (issue #22).</li>
+<li>Every patch identifier is also listed in <code>src/zuh_gumbo.c</code>, reported by <code><a href="reference/zuhtml_info.html">zuhtml_info()</a></code> and asserted in <code>test-info.R</code>: update all three together.</li>
 </ul></div>
-<div class="section level2">
-<h2 id="commits-and-pull-requests">Commits and pull requests<a class="anchor" aria-label="anchor" href="#commits-and-pull-requests"></a></h2>
-<p>Short, imperative, sentence-case commit subjects, optionally scoped. Keep each commit focused and do not sweep in unrelated files. A pull request explains the user-visible outcome and the rationale, links related issues, lists the checks that were run and the tests that were skipped, and flags platform-sensitive or vendored changes. Performance claims need evidence.</p>
-<p>Never commit or push to the default branch. Work on a branch, open a pull request, and leave it for review. Do not merge a pull request unless you are told to.</p>
-<p>When you find a defect, in this package or in an upstream tool, open an issue for it rather than only working around it.</p>
-</div>
 </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
