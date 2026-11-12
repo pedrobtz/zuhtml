@@ -50,17 +50,17 @@ by_name <- html_read(
 )
 html_info(by_name)[c("nodes", "input_bytes", "native_bytes")]
 #> $nodes
-#> [1] 231655
+#> [1] 231754
 #> 
 #> $input_bytes
-#> [1] 4256496
+#> [1] 4258452
 #> 
 #> $native_bytes
-#> [1] 13857567
+#> [1] 13863626
 
 packages <- html_tables(by_name)[[1]]
 dim(packages)
-#> [1] 25730     2
+#> [1] 25741     2
 head(packages)
 #>              V1
 #> 1              
@@ -88,7 +88,7 @@ each package row has a link:
 
 rows <- html_elements(by_name, "table tr:not([id])")
 length(rows)
-#> [1] 25704
+#> [1] 25715
 
 packages <- data.frame(
   package = html_text_clean(html_element(rows, "td:first-child")),
@@ -121,7 +121,7 @@ first <- toupper(substr(packages$package, 1, 1))
 head(sort(table(first), decreasing = TRUE))
 #> first
 #>    S    R    C    M    P    G 
-#> 2901 2432 2080 2045 1839 1527
+#> 2900 2434 2083 2047 1841 1527
 head(packages$package[grepl("\\bshiny\\b", packages$title, ignore.case = TRUE)])
 #> [1] "a11yShiny"     "abstractr"     "activAnalyzer" "adepro"       
 #> [5] "AdverseEvents" "airGRteaching"
@@ -142,20 +142,20 @@ recent <- html_tables(by_date)[[1]]
 names(recent)
 #> [1] "Date"    "Package" "Title"
 head(recent, 3)
-#>         Date     Package
-#> 1 2026-11-11     afttest
-#> 2 2026-11-11   Analitica
-#> 3 2026-11-11 cifmodeling
-#>                                                                     Title
-#> 1                   Model Diagnostics for Accelerated Failure Time Models
-#> 2 Exploratory Data Analysis, Group Comparison Tools, and Other Procedures
-#> 3   Visualization and Polytomous Modeling of Survival and Competing Risks
+#>         Date    Package
+#> 1 2026-11-12 ABCDscores
+#> 2 2026-11-12 rmoriedata
+#> 3 2026-11-11    afttest
+#>                                                                       Title
+#> 1 Summary Scores of the Adolescent Brain Cognitive Development (ABCD) Study
+#> 2                              Integrated Datasets for the 'rmorie' Package
+#> 3                     Model Diagnostics for Accelerated Failure Time Models
 
 year <- substr(recent$Date, 1, 4)
 tail(table(year), 8)
 #> year
 #>  2019  2020  2021  2022  2023  2024  2025  2026 
-#>   581   863  1130  1614  2219  2665  4934 10209
+#>   581   863  1130  1614  2219  2665  4931 10223
 ```
 
 Dates stay character, as every cell does: convert them when you know
@@ -164,7 +164,7 @@ they are dates.
 ``` r
 
 range(as.Date(recent$Date))
-#> [1] "2011-09-07" "2026-11-11"
+#> [1] "2011-09-07" "2026-11-12"
 ```
 
 ## Many small tables: CRAN mirrors
@@ -597,7 +597,7 @@ flavor, is tens of megabytes of HTML: larger than the default
 
 summary_page <- fetch(paste0(cran, "web/checks/check_summary_by_package.html"))
 file.size(summary_page) / 2^20
-#> [1] 53.37123
+#> [1] 53.3117
 err <- tryCatch(html_read(summary_page), zuhtml_limit_error = function(e) e)
 err$limit
 #> [1] "max_input"
@@ -611,16 +611,16 @@ big <- html_limits(max_input = 128 * 2^20, max_memory = 4 * 2^30)
 checks <- html_read(summary_page, limits = big)
 html_info(checks)[c("nodes", "native_bytes", "parse_peak_bytes")]
 #> $nodes
-#> [1] 2626966
+#> [1] 2618515
 #> 
 #> $native_bytes
-#> [1] 169684766
+#> [1] 169290950
 #> 
 #> $parse_peak_bytes
-#> [1] 634674175
+#> [1] 633091963
 status <- html_tables(checks, limits = big)[[1]]
 dim(status)
-#> [1] 26222    17
+#> [1] 26078    17
 names(status)[1:4]
 #> [1] "Package"                               
 #> [2] "Version"                               
@@ -641,5 +641,5 @@ names(status)[1:4]
 table(status[[3]])[1:5]
 #> 
 #>         ERROR ERROR*   FAIL   NOTE 
-#>    542   1102      4      3   5152
+#>    399   1102      4      3   5152
 ```
