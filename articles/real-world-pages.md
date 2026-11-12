@@ -50,17 +50,17 @@ by_name <- html_read(
 )
 html_info(by_name)[c("nodes", "input_bytes", "native_bytes")]
 #> $nodes
-#> [1] 231754
+#> [1] 231763
 #> 
 #> $input_bytes
-#> [1] 4258452
+#> [1] 4258633
 #> 
 #> $native_bytes
-#> [1] 13863626
+#> [1] 13864180
 
 packages <- html_tables(by_name)[[1]]
 dim(packages)
-#> [1] 25741     2
+#> [1] 25742     2
 head(packages)
 #>              V1
 #> 1              
@@ -88,7 +88,7 @@ each package row has a link:
 
 rows <- html_elements(by_name, "table tr:not([id])")
 length(rows)
-#> [1] 25715
+#> [1] 25716
 
 packages <- data.frame(
   package = html_text_clean(html_element(rows, "td:first-child")),
@@ -121,7 +121,7 @@ first <- toupper(substr(packages$package, 1, 1))
 head(sort(table(first), decreasing = TRUE))
 #> first
 #>    S    R    C    M    P    G 
-#> 2900 2434 2083 2047 1841 1527
+#> 2901 2434 2083 2047 1841 1527
 head(packages$package[grepl("\\bshiny\\b", packages$title, ignore.case = TRUE)])
 #> [1] "a11yShiny"     "abstractr"     "activAnalyzer" "adepro"       
 #> [5] "AdverseEvents" "airGRteaching"
@@ -145,17 +145,17 @@ head(recent, 3)
 #>         Date    Package
 #> 1 2026-11-12 ABCDscores
 #> 2 2026-11-12 rmoriedata
-#> 3 2026-11-11    afttest
+#> 3 2026-11-12     ssMRCT
 #>                                                                       Title
 #> 1 Summary Scores of the Adolescent Brain Cognitive Development (ABCD) Study
 #> 2                              Integrated Datasets for the 'rmorie' Package
-#> 3                     Model Diagnostics for Accelerated Failure Time Models
+#> 3     Regional Consistency Evaluation and Sample Size Calculation for MRCTs
 
 year <- substr(recent$Date, 1, 4)
 tail(table(year), 8)
 #> year
 #>  2019  2020  2021  2022  2023  2024  2025  2026 
-#>   581   863  1130  1614  2219  2665  4931 10223
+#>   581   863  1130  1614  2219  2665  4931 10224
 ```
 
 Dates stay character, as every cell does: convert them when you know
@@ -597,7 +597,7 @@ flavor, is tens of megabytes of HTML: larger than the default
 
 summary_page <- fetch(paste0(cran, "web/checks/check_summary_by_package.html"))
 file.size(summary_page) / 2^20
-#> [1] 53.3117
+#> [1] 53.31239
 err <- tryCatch(html_read(summary_page), zuhtml_limit_error = function(e) e)
 err$limit
 #> [1] "max_input"
@@ -611,13 +611,13 @@ big <- html_limits(max_input = 128 * 2^20, max_memory = 4 * 2^30)
 checks <- html_read(summary_page, limits = big)
 html_info(checks)[c("nodes", "native_bytes", "parse_peak_bytes")]
 #> $nodes
-#> [1] 2618515
+#> [1] 2618533
 #> 
 #> $native_bytes
-#> [1] 169290950
+#> [1] 169292550
 #> 
 #> $parse_peak_bytes
-#> [1] 633091963
+#> [1] 633097667
 status <- html_tables(checks, limits = big)[[1]]
 dim(status)
 #> [1] 26078    17
