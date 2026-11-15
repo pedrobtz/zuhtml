@@ -5,16 +5,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Shared conventions
 
-The portfolio's shared rules are synced into `.claude/shared/` from
-`pedrobtz/packages:claude/shared/`. Never edit them here. Where this file and
-a shared file disagree, this file wins for this package.
+<!-- r-skills: shared-rules -->
 
-@.claude/shared/workflow.md
-@.claude/shared/r-package.md
-@.claude/shared/ci.md
-@.claude/shared/native-code.md
-@.claude/shared/correctness.md
-@.claude/shared/assurance.md
+The portfolio's shared rules (`workflow`, `r-package`, `ci`, `native-code`,
+`correctness`, `assurance`) come from the
+[r-skills](https://github.com/pedrobtz/r-skills) plugin's `rules/`, loaded at
+session start because of the marker above. Never copy them here. Where this
+file and a shared rule disagree, this file wins for this package. Cloud
+sessions do not load the plugin and run without them.
 
 ## What this is
 
@@ -85,7 +83,7 @@ shipped is a commitment.
 
 ## Commands
 
-The everyday `devtools` commands are in `.claude/shared/r-package.md`. Gate
+The everyday `devtools` commands are in the shared `r-package.md` rules. Gate
 scripts, each run from the package root:
 
 ```sh
@@ -235,7 +233,7 @@ tables, serialization) reads the arena and never touches Gumbo. Only
 
 ## Editing rules
 
-Additions to, and deviations from, `.claude/shared/r-package.md`:
+Additions to, and deviations from, the shared `r-package.md` rules:
 
 - **Deviation: there is no `README.Rmd`.** Edit `README.md` directly, and
   keep its example output in step with the code by running it.
