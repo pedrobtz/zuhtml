@@ -29,7 +29,7 @@ jobs:
     runs-on: ubuntu-latest
     name: external HTML corpus
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: r-lib/actions/setup-r@v2
       # checksums.sha256 determines files/ exactly, so it is the cache key.
       # restore-keys lets an older corpus come back as a starting point,
