@@ -20,7 +20,11 @@ the message text, which may change.
   [`html_limits()`](https://pedrobtz.github.io/zuhtml/dev/reference/html_limits.md)
   was exceeded. Fields `limit` (its name, such as `"max_depth"`),
   `maximum` (its value) and `observed` (the value that tripped it, where
-  known). Nothing is returned and all native memory is released.
+  known). Nothing is returned and all native memory is released. Three
+  fixed limits use the same class: `"arena"`, the most attributes or
+  string-pool bytes one document can hold (just under \\2^{32}\\);
+  `"string_length"`, R's limit on the bytes of one string; and
+  `"memory"`, when native memory runs out while a result is built.
 
 - `zuhtml_parse_error`: an internal invariant of the parser failed. This
   is a bug; please report it.

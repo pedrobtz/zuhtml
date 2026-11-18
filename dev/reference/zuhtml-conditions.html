@@ -69,7 +69,11 @@ byte-order mark that contradicts <code>encoding</code>. Field <code>encoding</co
 <li><p><code>zuhtml_limit_error</code>: a resource limit from <code><a href="html_limits.html">html_limits()</a></code> was
 exceeded. Fields <code>limit</code> (its name, such as <code>"max_depth"</code>), <code>maximum</code>
 (its value) and <code>observed</code> (the value that tripped it, where known).
-Nothing is returned and all native memory is released.</p></li>
+Nothing is returned and all native memory is released. Three fixed
+limits use the same class: <code>"arena"</code>, the most attributes or
+string-pool bytes one document can hold (just under \(2^{32}\));
+<code>"string_length"</code>, R's limit on the bytes of one string; and
+<code>"memory"</code>, when native memory runs out while a result is built.</p></li>
 <li><p><code>zuhtml_parse_error</code>: an internal invariant of the parser failed. This
 is a bug; please report it.</p></li>
 <li><p><code>zuhtml_pointer_error</code>: a document is no longer available, for example

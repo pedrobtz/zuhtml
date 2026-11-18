@@ -124,6 +124,56 @@
   `zuhtml_input_error` (part of
   [\#84](https://github.com/pedrobtz/zuhtml/issues/84)).
 
+- `[<-` and `[[<-` on a nodeset accept only nodes of the same document,
+  or `NA`, as [`c()`](https://rdrr.io/r/base/c.html) already did.
+  Assigning a node of another document, or a bare number, used to keep
+  its ID and silently address a different node of the target document;
+  it is now a `zuhtml_input_error`
+  ([\#82](https://github.com/pedrobtz/zuhtml/issues/82)). Arithmetic,
+  comparison and math functions on a nodeset are refused the same way
+  (use [`as.integer()`](https://rdrr.io/r/base/integer.html) for the
+  IDs), and `length<-` keeps the nodeset class, padding with missing
+  nodes.
+
+- Printing a nodeset shows a newline in text as `\n`, not `\\n`
+  ([\#109](https://github.com/pedrobtz/zuhtml/issues/109)).
+  `print(x, n =)` checks that `n` is a single non-negative whole number
+  before printing anything, and `n = 0` prints only the header and
+  count.
+
+- `html_table(convert = TRUE)` no longer changes values silently
+  ([\#100](https://github.com/pedrobtz/zuhtml/issues/100)). A column
+  stays character when a value has a leading zero once grouping marks
+  are removed (`"0,123"` with `thousands = ","` was 123), has more than
+  15 significant digits (`"12345678901234567890"` was
+  12345678901234567168), or overflows, underflows or is subnormal
+  (`"1e999"` was `Inf`). `thousands = "\u00a0"` now matches, since cell
+  text has its non-breaking spaces turned into spaces.
+
+- `html_tables(match =)` with an invalid regular expression is a
+  `zuhtml_input_error`, not a base error and a warning
+  ([\#84](https://github.com/pedrobtz/zuhtml/issues/84)).
+
+- Native failures outside parsing are classed conditions
+  ([\#84](https://github.com/pedrobtz/zuhtml/issues/84)). A result
+  string longer than R allows, from
+  [`html_text()`](https://pedrobtz.github.io/zuhtml/dev/reference/html_text.md),
+  [`html_text_clean()`](https://pedrobtz.github.io/zuhtml/dev/reference/html_text_clean.md),
+  [`html_markdown()`](https://pedrobtz.github.io/zuhtml/dev/reference/html_markdown.md)
+  or
+  [`html_serialize()`](https://pedrobtz.github.io/zuhtml/dev/reference/html_serialize.md),
+  is a `zuhtml_limit_error` with `limit = "string_length"`, and running
+  out of native memory while building a result or a table grid one with
+  `limit = "memory"`; both were plain R errors. A document whose
+  attributes or strings overflow the arena’s 32-bit offsets is a
+  `zuhtml_limit_error` with `limit = "arena"` rather than a misleading
+  `max_memory` error. A `max_memory` error now reports in `observed` the
+  bytes the parse would have needed.
+
+- The internal tree dump used by the tests and the conformance gate no
+  longer leaks its buffer if R fails to allocate the result string
+  ([\#86](https://github.com/pedrobtz/zuhtml/issues/86)).
+
 ## zuhtml 0.1.0
 
 CRAN release: 2026-10-06

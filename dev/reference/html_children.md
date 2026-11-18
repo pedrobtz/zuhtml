@@ -62,6 +62,21 @@ A `<template>` element's contents are its children here, but they are
 inert: searches and text extraction do not descend into them.
 `html_template_content()` returns them explicitly.
 
+## Nodesets
+
+A `zuhtml_nodeset` holds node IDs that only mean something in the
+document that owns them. Subsetting (`[`, `[[`),
+[`rev()`](https://rdrr.io/r/base/rev.html),
+[`rep()`](https://rdrr.io/r/base/rep.html),
+[`unique()`](https://rdrr.io/r/base/unique.html) and `length<-` keep the
+owner; `length<-` pads with missing nodes.
+[`c()`](https://rdrr.io/r/base/c.html), `[<-` and `[[<-` accept only
+nodes of the same document (and, for assignment, `NA` for a missing
+node), and raise a `zuhtml_input_error` otherwise. Arithmetic,
+comparison and math functions are refused: use
+[`as.integer()`](https://rdrr.io/r/base/integer.html) to work with the
+IDs.
+
 ## See also
 
 Other navigation:

@@ -121,6 +121,18 @@ inert: searches and text extraction do not descend into them.
 <code>html_template_content()</code> returns them explicitly.</p>
     </div>
     <div class="section level2">
+    <h2 id="nodesets">Nodesets<a class="anchor" aria-label="anchor" href="#nodesets"></a></h2>
+
+
+<p>A <code>zuhtml_nodeset</code> holds node IDs that only mean something in the
+document that owns them. Subsetting (<code>[</code>, <code>[[</code>), <code><a href="https://rdrr.io/r/base/rev.html" class="external-link">rev()</a></code>, <code><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep()</a></code>,
+<code><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique()</a></code> and <code>length&lt;-</code> keep the owner; <code>length&lt;-</code> pads with missing
+nodes. <code><a href="https://rdrr.io/r/base/c.html" class="external-link">c()</a></code>, <code>[&lt;-</code> and <code>[[&lt;-</code> accept only nodes of the same document
+(and, for assignment, <code>NA</code> for a missing node), and raise a
+<code>zuhtml_input_error</code> otherwise. Arithmetic, comparison and math
+functions are refused: use <code><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer()</a></code> to work with the IDs.</p>
+    </div>
+    <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p>Other navigation:
 <code><a href="html_closest.html">html_closest()</a></code>,

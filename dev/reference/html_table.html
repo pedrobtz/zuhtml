@@ -182,10 +182,16 @@ column.</p></li>
 column when all are whole and fit, otherwise a double column. <code>decimal</code>
 is the decimal mark. <code>thousands</code>, if given, is a grouping mark allowed
 between groups of three digits, as in <code>1,234,567.5</code>; a badly grouped
-value such as <code>1,23</code> keeps the column character.</p></li>
-<li><p>A value with a leading zero, such as <code>"0012"</code>, keeps the column
-character: it is an identifier, not a number. <code>"0"</code> and <code>"0.5"</code> are
-numbers.</p></li>
+value such as <code>1,23</code> keeps the column character.
+Cell text has its non-breaking spaces turned into spaces, so
+<code>thousands = "\u00a0"</code> matches either.</p></li>
+<li><p>A value with a leading zero, such as <code>"0012"</code>, or <code>"0,123"</code> with
+<code>thousands = ","</code>, keeps the column character: it is an identifier,
+not a number. <code>"0"</code> and <code>"0.5"</code> are numbers.</p></li>
+<li><p>A value with more than 15 significant digits, which a double need not
+hold exactly, or one that overflows to infinity, underflows to zero or
+is subnormal, such as <code>"12345678901234567890"</code>, <code>"1e999"</code> or
+<code>"1e-310"</code>, keeps the column character.</p></li>
 <li><p><code>Inf</code>, <code>NaN</code>, <code>NA</code>, currency symbols and percentages are not numbers;
 list such strings in <code>na</code>, or convert them yourself. A column with no
 non-missing values stays character.</p></li>
