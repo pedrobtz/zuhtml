@@ -393,7 +393,7 @@ head(html_text(entries[grepl("/$", html_attr(entries, "href"))]))
 ## A very large page, and the limits
 
 CRAN's check summary, with one row per package and one column per check
-flavor, is tens of megabytes of HTML: larger than the default
+flavour, is tens of megabytes of HTML: larger than the default
 `max_input` of 16 MiB.
 
 ```{r}
@@ -414,7 +414,7 @@ dim(status)
 names(status)[1:4]
 ```
 
-The flavor names contain line breaks because the header cells do: they
+The flavour names contain line breaks because the header cells do: they
 are written `r-devel<br>Linux<br>...`, and cleaned text turns `<br>`
 into `"\n"`. Replace them if single-line names suit better:
 
