@@ -27,7 +27,8 @@ html_limits(
 
 - max_input:
 
-  Largest input, in bytes of UTF-8 after decoding.
+  Largest input, in bytes of UTF-8 after decoding. Raw input is also
+  refused, before decoding, when it is longer than four times this.
 
 - max_memory:
 
@@ -55,7 +56,8 @@ html_limits(
 
 - max_selector_length:
 
-  Longest CSS selector, in bytes.
+  Longest CSS selector, in bytes. The selection functions take no
+  `limits`: they use the limits the document was parsed with.
 
 ## Value
 

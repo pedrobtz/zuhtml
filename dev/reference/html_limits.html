@@ -77,7 +77,9 @@ the extraction functions. Exceeding one raises a <code>zuhtml_limit_error</code>
 
 
 <dl><dt id="arg-max-input">max_input<a class="anchor" aria-label="anchor" href="#arg-max-input"></a></dt>
-<dd><p>Largest input, in bytes of UTF-8 after decoding.</p></dd>
+<dd><p>Largest input, in bytes of UTF-8 after decoding. Raw
+input is also refused, before decoding, when it is longer than four
+times this.</p></dd>
 
 
 <dt id="arg-max-memory">max_memory<a class="anchor" aria-label="anchor" href="#arg-max-memory"></a></dt>
@@ -105,7 +107,9 @@ continues past it; only the record is truncated.</p></dd>
 
 
 <dt id="arg-max-selector-length">max_selector_length<a class="anchor" aria-label="anchor" href="#arg-max-selector-length"></a></dt>
-<dd><p>Longest CSS selector, in bytes.</p></dd>
+<dd><p>Longest CSS selector, in bytes. The selection
+functions take no <code>limits</code>: they use the limits the document was parsed
+with.</p></dd>
 
 </dl></div>
     <div class="section level2">
