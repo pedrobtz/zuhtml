@@ -196,3 +196,133 @@ test_that("functions taking a document reject other objects", {
   expect_error(html_problems("<p>"), class = "zuhtml_input_error")
   expect_error(html_problems(list(ptr = NULL)), class = "zuhtml_input_error")
 })
+
+test_that("windows-1255 and windows-1258 decode the last byte too (#89)", {
+  # libiconv holds back a base character in case a combining mark follows,
+  # and iconv() never flushes it. A byte at the end of the input must
+  # decode as it does in the middle.
+  for (enc in c("windows-1255", "windows-1258", "cp1258")) {
+    lost <- integer()
+    for (b in 1:255) {
+      x <- c(charToRaw(strrep("abc", 3)), as.raw(b))
+      whole <- decoded(c(x, charToRaw("z")), enc)
+      end <- decoded(x, enc)
+      if (!identical(is.null(whole), is.null(end)) ||
+          (!is.null(whole) && !identical(c(end, charToRaw("z")), whole))) {
+        lost <- c(lost, b)
+      }
+    }
+    expect_identical(lost, integer(), label = enc)
+  }
+  x <- c(charToRaw("<meta charset=windows-1258><p>"), charToRaw("Hello"))
+  expect_identical(html_text(html_element(html_parse(x), "p")), "Hello")
+  # A base letter and a combining mark stay two code points, as in the
+  # WHATWG indexes: windows-1258 0xEC is U+0301 and 0xD2 is U+0309;
+  # windows-1255 0xE0 is U+05D0 and 0xC4 is U+05B4.
+  expect_identical(
+    utf8ToInt(rawToChar(decoded(as.raw(c(0x61, 0xec, 0x6f, 0xd2)),
+                                "windows-1258"))),
+    c(0x61L, 0x301L, 0x6fL, 0x309L)
+  )
+  expect_identical(
+    utf8ToInt(rawToChar(decoded(as.raw(c(0xe0, 0xc4)), "windows-1255"))),
+    c(0x5d0L, 0x5b4L)
+  )
+  # A byte the index leaves unmapped is invalid, not dropped.
+  err <- expect_error(html_parse(as.raw(c(0x3c, 0xd9)),
+                                 encoding = "windows-1255"),
+                      class = "zuhtml_encoding_error")
+  expect_identical(err$encoding, "windows-1255")
+})
+
+test_that("unmarked non-ASCII strings are UTF-8 in a C locale (#92)", {
+  # As readLines() returns a UTF-8 file's lines in a C locale: unmarked.
+  x <- "<p title=t>caf\xc3\xa9</p>"
+  l1 <- "caf\xe9"
+  Encoding(l1) <- "latin1"
+  local_c_ctype()
+  doc <- html_parse(x)
+  expect_identical(html_text(html_element(doc, "p")), "café")
+  expect_identical(html_info(doc)$input_bytes, 20)
+  # A latin1-marked string is still converted.
+  expect_identical(html_info(html_parse(l1))$input_bytes, 5)
+  # Invalid UTF-8 is still refused.
+  expect_error(html_parse("caf\xe9"), class = "zuhtml_encoding_error")
+})
+
+test_that("an argument marked as bytes is an input error (#84)", {
+  # Only a string with a non-ASCII byte can be marked.
+  enc <- "latin\xb91"
+  Encoding(enc) <- "bytes"
+  expect_error(html_parse(as.raw(c(0x3c, 0xe9)), encoding = enc),
+               class = "zuhtml_input_error")
+  ctx <- "d\xc3\xa9v"
+  Encoding(ctx) <- "bytes"
+  expect_error(html_fragment("<p>", context = ctx),
+               class = "zuhtml_input_error")
+})
+
+test_that("encodings that are not ASCII-compatible are refused by name (#94)", {
+  le16 <- as.raw(rbind(charToRaw("<p>hi"), as.raw(0)))
+  known <- iconv_names()
+  for (enc in intersect(c("UCS-2LE", "UTF-32LE", "UCS-4LE"), known)) {
+    err <- expect_error(html_parse(le16, encoding = enc),
+                        class = "zuhtml_encoding_error")
+    expect_identical(err$encoding, enc)
+    expect_match(conditionMessage(err), enc, fixed = TRUE)
+  }
+  skip_without_iconv("UTF-8-MAC")
+  doc <- html_parse(charToRaw("<p>café"), encoding = "UTF-8-MAC")
+  expect_identical(html_text(html_element(doc, "p")), "café")
+})
+
+test_that("every iconv() name decodes ASCII markup or is an encoding error", {
+  skip_on_cran()
+  known <- iconv_names()
+  skip_if(length(known) == 0L, "iconvlist() is not available")
+  bad <- character()
+  for (enc in known) {
+    res <- tryCatch(
+      html_text(html_element(html_parse(charToRaw("<p>hi"), encoding = enc),
+                             "p")),
+      zuhtml_encoding_error = function(e) "encoding error",
+      error = function(e) conditionMessage(e)
+    )
+    if (!identical(res, "hi") && !identical(res, "encoding error")) {
+      bad <- c(bad, enc)
+    }
+  }
+  expect_identical(bad, character())
+})
+
+test_that("one byte-order mark is removed, whatever the encoding (#95)", {
+  bom8 <- as.raw(c(0xef, 0xbb, 0xbf))
+  utf8 <- function(n) c(rep(bom8, n), charToRaw("A"))
+  le <- function(n) c(rep(as.raw(c(0xff, 0xfe)), n), as.raw(c(0x41, 0)))
+  be <- function(n) c(rep(as.raw(c(0xfe, 0xff)), n), as.raw(c(0, 0x41)))
+  for (n in 0:2) {
+    want <- c(rep(bom8, max(n - 1L, 0L)), charToRaw("A"))
+    expect_identical(decoded(utf8(n)), want)
+    expect_identical(decoded(le(n), if (n == 0L) "UTF-16LE"), want)
+    expect_identical(decoded(be(n), if (n == 0L) "UTF-16BE"), want)
+  }
+  # A string is text already: one leading U+FEFF goes, a second stays.
+  expect_identical(html_info(html_parse("\ufeff\ufeffA"))$input_bytes, 4)
+})
+
+test_that("the raw-input bound is reported as four times max_input (#85)", {
+  skip_without_iconv("ISO-2022-JP")
+  # Escape sequences of a stateful encoding decode to nothing, so raw input
+  # can be far longer than its decoding; the raw bound is a bound of its
+  # own, and its message says so.
+  x <- charToRaw(paste0(strrep("\033(B", 20), "ab"))
+  lim <- html_limits(max_input = 10)
+  err <- expect_error(html_parse(x, encoding = "ISO-2022-JP", limits = lim),
+                      class = "zuhtml_limit_error")
+  expect_identical(err$limit, "max_input")
+  expect_identical(err$observed, 62)
+  expect_match(conditionMessage(err), "four times max_input", fixed = TRUE)
+  # Within the raw bound, the decoded size is what counts.
+  doc <- html_parse(x[-(1:30)], encoding = "ISO-2022-JP", limits = lim)
+  expect_identical(html_info(doc)$input_bytes, 2)
+})

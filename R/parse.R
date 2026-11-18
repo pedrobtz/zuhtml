@@ -28,12 +28,15 @@
 #' four times `max_input` bytes, before a larger file is read at all. A
 #' file that does not exist, an unreachable URL, and a connection that
 #' cannot be read are `zuhtml_input_error`s. The input is always read
-#' whole before parsing, because decoding needs all of it.
+#' whole before parsing, because decoding needs all of it. The other
+#' arguments mean what they mean to `html_parse()`, whatever `path` is.
 #'
 #' @section Encoding:
 #' A character string is taken as text: it is converted to UTF-8 with
-#' [enc2utf8()], and `encoding` must be `NULL` or `"UTF-8"`. A string marked
-#' as `"bytes"` is rejected; pass a raw vector instead.
+#' [enc2utf8()], and `encoding` must be `NULL` or `"UTF-8"`. In a C locale,
+#' where [enc2utf8()] cannot convert, an unmarked string's non-ASCII bytes
+#' are read as UTF-8, as [readLines()] returns a UTF-8 file's lines there.
+#' A string marked as `"bytes"` is rejected; pass a raw vector instead.
 #'
 #' A raw vector is decoded with, in order of precedence, a byte-order mark
 #' (UTF-8, UTF-16LE or UTF-16BE), `encoding`, a declaration in the page, or
@@ -41,6 +44,17 @@
 #' is any byte sequence that is invalid in the chosen encoding: nothing is
 #' replaced silently. A fetcher that knows the HTTP charset should pass it
 #' as `encoding`.
+#'
+#' Raw input longer than four times `max_input` is refused before it is
+#' decoded, whatever it decodes to: no supported encoding needs more than
+#' four bytes for a character, but the escape sequences of a stateful
+#' encoding such as ISO-2022-JP decode to nothing.
+#'
+#' UTF-16 is decoded by zuhtml itself, and windows-1255 and windows-1258
+#' from the Encoding Standard's indexes, so that a combining mark stays a
+#' character of its own as in a browser. Every other encoding is converted
+#' by [iconv()] and must be ASCII-compatible: UCS-2, UTF-32 and EBCDIC are
+#' encoding errors.
 #'
 #' The declaration is found as browsers find it, by the HTML standard's
 #' prescan of the first 1024 bytes for `<meta charset="...">` or
@@ -61,15 +75,15 @@
 #' after decoding is rejected.
 #'
 #' @param x One string, or a raw vector of encoded bytes.
-#' @param encoding The encoding of raw input, as a name [iconv()] accepts;
-#'   `NULL` to use a byte-order mark, the page's declaration, or UTF-8.
+#' @param encoding The encoding of raw input: UTF-16 or the name of an
+#'   ASCII-compatible encoding [iconv()] accepts (see "Encoding"); `NULL` to
+#'   use a byte-order mark, the page's declaration, or UTF-8.
 #' @param base_url The document's URL, used to resolve relative links; `NULL`
 #'   if unknown.
 #' @param comments Whether to keep comment nodes.
 #' @param limits Resource limits from [html_limits()].
 #' @param path One file path, URL or connection; see "Reading files, URLs
 #'   and connections".
-#' @param ... Arguments passed on to `html_parse()`.
 #'
 #' @return A `zuhtml_document`.
 #' @seealso [html_problems()] for the parse errors that were repaired;
@@ -186,7 +200,8 @@ zuh_fragment_context <- function(context, call, namespace = 0L,
     zuh_input_error("context", "`context` must be a single element name.",
                     call = call)
   }
-  tag <- .Call(C_zuh_tag_lookup, enc2utf8(context), allow_unknown)
+  context <- zuh_utf8(context, "context", call)
+  tag <- .Call(C_zuh_tag_lookup, context, allow_unknown)
   if (tag < 0L) {
     zuh_input_error(
       "context",
@@ -199,15 +214,11 @@ zuh_fragment_context <- function(context, call, namespace = 0L,
 
 #' @rdname html_parse
 #' @export
-html_read <- function(path, ...) {
+html_read <- function(path, encoding = NULL, base_url = NULL, comments = TRUE,
+                      limits = html_limits()) {
   call <- sys.call()
-  dots <- list(...)
-  limits <- zuh_check_limits(
-    if (is.null(dots$limits)) html_limits() else dots$limits,
-    call = call
-  )
-  # Four bytes per character is the most any supported encoding needs, so
-  # more input than this cannot decode to less than max_input.
+  limits <- zuh_check_limits(limits, call = call)
+  # The raw-input bound of zuh_decode(), applied while reading.
   cap <- 4 * limits$max_input
   is_url <- is.character(path) && length(path) == 1L && !is.na(path) &&
     grepl("^(https?|ftps?|file)://", path, ignore.case = TRUE)
@@ -220,21 +231,21 @@ html_read <- function(path, ...) {
     if (!is.na(size) && !dir.exists(path) && size > cap) {
       zuh_limit_error(
         "max_input", limits$max_input, size,
-        sprintf("'%s' is %.0f bytes, too large for max_input = %.0f.",
+        sprintf(paste0("'%s' is %.0f bytes, more than four times ",
+                       "max_input = %.0f."),
                 path, size, limits$max_input),
         call = call
       )
     }
   }
+  if (is_url && missing(base_url)) {
+    # Relative links resolve against the page's own address.
+    base_url <- sub("^([A-Za-z]+)://", "\\L\\1://", path, perl = TRUE)
+  }
   src <- zuh_open(path, call)
   if (src$close) on.exit(close(src$con), add = TRUE)
   bytes <- zuh_read_capped(src$con, cap, limits, call)
-  if (is_url && !"base_url" %in% names(dots)) {
-    # Relative links resolve against the page's own address.
-    base <- sub("^([A-Za-z]+)://", "\\L\\1://", path, perl = TRUE)
-    return(html_parse(bytes, base_url = base, ...))
-  }
-  html_parse(bytes, ...)
+  zuh_parse(bytes, encoding, base_url, comments, limits, call = call)
 }
 
 # zu_open_input(), with its errors raised as zuhtml_input_error. A path or
@@ -301,7 +312,7 @@ zuh_read_capped <- function(con, cap, limits, call) {
     if (total > cap) {
       zuh_limit_error(
         "max_input", limits$max_input, total,
-        sprintf(paste0("The input is more than %.0f bytes, too large for ",
+        sprintf(paste0("The input is more than %.0f bytes, four times ",
                        "max_input = %.0f."), cap, limits$max_input),
         call = call
       )
@@ -318,6 +329,11 @@ zuh_decode <- function(x, encoding, limits, call) {
       (!is.character(encoding) || length(encoding) != 1L ||
        is.na(encoding) || !nzchar(encoding))) {
     zuh_input_error("encoding", "`encoding` must be NULL or a single string.",
+                    call = call)
+  }
+  if (!is.null(encoding) &&
+      (Encoding(encoding) == "bytes" || !zuh_is_ascii(encoding))) {
+    zuh_input_error("encoding", "`encoding` must be an ASCII encoding name.",
                     call = call)
   }
   if (is.character(x)) {
@@ -341,7 +357,7 @@ zuh_decode <- function(x, encoding, limits, call) {
         call = call
       )
     }
-    x <- enc2utf8(x)
+    x <- zuh_utf8(x, "x", call)
     if (!validUTF8(x)) {
       zuh_abort("encoding", "`x` is not valid UTF-8.", encoding = "UTF-8",
                 call = call)
@@ -382,10 +398,15 @@ zuh_decode <- function(x, encoding, limits, call) {
         encoding = encoding, call = call
       )
     }
+    # A bound on raw input of its own, checked before decoding: four bytes
+    # per character is the most a supported encoding needs, but the escape
+    # sequences of a stateful encoding (ISO-2022-JP) decode to nothing, so
+    # input within max_input once decoded can still be refused here.
     if (length(x) > 4 * limits$max_input) {
       zuh_limit_error(
         "max_input", limits$max_input, length(x),
-        sprintf("Input of %.0f bytes is too large for max_input = %.0f.",
+        sprintf(paste0("Raw input of %.0f bytes is more than four times ",
+                       "max_input = %.0f."),
                 length(x), limits$max_input),
         call = call
       )
@@ -402,11 +423,17 @@ zuh_decode <- function(x, encoding, limits, call) {
                   encoding = used, call = call)
       }
     } else {
+      hint <- if (source == "meta") zuh_meta_hint
+      table <- zuh_sb_table(conv)
+      if (is.null(table)) zuh_iconv_check(conv, call, name = used, hint = hint)
       if (any(x == as.raw(0L))) {
         zuh_input_error("x", "The input contains a NUL byte.", call = call)
       }
-      bytes <- zuh_iconv(x, conv, call, name = used,
-                         hint = if (source == "meta") zuh_meta_hint)
+      bytes <- if (is.null(table)) {
+        zuh_iconv(x, conv, call, name = used, hint = hint)
+      } else {
+        zuh_sb_decode(x, table, call, name = used, hint = hint)
+      }
     }
   } else {
     zuh_input_error(
@@ -426,6 +453,36 @@ zuh_decode <- function(x, encoding, limits, call) {
 }
 
 zuh_canon_enc <- function(enc) toupper(gsub("[-_ ]", "", enc))
+
+zuh_is_ascii <- function(x) !grepl("[^\001-\177]", x, useBytes = TRUE)
+
+# One string argument as UTF-8 for C, or an input error for a string marked
+# "bytes". An unmarked string is in the native encoding, which enc2utf8()
+# converts, except in a C locale: there it rewrites each non-ASCII byte as
+# the text "<xx>", which is valid UTF-8. In a C locale an unmarked string's
+# non-ASCII bytes are UTF-8 or nothing, so they are marked as UTF-8 and left
+# to the caller's validity check. NA is returned as it is.
+zuh_utf8 <- function(x, arg, call) {
+  if (is.na(x)) return(x)
+  enc <- Encoding(x)
+  if (enc == "bytes") {
+    zuh_input_error(arg, sprintf("`%s` is marked as \"bytes\".", arg),
+                    call = call)
+  }
+  if (enc == "unknown" && !zuh_is_ascii(x) && zuh_ascii_locale()) {
+    Encoding(x) <- "UTF-8"
+    return(x)
+  }
+  enc2utf8(x)
+}
+
+# Whether the session's character type is the C locale's ASCII.
+zuh_ascii_locale <- function() {
+  info <- l10n_info()
+  codeset <- if (is.null(info$codeset)) "" else toupper(info$codeset)
+  !isTRUE(info[["UTF-8"]]) && !isTRUE(info[["Latin-1"]]) &&
+    codeset %in% c("ANSI_X3.4-1968", "US-ASCII", "ASCII", "646")
+}
 
 # The encoding a leading byte-order mark names, or NA.
 zuh_bom <- function(x) {
@@ -489,43 +546,105 @@ zuh_utf16 <- function(x, encoding, bom, call) {
   if (any(u == 0L)) {
     zuh_input_error("x", "The input contains a NUL character.", call = call)
   }
-  zuh_strip_bom(charToRaw(intToUtf8(u)))
+  # The byte-order mark went above; a second one is text, as in UTF-8.
+  charToRaw(intToUtf8(u))
 }
 
-# Every encoding that reaches here is ASCII-compatible (UTF-16 is decoded
-# by zuh_utf16(), and input with a NUL byte is rejected before). R's iconv()
-# does not reliably report invalid input when converting raw vectors: some
-# builds hand back the original bytes unchanged, or with a NUL in them. So
-# a conversion fails if two runs with different substitution bytes differ,
-# if the output is identical to input with non-ASCII bytes (a real
-# conversion changes those), if the output has a NUL (the input had none),
-# or if the output is not valid UTF-8.
 zuh_meta_hint <- paste0(
   " The page's <meta> declares it; if the file was saved in another ",
   "encoding, pass that as `encoding`."
 )
 
-zuh_iconv <- function(x, from, call, name = from, hint = NULL) {
-  convert <- function(sub) {
-    tryCatch(
-      iconv(list(x), from = from, to = "UTF-8", toRaw = TRUE, sub = sub),
-      error = function(e) NULL,
-      warning = function(w) NULL
-    )
-  }
-  a <- convert("\001")
-  b <- convert("\002")
-  if (is.null(a) || is.null(b)) {
+# Markup that every ASCII-compatible encoding decodes to itself. It avoids
+# the backslash and the tilde, which Shift_JIS may map elsewhere, and "+",
+# which starts a shift in UTF-7.
+zuh_ascii_probe <- charToRaw(
+  "<!DOCTYPE html><p class=\"a b\" id='c-1'>&amp;/?:;=</p>\n"
+)
+
+# An encoding error unless iconv() knows `from` and it is ASCII-compatible.
+# UTF-16 is decoded by zuh_utf16(); UCS-2, UTF-32 or EBCDIC would reach
+# iconv() as input with NUL bytes, or decode markup to something else.
+zuh_iconv_check <- function(from, call, name = from, hint = NULL) {
+  # With `sub`, an input invalid in `from` is not handed back unchanged.
+  out <- tryCatch(
+    iconv(list(zuh_ascii_probe), from = from, to = "UTF-8", toRaw = TRUE,
+          sub = "\001"),
+    error = function(e) FALSE,
+    warning = function(w) NULL
+  )
+  if (isFALSE(out)) {
     zuh_abort(
       "encoding",
       paste0(sprintf("Encoding \"%s\" is not supported.", name), hint),
       encoding = name, call = call
     )
   }
-  out <- a[[1L]]
-  if (is.null(out) || !identical(out, b[[1L]]) ||
-      (identical(out, x) && any(x >= as.raw(0x80L))) ||
-      any(out == as.raw(0L)) || !validUTF8(rawToChar(out))) {
+  if (is.null(out) || !identical(out[[1L]], zuh_ascii_probe)) {
+    zuh_abort(
+      "encoding",
+      paste0(sprintf(paste0("Encoding \"%s\" is not supported: it is not ",
+                            "ASCII-compatible, and UTF-16 is the only such ",
+                            "encoding zuhtml decodes."), name), hint),
+      encoding = name, call = call
+    )
+  }
+  invisible()
+}
+
+# Every encoding that reaches here is ASCII-compatible (zuh_iconv_check()),
+# and input with a NUL byte is rejected before. R's iconv() does not
+# reliably report invalid input when converting raw vectors: some builds
+# hand back the original bytes unchanged, or with a NUL in them. So a
+# conversion fails if two runs with different substitution bytes differ, if
+# the output is identical to input with non-ASCII bytes (a real conversion
+# from anything but a UTF-8 variant changes those), if the output has a NUL
+# (the input had none), or if the output is not valid UTF-8.
+#
+# iconv() also never flushes a converter's state at the end of the input,
+# and some converters (libiconv's TCVN, CP1255 and CP1258) hold back a base
+# character in case a combining mark follows, so it was lost. The input is
+# therefore converted with a newline appended, which is removed again; when
+# that conversion fails or does not end in the newline (a stateful encoding
+# in a shifted state), the input is converted as it is.
+zuh_iconv <- function(x, from, call, name = from, hint = NULL) {
+  utf8 <- startsWith(zuh_canon_enc(from), "UTF8")
+  run <- function(input) {
+    convert <- function(sub) {
+      tryCatch(
+        iconv(list(input), from = from, to = "UTF-8", toRaw = TRUE,
+              sub = sub),
+        error = function(e) NULL,
+        warning = function(w) NULL
+      )
+    }
+    a <- convert("\001")
+    b <- convert("\002")
+    if (is.null(a) || is.null(b)) return(FALSE)
+    out <- a[[1L]]
+    if (is.null(out) || !identical(out, b[[1L]]) ||
+        (!utf8 && identical(out, input) && any(input >= as.raw(0x80L))) ||
+        any(out == as.raw(0L)) || !validUTF8(rawToChar(out))) {
+      return(NULL)
+    }
+    out
+  }
+  nl <- as.raw(10L)
+  out <- run(c(x, nl))
+  n <- length(out)
+  if (is.raw(out) && n && out[n] == nl) {
+    out <- out[-n]
+  } else {
+    out <- run(x)
+  }
+  if (isFALSE(out)) {
+    zuh_abort(
+      "encoding",
+      paste0(sprintf("Encoding \"%s\" is not supported.", name), hint),
+      encoding = name, call = call
+    )
+  }
+  if (is.null(out)) {
     zuh_abort(
       "encoding",
       paste0(sprintf("The input is not valid in encoding \"%s\".", name),
@@ -589,7 +708,8 @@ zuh_parse_bytes <- function(bytes, encoding, base_url, limits,
               call = call)
   )
   structure(
-    list(ptr = ptr, encoding = encoding, base_url = base_url),
+    list(ptr = ptr, encoding = encoding, base_url = base_url,
+         limits = limits),
     class = "zuhtml_document"
   )
 }
@@ -728,7 +848,7 @@ print.zuhtml_doc_info <- function(x, ...) {
   w <- max(nchar(names(x)))
   for (nm in names(x)) {
     v <- x[[nm]]
-    if (is.numeric(v)) v <- format(v, big.mark = ",", scientific = FALSE)
+    if (is.numeric(v)) v <- zuh_format_count(v)
     cat(sprintf("  %-*s %s\n", w, nm, v))
   }
   invisible(x)

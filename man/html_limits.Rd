@@ -15,7 +15,9 @@ html_limits(
 )
 }
 \arguments{
-\item{max_input}{Largest input, in bytes of UTF-8 after decoding.}
+\item{max_input}{Largest input, in bytes of UTF-8 after decoding. Raw
+input is also refused, before decoding, when it is longer than four
+times this.}
 
 \item{max_memory}{Largest native memory the parser may hold at once, in
 bytes.}
@@ -31,7 +33,9 @@ continues past it; only the record is truncated.}
 
 \item{max_table_cells}{Most cells a table may expand to, spans included.}
 
-\item{max_selector_length}{Longest CSS selector, in bytes.}
+\item{max_selector_length}{Longest CSS selector, in bytes. The selection
+functions take no \code{limits}: they use the limits the document was parsed
+with.}
 }
 \value{
 An object of class \code{zuhtml_limits}: a named list of the limits,
