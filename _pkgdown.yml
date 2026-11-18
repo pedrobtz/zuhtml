@@ -1,4 +1,8 @@
 url: https://pedrobtz.github.io/zuhtml/
+
+# The released site at the root, a .9000 version under dev/.
+development:
+  mode: auto
 template:
   bootstrap: 5
 

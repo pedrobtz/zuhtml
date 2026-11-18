@@ -1,5 +1,9 @@
 # zuhtml 0.1.0.9000
 
+* The shared object is compiled with hidden symbol visibility and exports
+  only `R_init_zuhtml`, so its internal and vendored 'Gumbo' symbols cannot
+  clash with another library loaded into the same session.
+
 * `html_read()` raises a path, URL or connection that cannot be opened
   through the new `fail` hook of the shared `zu_source.R` (copied again from
   zuxml). It was already a `zuhtml_input_error` naming the cause, without
