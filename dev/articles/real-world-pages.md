@@ -387,8 +387,11 @@ back <- html_parse(commonmark::markdown_html(
   paste(html_markdown(parts), collapse = "\n\n")
 ))
 html_text_clean(html_elements(back, "h3"))
+#> [1] "2.7 What documentation exists for R? ¶"
 length(html_elements(back, "li"))
+#> [1] 6
 length(html_elements(back, "pre"))
+#> [1] 1
 ```
 
 ## Directory listings
@@ -579,7 +582,7 @@ flavour, is tens of megabytes of HTML: larger than the default
 
 summary_page <- fetch(paste0(cran, "web/checks/check_summary_by_package.html"))
 file.size(summary_page) / 2^20
-#> [1] 53.53948
+#> [1] 53.53994
 err <- tryCatch(html_read(summary_page), zuhtml_limit_error = function(e) e)
 err$limit
 #> [1] "max_input"
@@ -593,13 +596,13 @@ big <- html_limits(max_input = 128 * 2^20, max_memory = 4 * 2^30)
 checks <- html_read(summary_page, limits = big)
 html_info(checks)[c("nodes", "native_bytes", "parse_peak_bytes")]
 #> $nodes
-#> [1] 2635608
+#> [1] 2635620
 #> 
 #> $native_bytes
-#> [1] 170233707
+#> [1] 170234781
 #> 
 #> $parse_peak_bytes
-#> [1] 636742228
+#> [1] 636746038
 status <- html_tables(checks, limits = big)[[1]]
 dim(status)
 #> [1] 26310    17

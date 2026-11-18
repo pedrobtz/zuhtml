@@ -174,6 +174,58 @@
   longer leaks its buffer if R fails to allocate the result string
   ([\#86](https://github.com/pedrobtz/zuhtml/issues/86)).
 
+- `html_text_clean(trim = TRUE)` now trims whitespace at the ends that
+  came from `<pre>` or `<textarea>`, as documented; whitespace inside
+  them is still kept. This also applies to
+  [`html_table()`](https://pedrobtz.github.io/zuhtml/dev/reference/html_table.md)
+  cells and
+  [`html_list()`](https://pedrobtz.github.io/zuhtml/dev/reference/html_list.md)
+  items ([\#108](https://github.com/pedrobtz/zuhtml/issues/108)).
+
+- [`html_text_clean()`](https://pedrobtz.github.io/zuhtml/dev/reference/html_text_clean.md)
+  skips the text of `<script>` and `<style>` inside SVG, as it does in
+  HTML ([\#98](https://github.com/pedrobtz/zuhtml/issues/98)).
+
+- [`html_markdown()`](https://pedrobtz.github.io/zuhtml/dev/reference/html_markdown.md)
+  fixes, each found by rendering its output with CommonMark and
+  comparing the result with the page:
+
+  - A `!` before a link is escaped, so the link no longer becomes an
+    image; `:` and `|` at a line start are escaped, so a line such as
+    `:-: | :-:` under a line with a pipe no longer makes a table
+    ([\#101](https://github.com/pedrobtz/zuhtml/issues/101)).
+
+  - Adjacent code spans join into one instead of reading as one span
+    with backticks in it, and whitespace at a span’s ends is written as
+    a space outside it instead of being dropped (“run `ls` now”, not
+    “run`ls`now”)
+    ([\#102](https://github.com/pedrobtz/zuhtml/issues/102)).
+
+  - Nested and adjacent emphasis no longer leaves literal asterisks.
+    Emphasis is now written only where no two delimiter runs touch, and
+    emphasis inside emphasis of its kind is not written:
+    `<b><i>x</i></b>` is `**x**`, no longer `***x***`
+    ([\#103](https://github.com/pedrobtz/zuhtml/issues/103)).
+
+  - Ordered lists are numbered as their items are written: a reversed
+    list counts down from its number of items, not from 1, and an empty
+    first item no longer makes a nested list start at 2, which
+    CommonMark reads as text
+    ([\#104](https://github.com/pedrobtz/zuhtml/issues/104)).
+
+  - Text after a block inside `<pre>` keeps its line break
+    ([\#105](https://github.com/pedrobtz/zuhtml/issues/105)).
+
+  - Pipe-table rows are in
+    [`html_table()`](https://pedrobtz.github.io/zuhtml/dev/reference/html_table.md)’s
+    order, head, bodies, foot, so a `<tfoot>` written first is no longer
+    the header row
+    ([\#106](https://github.com/pedrobtz/zuhtml/issues/106)).
+
+  - A list right after another of its kind takes the other bullet or
+    delimiter, so the two no longer merge into one list
+    ([\#107](https://github.com/pedrobtz/zuhtml/issues/107)).
+
 ## zuhtml 0.1.0
 
 CRAN release: 2026-10-06

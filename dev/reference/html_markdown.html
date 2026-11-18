@@ -80,20 +80,29 @@ other nodes and for missing nodes.</p>
     <p>The conversion covers:</p><ul><li><p>headings (<code>#</code> to <code>######</code>), paragraphs and the other block elements
 (separated by blank lines), and thematic breaks (<code>&lt;hr&gt;</code>, as <code>---</code>);</p></li>
 <li><p>emphasis (<code>&lt;em&gt;</code>, <code>&lt;i&gt;</code>) as <code>*...*</code> and strong (<code>&lt;strong&gt;</code>, <code>&lt;b&gt;</code>) as
-<code>**...**</code>, and inline code (<code>&lt;code&gt;</code>, <code>&lt;kbd&gt;</code>, <code>&lt;samp&gt;</code>, <code>&lt;tt&gt;</code>) as a
-code span;</p></li>
+<code>**...**</code>, where CommonMark reads it back as written: emphasis that
+cannot be written safely, such as emphasis inside emphasis of its
+kind, or bold italics of one element (written as <code>**...**</code>), keeps its
+text without the markup;</p></li>
+<li><p>inline code (<code>&lt;code&gt;</code>, <code>&lt;kbd&gt;</code>, <code>&lt;samp&gt;</code>, <code>&lt;tt&gt;</code>) as a code span, with
+whitespace at its ends written outside it; adjacent spans join into
+one;</p></li>
 <li><p><code>&lt;pre&gt;</code> as a fenced code block, with its language when a
 <code>language-*</code> or <code>lang-*</code> class names one;</p></li>
 <li><p>block quotes, and ordered and unordered lists, nested, with <code>start</code>,
-<code>reversed</code> and <code>value</code> honoured; empty list items are left out;</p></li>
+<code>reversed</code> and <code>value</code> honoured; empty list items are left out and
+take no number. A list right after another of its kind takes the other
+bullet (<code>-</code> or <code>*</code>) or delimiter (<code>.</code> or <code>)</code>), so that the two stay
+separate;</p></li>
 <li><p>links and images, their URLs resolved against the document's base URL
 as <code><a href="html_url.html">html_url()</a></code> does, or as written where that is not possible; <code>&lt;a&gt;</code>
 without <code>href</code> is plain text, and <code>&lt;img&gt;</code> without <code>src</code> is left out;</p></li>
 <li><p><code>&lt;br&gt;</code> as a hard line break;</p></li>
 <li><p>data tables as GFM pipe tables: tables in which no cell spans rows or
 columns and every cell holds only inline content (no paragraphs,
-lists, headings, <code>&lt;div&gt;</code>s, code blocks or tables). The first row is
-the header row, and cell contents stay on one line. Other tables,
+lists, headings, <code>&lt;div&gt;</code>s, code blocks or tables). Rows are in
+<code><a href="html_table.html">html_table()</a></code>'s order (head, bodies, foot), the first is the header
+row, and cell contents stay on one line. Other tables,
 such as tables used for page layout, are written as their content,
 one paragraph per row, with cells separated by spaces.</p></li>
 </ul><p><code>&lt;head&gt;</code>, <code>&lt;script&gt;</code>, <code>&lt;style&gt;</code>, <code>&lt;template&gt;</code>, <code>&lt;iframe&gt;</code>, <code>&lt;svg&gt;</code> and
