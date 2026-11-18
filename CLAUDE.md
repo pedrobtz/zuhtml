@@ -329,6 +329,9 @@ Additions to, and deviations from, the shared `r-package.md` rules:
   `tools/corpus/run`. It is separate because it fetches 52 MB over the
   network, which the package's own checks must never depend on; one platform
   is enough.
+- `assurance.yaml` calls `assurance.yml@v1` with `ungated-jobs: fail`:
+  it checks `.agents/assurance.md` against the shared standard and fails on
+  an ungated job in the own workflows.
 - `pkgdown.yaml` calls `pkgdown.yml@v1` and builds and deploys the site.
 - `cran-release.yaml` calls `cran-release.yml`, pinned to a commit: pushing
   `CRAN-SUBMISSION` tags the release and opens the `.9000` bump.
