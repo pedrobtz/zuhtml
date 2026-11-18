@@ -143,6 +143,45 @@ test_that("convert = TRUE reads decimal and grouping marks", {
   )
 })
 
+test_that("convert = TRUE never changes a value: one case either side", {
+  # One column per value, so that each converts or stays on its own.
+  conv <- function(values, ...) {
+    html <- paste0("<table><tr>", paste0("<td>", values, collapse = ""),
+                   "</table>")
+    unname(unlist(lapply(
+      tab(html, header = FALSE, convert = TRUE, ...),
+      function(col) if (is.character(col)) NA_real_ else as.double(col)
+    )))
+  }
+  # Leading zeros mark identifiers, also once grouping marks are removed.
+  expect_identical(conv(c("0,123", "1,234", "0", "-0,5"), thousands = ","),
+                   c(NA, 1234, 0, NA))
+  expect_identical(conv(c("0.123", "0,5"), decimal = ",", thousands = "."),
+                   c(NA, 0.5))
+  # 15 significant digits round-trip through a double; 16 or more may not.
+  expect_identical(conv(c("123456789012345", "1234567890123456",
+                          "12345678901234567890", "0.000123456789012345",
+                          "1.0000000000000000", "100000000000000000000")),
+                   c(123456789012345, NA, NA, 0.000123456789012345, 1, 1e20))
+  # Overflow and underflow are not numbers either.
+  expect_identical(conv(c("1e308", "1e999", "-1e999", "1e-300", "1e-999",
+                          "0e-999")),
+                   c(1e308, NA, NA, 1e-300, NA, 0))
+  expect_identical(conv("1e-310"), NA_real_)
+  # A non-breaking space as the grouping mark matches, although cell text
+  # has its non-breaking spaces turned into spaces.
+  expect_identical(conv(c("1&nbsp;234", "12\u00a0345", "7 000"),
+                        thousands = "\u00a0"),
+                   c(1234, 12345, 7000))
+})
+
+test_that("html_tables(match =) rejects an invalid regular expression", {
+  doc <- html_parse("<table><tr><td>a</table>")
+  expect_no_warning(
+    expect_error(html_tables(doc, match = "("), class = "zuhtml_input_error")
+  )
+})
+
 test_that("convert options are validated", {
   html <- "<table><tr><td>1</table>"
   for (bad in list(NA, "yes", c(TRUE, FALSE))) {

@@ -22,6 +22,17 @@
   `print(x, n =)` checks that `n` is a single non-negative whole number
   before printing anything, and `n = 0` prints only the header and count.
 
+* `html_table(convert = TRUE)` no longer changes values silently (#100). A
+  column stays character when a value has a leading zero once grouping
+  marks are removed (`"0,123"` with `thousands = ","` was 123), has more
+  than 15 significant digits (`"12345678901234567890"` was
+  12345678901234567168), or overflows, underflows or is subnormal
+  (`"1e999"` was `Inf`). `thousands = "\u00a0"` now matches, since cell
+  text has its non-breaking spaces turned into spaces.
+
+* `html_tables(match =)` with an invalid regular expression is a
+  `zuhtml_input_error`, not a base error and a warning (#84).
+
 # zuhtml 0.1.0
 
 First release.
