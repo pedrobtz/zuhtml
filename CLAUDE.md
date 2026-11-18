@@ -101,8 +101,8 @@ tools/run-fuzz [secs]          # fuzz_selector, fuzz_parse, fuzz_roundtrip under
                                # ASan+UBSan: libFuzzer, or a standalone mutation
                                # loop where it is missing (macOS); seeds include
                                # every conformance #data block; fuzz_canary must
-                               # crash first. 60 s per push, 30 min nightly
-                               #                                    (CI: hardening)
+                               # crash first. 20 s per PR push (60 s full),
+                               # 30 min weekly                      (CI: hardening)
 tools/run-sanitizers           # ASan+UBSan seam driver, fault injection at every
                                # allocation index, overflow canary; leak check and
                                # leak canary with ASAN_OPTIONS=detect_leaks=1
@@ -320,17 +320,20 @@ Additions to, and deviations from, the shared `r-package.md` rules:
   `.github/badges/`.
 - `native-checks.yaml` runs R CMD check instrumented through r-actions:
   `sanitizers.yml` (UBSan and ASan), `valgrind.yml` with leak checking,
-  `gctorture.yml`, `rchk.yml` (hard-failing) and `cran-special.yml`.
+  `gctorture.yml`, `rchk.yml` (hard-failing), `lto.yml`, `analyzers.yml`
+  (gcc `-fanalyzer` on first-party C, advisory until its first findings are
+  read) and `cran-special.yml`.
 - `hardening.yaml` (own) runs every gate script above with its canary, plus
-  a nightly 30-minute fuzz run.
+  a weekly 30-minute fuzz run.
 - `corpus.yaml` (own) fetches the external corpus and runs
   `tools/corpus/run`. It is separate because it fetches 52 MB over the
   network, which the package's own checks must never depend on; one platform
   is enough.
-- `pkgdown.yaml` (own, from r-lib/actions' example) builds and deploys the
-  site.
-- The own workflows gate with `paths-ignore`, not `changes.yml` as `ci.md`
-  asks; migrating them is open work.
+- `pkgdown.yaml` calls `pkgdown.yml@v1` and builds and deploys the site.
+- `cran-release.yaml` calls `cran-release.yml`, pinned to a commit: pushing
+  `CRAN-SUBMISSION` tags the release and opens the `.9000` bump.
+- The own workflows (`hardening`, `corpus`) gate every job on r-actions'
+  `changes.yml`; every PR-startable job tests the labels first.
 
 ## Vendored native code
 

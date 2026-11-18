@@ -7,21 +7,17 @@
 # of selectors, parsing and the round trip (Stages 6 and 8), with a long
 # nightly fuzz run.
 #
-# paths-ignore skips the workflow for prose-only changes. GitHub applies it
-# only when every changed file matches, so a commit touching both a .md file
-# and src/ still runs.
+# Gating follows ci.md: the `changes` job (r-actions' changes.yml) decides
+# from the changed files and the labels, and every other job needs it. It
+# replaces a paths-ignore list, which followed none of the labels.
 on:
   # No `push:`: a pull request already checks its merge with main,
   # and the schedule checks main (r-actions README, "Pushes to main").
   pull_request:
-    paths-ignore:
-      - '**.md'
-      - '_pkgdown.yml'
-      - '.agents/**'
-      - 'docs/**'
+    types: [opened, synchronize, reopened, labeled, unlabeled]
   schedule:
-    # Nightly: the long fuzz run. The per-push budget is deliberately small.
-    - cron: "14 5 * * 6"  # weekly, Saturdays
+    # Weekly, Saturdays: the long fuzz run. The per-push budget is small.
+    - cron: "14 5 * * 6"
   workflow_dispatch:
 
 name: hardening
@@ -33,7 +29,25 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # The gate for every job below. Label-tested first, so a `ci:docs` or
+  # `ci:minimal` pull request takes no runner at all.
+  changes:
+    if: >-
+      github.event_name != 'pull_request'
+      || contains(github.event.pull_request.labels.*.name, 'full-ci')
+      || !(contains(github.event.pull_request.labels.*.name, 'ci:docs')
+        || contains(github.event.pull_request.labels.*.name, 'ci:minimal')
+        || contains(github.event.pull_request.labels.*.name, 'skip-ci:hardening'))
+    uses: pedrobtz/r-actions/.github/workflows/changes.yml@v1
+    with:
+      name: hardening
+      profile: auto
+
   vendor:
+    needs: changes
+    if: >-
+      ${{ !cancelled() && needs.changes.result != 'skipped'
+      && needs.changes.outputs.docs-only != 'true' }}
     runs-on: ubuntu-latest
     name: vendored Gumbo is upstream plus the patch series
     steps:
@@ -44,6 +58,10 @@ jobs:
         run: ./tools/verify-vendor --canary
 
   lint:
+    needs: changes
+    if: >-
+      ${{ !cancelled() && needs.changes.result != 'skipped'
+      && needs.changes.outputs.docs-only != 'true' }}
     runs-on: ubuntu-latest
     name: strict warnings and no stdio symbols
     steps:
@@ -55,6 +73,10 @@ jobs:
         run: CC=clang ./tools/run-lint --canary
 
   sanitizers:
+    needs: changes
+    if: >-
+      ${{ !cancelled() && needs.changes.result != 'skipped'
+      && needs.changes.outputs.docs-only != 'true' }}
     runs-on: ubuntu-latest
     name: ASan + UBSan + LSan over the parse seam
     steps:
@@ -65,6 +87,10 @@ jobs:
         run: CC=clang ASAN_OPTIONS=detect_leaks=1 ./tools/run-sanitizers
 
   conformance:
+    needs: changes
+    if: >-
+      ${{ !cancelled() && needs.changes.result != 'skipped'
+      && needs.changes.outputs.docs-only != 'true' }}
     runs-on: ubuntu-latest
     name: html5lib tree-construction conformance and round trip
     steps:
@@ -82,6 +108,10 @@ jobs:
         run: ./tools/run-conformance --canary-serialize
 
   fuzz:
+    needs: changes
+    if: >-
+      ${{ !cancelled() && needs.changes.result != 'skipped'
+      && needs.changes.outputs.docs-only != 'true' }}
     runs-on: ubuntu-latest
     name: fuzz
     steps:
@@ -95,12 +125,15 @@ jobs:
           path: ~/.cache/zuhtml/fuzz-corpus
           key: fuzz-corpus-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: fuzz-corpus-
-      - name: fuzz every target (60 s each; 30 min each nightly)
+      - name: fuzz every target (20 s each; 60 s full; 30 min scheduled)
         # tools/run-fuzz first requires fuzz/fuzz_canary.c to crash, and
         # exits 2 if it does not, so a green step means a crash would have
-        # been seen.
+        # been seen. ci.md keeps fuzzing beyond a minute out of the quick
+        # profile, so a quick pull request gives each of the three 20 s.
         run: |
-          if [ "${{ github.event_name }}" = "schedule" ]; then SECS=1800; else SECS=60; fi
+          if [ "${{ github.event_name }}" = "schedule" ]; then SECS=1800
+          elif [ "${{ needs.changes.outputs.profile }}" = "full" ]; then SECS=60
+          else SECS=20; fi
           ZUH_FUZZ_CORPUS="$HOME/.cache/zuhtml/fuzz-corpus" CC=clang ./tools/run-fuzz "$SECS"
       - name: upload any findings
         if: failure()

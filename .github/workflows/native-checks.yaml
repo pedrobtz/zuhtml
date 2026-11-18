@@ -4,8 +4,11 @@
 # pointer finalizers and R-level long jumps out of C run under
 # instrumentation. Reusable workflows from pedrobtz/r-actions.
 #
-# paths-ignore skips prose-only changes. vignettes/ and man/ are not
-# ignored: R CMD check executes both, and these jobs run R CMD check.
+# Gating follows ci.md. Each r-actions workflow gates itself on the changed
+# files through its own `changes` job; every job first tests the labels
+# (`ci:docs`, `ci:minimal`, `skip-ci:<job>`; `full-ci` overrides), so a
+# labelled pull request skips without taking a runner. There is no
+# paths-ignore list: it followed none of the labels.
 on:
   # No `push:`: a pull request already checks its merge with main,
   # and the schedule checks main (r-actions README, "Pushes to main").
@@ -13,11 +16,7 @@ on:
     - cron: "19 5 * * 0"
   workflow_dispatch:
   pull_request:
-    paths-ignore:
-      - '**.md'
-      - '_pkgdown.yml'
-      - '.agents/**'
-      - 'docs/**'
+    types: [opened, synchronize, reopened, labeled, unlabeled]
 
 name: native-checks
 
@@ -31,6 +30,12 @@ jobs:
   # UBSan over R CMD check under R-devel, and ASan in the R-hub containers
   # whose R is itself built for it.
   sanitizers:
+    if: >-
+      github.event_name != 'pull_request'
+      || contains(github.event.pull_request.labels.*.name, 'full-ci')
+      || !(contains(github.event.pull_request.labels.*.name, 'ci:docs')
+        || contains(github.event.pull_request.labels.*.name, 'ci:minimal')
+        || contains(github.event.pull_request.labels.*.name, 'skip-ci:sanitizers'))
     uses: pedrobtz/r-actions/.github/workflows/sanitizers.yml@v1
     with:
       asan: true
@@ -39,6 +44,12 @@ jobs:
   # indirect leaks count, since "possibly lost" includes interior pointers
   # into live blocks.
   valgrind:
+    if: >-
+      github.event_name != 'pull_request'
+      || contains(github.event.pull_request.labels.*.name, 'full-ci')
+      || !(contains(github.event.pull_request.labels.*.name, 'ci:docs')
+        || contains(github.event.pull_request.labels.*.name, 'ci:minimal')
+        || contains(github.event.pull_request.labels.*.name, 'skip-ci:valgrind'))
     uses: pedrobtz/r-actions/.github/workflows/valgrind.yml@v1
     with:
       valgrind-opts: >-
@@ -50,19 +61,65 @@ jobs:
       suppressions: "tools/valgrind.supp"
 
   gctorture:
+    if: >-
+      github.event_name != 'pull_request'
+      || contains(github.event.pull_request.labels.*.name, 'full-ci')
+      || !(contains(github.event.pull_request.labels.*.name, 'ci:docs')
+        || contains(github.event.pull_request.labels.*.name, 'ci:minimal')
+        || contains(github.event.pull_request.labels.*.name, 'skip-ci:gctorture'))
     uses: pedrobtz/r-actions/.github/workflows/gctorture.yml@v1
 
   # Hard-failing: an unprotected SEXP is the class of bug that ships green
   # and corrupts memory in someone else's session.
   rchk:
+    if: >-
+      github.event_name != 'pull_request'
+      || contains(github.event.pull_request.labels.*.name, 'full-ci')
+      || !(contains(github.event.pull_request.labels.*.name, 'ci:docs')
+        || contains(github.event.pull_request.labels.*.name, 'ci:minimal')
+        || contains(github.event.pull_request.labels.*.name, 'skip-ci:rchk'))
     uses: pedrobtz/r-actions/.github/workflows/rchk.yml@v1
     with:
       fail-on-findings: true
+
+  # Link-time optimisation, as CRAN's LTO flavour builds: it reports
+  # mismatched declarations across translation units that no single
+  # compilation sees.
+  lto:
+    if: >-
+      github.event_name != 'pull_request'
+      || contains(github.event.pull_request.labels.*.name, 'full-ci')
+      || !(contains(github.event.pull_request.labels.*.name, 'ci:docs')
+        || contains(github.event.pull_request.labels.*.name, 'ci:minimal')
+        || contains(github.event.pull_request.labels.*.name, 'skip-ci:lto'))
+    uses: pedrobtz/r-actions/.github/workflows/lto.yml@v1
+
+  # gcc -fanalyzer over the first-party C. src/vendor is Gumbo plus the patch
+  # series, verified by hardening.yaml, so its findings are reported under
+  # their own heading but not gated on. Advisory until the first run's
+  # first-party findings are read; then fail-on-findings: true, as rchk.
+  analyzers:
+    if: >-
+      github.event_name != 'pull_request'
+      || contains(github.event.pull_request.labels.*.name, 'full-ci')
+      || !(contains(github.event.pull_request.labels.*.name, 'ci:docs')
+        || contains(github.event.pull_request.labels.*.name, 'ci:minimal')
+        || contains(github.event.pull_request.labels.*.name, 'skip-ci:analyzers'))
+    uses: pedrobtz/r-actions/.github/workflows/analyzers.yml@v1
+    with:
+      exclude: |
+        src/vendor
 
   # CRAN's rcnst, rlibro and vnu checks -- the "Additional issues" nothing
   # above reproduces. Full runs only: `quick`, which skips all three, on
   # pull requests; full on every other event.
   cran-special:
+    if: >-
+      github.event_name != 'pull_request'
+      || contains(github.event.pull_request.labels.*.name, 'full-ci')
+      || !(contains(github.event.pull_request.labels.*.name, 'ci:docs')
+        || contains(github.event.pull_request.labels.*.name, 'ci:minimal')
+        || contains(github.event.pull_request.labels.*.name, 'skip-ci:cran-special'))
     uses: pedrobtz/r-actions/.github/workflows/cran-special.yml@v1
     with:
       profile: ${{ github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'full-ci') && 'quick' || 'full' }}
