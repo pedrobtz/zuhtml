@@ -51,7 +51,7 @@ jobs:
       # which is safe because fetch re-downloads any file whose checksum
       # does not match.
       - name: cache the corpus
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: tools/corpus/files
           key: html-corpus-${{ hashFiles('tools/corpus/checksums.sha256') }}

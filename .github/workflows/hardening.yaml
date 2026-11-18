@@ -120,7 +120,7 @@ jobs:
       # run, restored from the newest earlier one, lets fuzzing time
       # accumulate across runs instead of restarting from the seeds.
       - name: restore the grown corpus
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/zuhtml/fuzz-corpus
           key: fuzz-corpus-${{ github.run_id }}-${{ github.run_attempt }}
