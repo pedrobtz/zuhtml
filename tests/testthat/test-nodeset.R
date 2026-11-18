@@ -119,3 +119,78 @@ test_that("rep() and unique() keep the class and the owner", {
   expect_identical(html_text(unique(r)), c("1", "2"))
   expect_identical(html_document(unique(r)), doc)
 })
+
+test_that("[<- and [[<- take nodes of the same document", {
+  doc <- html_parse("<p>a</p><p>b</p><p>c</p>")
+  p <- html_elements(doc, "p")
+  x <- p
+  x[1] <- p[3]
+  expect_s3_class(x, "zuhtml_nodeset")
+  expect_identical(html_text(x), c("c", "b", "c"))
+  x[[2]] <- p[[1]]
+  expect_identical(html_text(x), c("c", "a", "c"))
+  x[2] <- NA
+  expect_identical(html_text(x), c("c", NA, "c"))
+  x[[3]] <- NA_integer_
+  expect_identical(html_text(x), c("c", NA, NA))
+  x[5] <- p[2]
+  expect_identical(html_text(x), c("c", NA, NA, NA, "b"))
+  expect_identical(html_document(x), doc)
+})
+
+test_that("[<- and [[<- refuse nodes of another document", {
+  a <- html_elements(html_parse("<p>a</p><p>b</p>"), "p")
+  b <- html_elements(html_parse("<div><i>x</i><b>y</b></div>"), "i, b")
+  expect_error(a[1] <- b[2], class = "zuhtml_input_error")
+  expect_error(a[[2]] <- b[[1]], class = "zuhtml_input_error")
+  expect_identical(html_text(a), c("a", "b"))
+})
+
+test_that("[<- and [[<- refuse values that are not nodes", {
+  a <- html_elements(html_parse("<p>a</p><p>b</p>"), "p")
+  expect_error(a[1] <- 1L, class = "zuhtml_input_error")
+  expect_error(a[[1]] <- 3L, class = "zuhtml_input_error")
+  expect_error(a[1] <- "x", class = "zuhtml_input_error")
+  expect_error(a[1] <- html_document(a), class = "zuhtml_input_error")
+  expect_error(a[[1]] <- a, class = "zuhtml_input_error")
+  expect_identical(html_text(a), c("a", "b"))
+})
+
+test_that("arithmetic and comparison on a nodeset are refused", {
+  p <- html_elements(html_parse("<p>a</p><p>b</p>"), "p")
+  expect_error(p + 1L, class = "zuhtml_input_error")
+  expect_error(1L - p, class = "zuhtml_input_error")
+  expect_error(p == p, class = "zuhtml_input_error")
+  expect_error(-p, class = "zuhtml_input_error")
+  expect_error(abs(p), class = "zuhtml_input_error")
+  expect_identical(as.integer(p) + 1L, as.vector(unclass(p)) + 1L)
+})
+
+test_that("length<- keeps the class and pads with missing nodes", {
+  doc <- html_parse("<p>a</p><p>b</p>")
+  p <- html_elements(doc, "p")
+  length(p) <- 3
+  expect_s3_class(p, "zuhtml_nodeset")
+  expect_identical(html_text(p), c("a", "b", NA))
+  length(p) <- 1
+  expect_identical(html_text(p), "a")
+  expect_identical(html_document(p), doc)
+})
+
+test_that("print() shows a newline in text as one escaped newline", {
+  doc <- html_parse("<p>line1\nline2</p>")
+  x <- html_children(html_element(doc, "p"), FALSE)
+  expect_identical(format(x), "\"line1\\nline2\"")
+  expect_identical(capture.output(print(x))[[2L]], "[1] \"line1\\nline2\"")
+})
+
+test_that("print() checks n before printing anything", {
+  p <- html_elements(html_parse("<p>a</p><p>b</p>"), "p")
+  for (bad in list(1.5, NA, c(1, 2), -1, "2", NULL)) {
+    expect_error(capture.output(print(p, n = bad)),
+                 class = "zuhtml_input_error")
+  }
+  expect_length(capture.output(print(p, n = 0)), 2L)
+  expect_length(capture.output(print(p, n = Inf)), 3L)
+  expect_length(capture.output(print(p, n = 1L)), 3L)
+})

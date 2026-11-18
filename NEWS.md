@@ -10,6 +10,18 @@
   connection) is no longer wrapped as "Cannot open ...: ..." with a
   doubled full stop.
 
+* `[<-` and `[[<-` on a nodeset accept only nodes of the same document, or
+  `NA`, as `c()` already did. Assigning a node of another document, or a
+  bare number, used to keep its ID and silently address a different node
+  of the target document; it is now a `zuhtml_input_error` (#82).
+  Arithmetic, comparison and math functions on a nodeset are refused the
+  same way (use `as.integer()` for the IDs), and `length<-` keeps the
+  nodeset class, padding with missing nodes.
+
+* Printing a nodeset shows a newline in text as `\n`, not `\\n` (#109).
+  `print(x, n =)` checks that `n` is a single non-negative whole number
+  before printing anything, and `n = 0` prints only the header and count.
+
 # zuhtml 0.1.0
 
 First release.

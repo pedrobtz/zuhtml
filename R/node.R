@@ -67,6 +67,15 @@ zuh_check_flag <- function(x, arg, call) {
 #' inert: searches and text extraction do not descend into them.
 #' `html_template_content()` returns them explicitly.
 #'
+#' @section Nodesets:
+#' A `zuhtml_nodeset` holds node IDs that only mean something in the
+#' document that owns them. Subsetting (`[`, `[[`), `rev()`, `rep()`,
+#' `unique()` and `length<-` keep the owner; `length<-` pads with missing
+#' nodes. `c()`, `[<-` and `[[<-` accept only nodes of the same document
+#' (and, for assignment, `NA` for a missing node), and raise a
+#' `zuhtml_input_error` otherwise. Arithmetic, comparison and math
+#' functions are refused: use `as.integer()` to work with the IDs.
+#'
 #' @param x A `zuhtml_document` or `zuhtml_nodeset`. A document stands for
 #'   its document node.
 #' @param elements_only If `TRUE`, consider element nodes only, skipping
