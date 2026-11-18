@@ -22,17 +22,21 @@ parses the file:
 
 ``` r
 
+fetched <- new.env()
 fetch <- function(url) {
+  if (!is.null(fetched[[url]])) {
+    return(fetched[[url]])
+  }
   path <- tempfile(fileext = ".html")
   for (attempt in 1:4) {
     ok <- tryCatch({
       utils::download.file(url, path, quiet = TRUE, mode = "wb")
       TRUE
-    }, error = function(e) if (attempt == 4) stop(e) else FALSE)
+    }, error = function(e) FALSE)
     if (ok) break
-    Sys.sleep(5 * attempt)
+    if (attempt < 4) Sys.sleep(5 * attempt)
   }
-  path
+  fetched[[url]] <- if (ok) path else NA_character_
 }
 cran <- "https://cran.r-project.org/"
 ```
@@ -50,17 +54,17 @@ by_name <- html_read(
 )
 html_info(by_name)[c("nodes", "input_bytes", "native_bytes")]
 #> $nodes
-#> [1] 231763
+#> [1] 232465
 #> 
 #> $input_bytes
-#> [1] 4258633
+#> [1] 4272296
 #> 
 #> $native_bytes
-#> [1] 13864180
+#> [1] 13906937
 
 packages <- html_tables(by_name)[[1]]
 dim(packages)
-#> [1] 25742     2
+#> [1] 25820     2
 head(packages)
 #>              V1
 #> 1              
@@ -88,7 +92,7 @@ each package row has a link:
 
 rows <- html_elements(by_name, "table tr:not([id])")
 length(rows)
-#> [1] 25716
+#> [1] 25794
 
 packages <- data.frame(
   package = html_text_clean(html_element(rows, "td:first-child")),
@@ -121,7 +125,7 @@ first <- toupper(substr(packages$package, 1, 1))
 head(sort(table(first), decreasing = TRUE))
 #> first
 #>    S    R    C    M    P    G 
-#> 2901 2434 2083 2047 1841 1527
+#> 2909 2438 2086 2052 1846 1534
 head(packages$package[grepl("\\bshiny\\b", packages$title, ignore.case = TRUE)])
 #> [1] "a11yShiny"     "abstractr"     "activAnalyzer" "adepro"       
 #> [5] "AdverseEvents" "airGRteaching"
@@ -142,20 +146,16 @@ recent <- html_tables(by_date)[[1]]
 names(recent)
 #> [1] "Date"    "Package" "Title"
 head(recent, 3)
-#>         Date    Package
-#> 1 2026-11-12 ABCDscores
-#> 2 2026-11-12 rmoriedata
-#> 3 2026-11-12     ssMRCT
-#>                                                                       Title
-#> 1 Summary Scores of the Adolescent Brain Cognitive Development (ABCD) Study
-#> 2                              Integrated Datasets for the 'rmorie' Package
-#> 3     Regional Consistency Evaluation and Sample Size Calculation for MRCTs
+#>         Date Package                                                     Title
+#> 1 2026-11-18 admixr2                                  Aggregate Data Modelling
+#> 2 2026-11-18    aidR Reading and Standardizing Automated Insulin Delivery Data
+#> 3 2026-11-18  bcdata       Search and Retrieve Data from the BC Data Catalogue
 
 year <- substr(recent$Date, 1, 4)
 tail(table(year), 8)
 #> year
 #>  2019  2020  2021  2022  2023  2024  2025  2026 
-#>   581   863  1130  1614  2219  2665  4931 10224
+#>   581   863  1125  1607  2204  2649  4891 10385
 ```
 
 Dates stay character, as every cell does: convert them when you know
@@ -164,7 +164,7 @@ they are dates.
 ``` r
 
 range(as.Date(recent$Date))
-#> [1] "2011-09-07" "2026-11-12"
+#> [1] "2011-09-07" "2026-11-18"
 ```
 
 ## Many small tables: CRAN mirrors
@@ -177,7 +177,7 @@ the `<dd>` after it holds a table of that country’s mirrors.
 mirrors_page <- html_read(fetch(paste0(cran, "mirrors.html")))
 countries <- html_elements(mirrors_page, "dt")
 length(countries)
-#> [1] 41
+#> [1] 42
 head(html_text_clean(countries))
 #> [1] "0-Cloud"   "Argentina" "Australia" "Austria"   "Belgium"   "Brazil"
 ```
@@ -194,7 +194,7 @@ mirrors <- do.call(rbind, lapply(countries, function(dt) {
   data.frame(country = html_text_clean(dt), url = rows$V1, host = rows$V2)
 }))
 nrow(mirrors)
-#> [1] 83
+#> [1] 84
 head(mirrors[, c("country", "url")])
 #>     country                                    url
 #> 1   0-Cloud           https://cloud.r-project.org/
@@ -216,11 +216,9 @@ heading:
 
 ``` r
 
+# Not run: the page did not answer when this site was built.
 top <- html_read(fetch("https://www.gutenberg.org/browse/scores/top"))
 html_text_clean(html_elements(top, "h2"))
-#> [1] "Top 100 EBooks yesterday"     "Top 100 Authors yesterday"   
-#> [3] "Top 100 EBooks last 7 days"   "Top 100 Authors last 7 days" 
-#> [5] "Top 100 EBooks last 30 days"  "Top 100 Authors last 30 days"
 ```
 
 [`html_list()`](https://pedrobtz.github.io/zuhtml/reference/html_list.md)
@@ -231,23 +229,12 @@ being aligned, gives each list’s heading:
 
 ``` r
 
+# Not run: the page did not answer when this site was built.
 ols <- html_elements(top, "h2 + ol")
 lists <- lapply(ols, html_list)
 names(lists) <- html_text_clean(html_previous_sibling(ols))
 lengths(lists)
-#>     Top 100 EBooks yesterday    Top 100 Authors yesterday 
-#>                          100                          100 
-#>   Top 100 EBooks last 7 days  Top 100 Authors last 7 days 
-#>                          100                          100 
-#>  Top 100 EBooks last 30 days Top 100 Authors last 30 days 
-#>                          100                          100
 head(lists[["Top 100 EBooks yesterday"]])
-#> [1] "Pride and Prejudice by Jane Austen (8605)"                                    
-#> [2] "Frankenstein; or, The modern Prometheus by Mary Wollstonecraft Shelley (7975)"
-#> [3] "Moby Dick; Or, The Whale by Herman Melville (6349)"                           
-#> [4] "Alice's Adventures in Wonderland by Lewis Carroll (5755)"                     
-#> [5] "The Adventures of Sherlock Holmes by Arthur Conan Doyle (3700)"               
-#> [6] "Dracula by Bram Stoker (3614)"
 ```
 
 Each item is a string of the form “Title by Author (downloads)”. Plain
@@ -255,6 +242,7 @@ string handling turns a list into a data frame:
 
 ``` r
 
+# Not run: the page did not answer when this site was built.
 books <- lists[["Top 100 EBooks last 30 days"]]
 m <- regmatches(books, regexec("^(.*) by (.*) \\(([0-9]+)\\)$", books))
 ok <- lengths(m) == 4
@@ -264,16 +252,10 @@ top30 <- data.frame(
   downloads = as.integer(vapply(m[ok], `[`, "", 4))
 )
 head(top30)
-#>                                     title                      author downloads
-#> 1                     Pride and Prejudice                 Jane Austen    230347
-#> 2 Frankenstein; or, The modern Prometheus Mary Wollstonecraft Shelley    212077
-#> 3                Moby Dick; Or, The Whale             Herman Melville    175623
-#> 4        Alice's Adventures in Wonderland               Lewis Carroll    159192
-#> 5       The Adventures of Sherlock Holmes          Arthur Conan Doyle    110737
-#> 6                                 Dracula                 Bram Stoker     95265
 ```
 
-A few items have no author, and the pattern skips them (3 this time).
+A few items have no author, and the pattern skips them (an unknown
+number this time).
 
 ## Text: the R FAQ
 
@@ -525,7 +507,7 @@ kernel_url <- "https://cdn.kernel.org/pub/linux/kernel/v6.x/"
 kernel <- html_read(fetch(kernel_url), base_url = kernel_url)
 links <- html_elements(kernel, "pre > a:not([href='../'])")
 length(links)
-#> [1] 3828
+#> [1] 3838
 
 after <- html_text(html_next_sibling(links, elements_only = FALSE))
 fields <- strsplit(trimws(after), "[[:space:]]+")
@@ -548,12 +530,12 @@ releases <- data.frame(
 )
 tarballs <- releases[grepl("^linux-6\\.[0-9.]+\\.tar\\.xz$", releases$name), ]
 nrow(tarballs)
-#> [1] 765
+#> [1] 767
 tail(tarballs[, c("name", "date", "size")], 3)
 #>                      name        date      size
-#> 3054 linux-6.19.12.tar.xz 11-Apr-2026 156237824
-#> 3057 linux-6.19.13.tar.xz 18-Apr-2026 156237824
-#> 3060 linux-6.19.14.tar.xz 22-Apr-2026 156237824
+#> 3062 linux-6.19.12.tar.xz 11-Apr-2026 156237824
+#> 3065 linux-6.19.13.tar.xz 18-Apr-2026 156237824
+#> 3068 linux-6.19.14.tar.xz 22-Apr-2026 156237824
 ```
 
 The dates are written like `03-Oct-2022`; month names are English
@@ -566,7 +548,7 @@ invisible(Sys.setlocale("LC_TIME", "C"))
 tarballs$date <- as.Date(tarballs$date, format = "%d-%b-%Y")
 invisible(Sys.setlocale("LC_TIME", old))
 range(tarballs$date)
-#> [1] "2022-10-03" "2026-11-10"
+#> [1] "2022-10-03" "2026-11-17"
 ```
 
 Apache writes the same preformatted layout when fancy indexing is on but
@@ -597,7 +579,7 @@ flavor, is tens of megabytes of HTML: larger than the default
 
 summary_page <- fetch(paste0(cran, "web/checks/check_summary_by_package.html"))
 file.size(summary_page) / 2^20
-#> [1] 53.31239
+#> [1] 53.51751
 err <- tryCatch(html_read(summary_page), zuhtml_limit_error = function(e) e)
 err$limit
 #> [1] "max_input"
@@ -611,16 +593,16 @@ big <- html_limits(max_input = 128 * 2^20, max_memory = 4 * 2^30)
 checks <- html_read(summary_page, limits = big)
 html_info(checks)[c("nodes", "native_bytes", "parse_peak_bytes")]
 #> $nodes
-#> [1] 2618533
+#> [1] 2633310
 #> 
 #> $native_bytes
-#> [1] 169292550
+#> [1] 170118951
 #> 
 #> $parse_peak_bytes
-#> [1] 633097667
+#> [1] 636288136
 status <- html_tables(checks, limits = big)[[1]]
 dim(status)
-#> [1] 26078    17
+#> [1] 26274    17
 names(status)[1:4]
 #> [1] "Package"                               
 #> [2] "Version"                               
@@ -640,6 +622,6 @@ names(status)[1:4]
 #> [3] "r-devel Linux x86_64 (Debian Clang)" "r-devel Linux x86_64 (Debian GCC)"
 table(status[[3]])[1:5]
 #> 
-#>         ERROR ERROR*   FAIL   NOTE 
-#>    399   1102      4      3   5152
+#>       ERROR  FAIL  NOTE NOTE* 
+#>   523    64     2  5265    12
 ```
