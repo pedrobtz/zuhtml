@@ -29,7 +29,8 @@ Each property's value follows the standard: a nested item for an element
 with \code{itemscope}; the \code{content} attribute of \verb{<meta>}; the resolved
 \code{src} of \verb{<audio>}, \verb{<embed>}, \verb{<iframe>}, \verb{<img>}, \verb{<source>}, \verb{<track>}
 and \verb{<video>}, \code{href} of \verb{<a>}, \verb{<area>} and \verb{<link>}, and \code{data} of
-\verb{<object>} (resolved as \code{\link[=html_url]{html_url()}} does, \code{""} when that fails); the
+\verb{<object>} (resolved as \code{\link[=html_url]{html_url()}} does, \code{""} when the attribute is
+absent or does not resolve); the
 \code{value} attribute of \verb{<data>} and \verb{<meter>}; the \code{datetime} attribute of
 \verb{<time>} when present. Otherwise it is the element's text, which here is
 cleaned as \code{\link[=html_text_clean]{html_text_clean()}} does, not the raw \code{textContent}. An item

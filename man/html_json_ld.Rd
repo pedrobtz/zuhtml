@@ -9,9 +9,10 @@ html_json_ld(x, parse = FALSE)
 \arguments{
 \item{x}{A \code{zuhtml_document} or \code{zuhtml_nodeset}.}
 
-\item{parse}{If \code{TRUE}, parse each block with \code{\link[jsonlite:fromJSON]{jsonlite::fromJSON()}}
+\item{parse}{If \code{TRUE}, parse each block with \code{\link[jsonlite:parse_json]{jsonlite::parse_json()}}
 (with \code{simplifyVector = FALSE}, so objects are named lists and arrays
-are lists). This needs the jsonlite package. A wrapper around the
+are lists). The text is only ever parsed as JSON, never read as a file
+name or URL. This needs the jsonlite package. A wrapper around the
 whole block, \verb{<![CDATA[ ... ]]>} or \verb{<!-- ... -->}, optionally
 commented out with \verb{//} or \verb{/* */} as pages often do, is removed first.}
 }
@@ -24,7 +25,8 @@ valid JSON; the texts are kept in its attribute \code{"json"}.
 \description{
 The structured data pages embed as JSON-LD: the text of each
 \verb{<script type="application/ld+json">} below the given nodes (and the
-nodes themselves), in document order. The type is matched as a MIME
+nodes themselves), in document order; an SVG or MathML \verb{<script>} does
+not count. The type is matched as a MIME
 type: case-insensitively, ignoring surrounding whitespace and any
 parameters.
 }

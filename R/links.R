@@ -7,7 +7,8 @@
 #' protocol-relative references are handled. Nothing is fetched.
 #'
 #' The base URL is `base_url` if given; otherwise the document's first
-#' `<base href>` resolved against the `base_url` given to [html_parse()];
+#' HTML `<base href>` (not an SVG or MathML `<base>`) resolved against the
+#' `base_url` given to [html_parse()];
 #' otherwise that `base_url` alone.
 #'
 #' This is RFC 3986, not the WHATWG URL Standard browsers implement: there
@@ -90,13 +91,15 @@ html_links <- function(x, absolute = FALSE) {
   )
 }
 
-# The document's base URL: the first <base href>, resolved against the
-# parse-time base_url, or that base_url alone. NA if there is none.
+# The document's base URL: the first HTML <base href> (an SVG or MathML
+# <base> does not count), resolved against the parse-time base_url, or that
+# base_url alone. NA if there is none.
 zuh_doc_base <- function(doc) {
   given <- if (is.null(doc$base_url)) NA_character_ else doc$base_url
-  b <- html_element(doc, "base[href]")
-  if (!is.na(unclass(b))) {
-    r <- zuh_resolve(html_attr(b, "href"), given)
+  b <- html_elements(doc, "base[href]")
+  b <- b[html_namespace(b) %in% zuh_xhtml]
+  if (length(b)) {
+    r <- zuh_resolve(html_attr(b[1L], "href"), given)
     if (!is.na(r)) return(r)
   }
   given
