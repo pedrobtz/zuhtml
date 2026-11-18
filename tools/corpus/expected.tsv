@@ -306,7 +306,7 @@ readability/clean-links/source.html	ok	1746	4	1/1	0/0	291	81548/e54f83e2c8da	TRU
 readability/cnet-svg-classes/expected.html	ok	208	1	0/0	0/0	4	1473/598e4bef1f40	TRUE
 readability/cnet-svg-classes/source.html	ok	1364	0	0/0	21/74	92	3799/7b300d67dcb5	TRUE
 readability/cnet/expected.html	ok	114	1	0/0	0/0	10	3571/6bfaa3672667	TRUE
-readability/cnet/source.html	ok	2578	2	1/12	35/139	189	8731/49d21cc70ce3	TRUE
+readability/cnet/source.html	ok	2578	2	1/12	35/139	189	8630/4530262b61b3	TRUE
 readability/cnn/expected.html	ok	125	1	0/0	0/0	4	2022/39c2e34e59fc	TRUE
 readability/cnn/source.html	ok	2074	10	0/0	23/93	133	5746/1cc8c5336554	doctype
 readability/comment-inside-script-parsing/expected.html	ok	27	1	0/0	0/0	0	820/75be59e8c33d	TRUE

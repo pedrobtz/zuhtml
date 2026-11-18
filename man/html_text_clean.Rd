@@ -9,8 +9,9 @@ html_text_clean(x, trim = TRUE, nbsp = TRUE)
 \arguments{
 \item{x}{A \code{zuhtml_document} or \code{zuhtml_nodeset}.}
 
-\item{trim}{If \code{TRUE}, no whitespace at the start or end. If \code{FALSE},
-whitespace there is kept, collapsed to a single space.}
+\item{trim}{If \code{TRUE}, no whitespace at the start or end, even from
+\verb{<pre>} or \verb{<textarea>}. If \code{FALSE}, whitespace there is kept, collapsed
+to a single space outside preformatted elements.}
 
 \item{nbsp}{If \code{TRUE}, treat non-breaking spaces (U+00A0) as whitespace,
 so they collapse like spaces; inside \verb{<pre>} they become spaces.}
@@ -25,8 +26,8 @@ Text as a reader would want it from a page, rather than exactly as
 parsed. It is not a browser's \code{innerText}: there is no layout or CSS, and
 hidden elements are included. The rules are fixed and documented:
 \itemize{
-\item text inside \verb{<script>}, \verb{<style>} and \verb{<template>} is skipped, and so
-are comments;
+\item text inside \verb{<script>}, \verb{<style>} (HTML's or SVG's) and \verb{<template>}
+is skipped, and so are comments;
 \item runs of whitespace (space, tab, newline, carriage return, form feed)
 collapse to a single space, except inside \verb{<pre>}, \verb{<textarea>},
 \verb{<listing>} and \verb{<plaintext>}, where whitespace is kept;

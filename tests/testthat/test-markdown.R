@@ -18,7 +18,14 @@ test_that("html_markdown() writes headings, paragraphs and breaks", {
 test_that("html_markdown() writes inline markup lazily", {
   expect_identical(md("<p>a <b> bold </b>c"), "a **bold** c")
   expect_identical(md("<p>a<em></em>b<strong> </strong>c"), "ab c")
-  expect_identical(md("<p><b><i>both</i></b>"), "***both***")
+  # Delimiter runs never touch: the inner emphasis is left out.
+  expect_identical(md("<p><b><i>both</i></b>"), "**both**")
+  expect_identical(md("<p><b>Note: <i>this</i></b> x"), "**Note: this** x")
+  # Emphasis inside emphasis of its kind adds nothing.
+  expect_identical(md("<p><i>a <i>b</i> c</i>"), "*a b c*")
+  # Removing an opener keeps the text around it as it was.
+  expect_identical(md("<p>Wow!<i><a href=u>x</a>.</i>y"), "Wow\\![x](u).y")
+  expect_identical(md("<p><i>1. a.</i>b"), "1\\. a.b")
   # Markup around blocks is closed and reopened in each block.
   expect_identical(md("<b><p>one</p><p>two</p></b>"), "**one**\n\n**two**")
   expect_identical(md("<p>use <code>x &lt;- `y`</code> or <kbd>C-c</kbd>"),

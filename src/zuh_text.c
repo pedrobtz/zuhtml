@@ -38,11 +38,18 @@ kind_of(const zuh_doc *doc, zuh_id id, zuh_id root,
   if (n->type == ZUH_NODE_COMMENT || n->type == ZUH_NODE_PI ||
       n->type == ZUH_NODE_DOCTYPE)
     return K_SKIP;
-  if (n->type != ZUH_NODE_ELEMENT || n->ns != ZUH_NS_HTML)
+  if (n->type != ZUH_NODE_ELEMENT)
+    return K_OTHER;
+  name = zuh_str(doc, n->name);
+  /* SVG has its own <script> and <style>, which hold code as HTML's do;
+   * MathML has neither. */
+  if (n->ns == ZUH_NS_SVG &&
+      (strcmp(name, "script") == 0 || strcmp(name, "style") == 0))
+    return K_SKIP;
+  if (n->ns != ZUH_NS_HTML)
     return K_OTHER;
   if ((n->flags & ZUH_FLAG_TEMPLATE) != 0)
     return K_SKIP;
-  name = zuh_str(doc, n->name);
   if (strcmp(name, "script") == 0 || strcmp(name, "style") == 0)
     return K_SKIP;
   if (id != root) {
@@ -180,6 +187,7 @@ zuh_text_clean(const zuh_doc *doc, zuh_id id, const zuh_clean_opts *opts,
   cleaner c;
   const zuh_node *root = &doc->nodes[id];
   zuh_id cur;
+  size_t start = out->len;
 
   memset(&c, 0, sizeof(c));
   c.out = out;
@@ -227,5 +235,18 @@ zuh_text_clean(const zuh_doc *doc, zuh_id id, const zuh_clean_opts *opts,
   }
   if (!opts->trim && c.space)
     zuh_buf_put(out, " ", 1);
+  if (opts->trim && !out->failed && out->len > start) {
+    /* Preformatted text keeps its whitespace, but not at the ends. */
+    size_t lead = start;
+    while (out->len > start && is_ws((unsigned char) out->buf[out->len - 1]))
+      out->len--;
+    while (lead < out->len && is_ws((unsigned char) out->buf[lead]))
+      lead++;
+    if (lead > start) {
+      memmove(out->buf + start, out->buf + lead, out->len - lead);
+      out->len -= lead - start;
+    }
+    out->buf[out->len] = '\0';
+  }
   return out->failed ? ZUH_LIMIT_MEMORY : ZUH_OK;
 }

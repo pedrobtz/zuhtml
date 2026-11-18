@@ -29,9 +29,36 @@ test_that("non-breaking spaces fold into whitespace unless nbsp = FALSE", {
 })
 
 test_that("preformatted text keeps its whitespace", {
-  expect_identical(clean("<pre>  a\n    b  </pre>"), "  a\n    b  ")
+  expect_identical(clean("<pre>  a\n    b  </pre>", trim = FALSE),
+                   "  a\n    b  ")
   expect_identical(clean("<p>x</p><pre> y </pre><p>z</p>"), "x\n y \nz")
-  expect_identical(clean("<textarea>\n  t  x</textarea>"), "  t  x")
+  expect_identical(clean("<textarea>\n  t  x</textarea>", trim = FALSE),
+                   "  t  x")
+})
+
+test_that("trim = TRUE leaves no whitespace at the ends, even from <pre>", {
+  body <- function(html, ...) {
+    html_text_clean(html_element(html_parse(html), "body"), ...)
+  }
+  expect_identical(body("<body><pre>  a  \n\n</pre>"), "a")
+  expect_identical(clean("<pre>  a\n    b  </pre>"), "a\n    b")
+  expect_identical(clean("<textarea>\n  t  x\n</textarea>"), "t  x")
+  expect_identical(clean("<pre> \n </pre>"), "")
+  expect_identical(clean("<pre>&nbsp;a&nbsp;</pre>"), "a")
+  expect_identical(tab("<table><tr><td><pre> c </pre></table>")[[1]], "c")
+  # Every element kind, and the whitespace kinds HTML knows.
+  kinds <- c("p", "div", "span", "pre", "textarea", "listing", "td", "li",
+             "b", "code", "h1", "blockquote", "table")
+  ws <- c(" ", "\t", "\n", "\r\n", "\f", "&nbsp;", "")
+  for (k in kinds) {
+    for (w in ws) {
+      html <- paste0("<", k, ">", w, "x", w, "<br>", w, "</", k, ">")
+      doc <- html_parse(paste0("<body>", w, html, w))
+      got <- html_text_clean(html_elements(doc, "body, body *"))
+      expect_match(got, "^(\\S|$)", label = html)
+      expect_match(got, "(\\S|^)$", label = html)
+    }
+  }
 })
 
 test_that("script, style, template and comments are skipped", {
@@ -40,6 +67,16 @@ test_that("script, style, template and comments are skipped", {
                  "<template>t</template><!-- d -->e</p>")),
     "abce"
   )
+})
+
+test_that("script and style in SVG are skipped too, as in HTML", {
+  expect_identical(
+    clean(paste0("<p>a<svg><script>S()</script><style>s{}</style>",
+                 "<text>t</text></svg><math><mi>m</mi></math>b</p>")),
+    "atmb"
+  )
+  # MathML has no <script> or <style>: its unknown elements are text.
+  expect_identical(clean("<p>a<math><style>m</style></math>b"), "amb")
 })
 
 test_that("html_text_clean() is vectorized and keeps missing nodes", {
