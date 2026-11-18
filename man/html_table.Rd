@@ -116,9 +116,15 @@ column when all are whole and fit, otherwise a double column. \code{decimal}
 is the decimal mark. \code{thousands}, if given, is a grouping mark allowed
 between groups of three digits, as in \verb{1,234,567.5}; a badly grouped
 value such as \verb{1,23} keeps the column character.
-\item A value with a leading zero, such as \code{"0012"}, keeps the column
-character: it is an identifier, not a number. \code{"0"} and \code{"0.5"} are
-numbers.
+Cell text has its non-breaking spaces turned into spaces, so
+\code{thousands = "\\u00a0"} matches either.
+\item A value with a leading zero, such as \code{"0012"}, or \code{"0,123"} with
+\code{thousands = ","}, keeps the column character: it is an identifier,
+not a number. \code{"0"} and \code{"0.5"} are numbers.
+\item A value with more than 15 significant digits, which a double need not
+hold exactly, or one that overflows to infinity, underflows to zero or
+is subnormal, such as \code{"12345678901234567890"}, \code{"1e999"} or
+\code{"1e-310"}, keeps the column character.
 \item \code{Inf}, \code{NaN}, \code{NA}, currency symbols and percentages are not numbers;
 list such strings in \code{na}, or convert them yourself. A column with no
 non-missing values stays character.

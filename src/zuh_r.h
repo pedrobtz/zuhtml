@@ -7,11 +7,18 @@
 #include <Rinternals.h>
 
 #include "zuh_document.h"
+#include "zuh_status.h"
 
 zuh_doc *zuh_r_doc(SEXP ptr);
 
 /* A zuh_alloc_fn backed by R_alloc, for zuh_buf. */
 void *zuh_r_alloc(void *userdata, size_t n);
+
+/* A failed entry point's result: double(2) c(status, observed) of class
+ * "zuhtml_status", which zuh_checked() in R/node.R maps to a classed
+ * condition through zuh_status_names. `observed` is NA_REAL when unknown.
+ * Entry points return it instead of calling Rf_error(). */
+SEXP zuh_r_status(zuh_status st, double observed);
 
 SEXP C_zuh_doc_new(void);
 SEXP C_zuh_doc_alive(SEXP ptr);

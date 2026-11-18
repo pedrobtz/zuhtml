@@ -49,9 +49,15 @@
 #'   is the decimal mark. `thousands`, if given, is a grouping mark allowed
 #'   between groups of three digits, as in `1,234,567.5`; a badly grouped
 #'   value such as `1,23` keeps the column character.
-#' * A value with a leading zero, such as `"0012"`, keeps the column
-#'   character: it is an identifier, not a number. `"0"` and `"0.5"` are
-#'   numbers.
+#'   Cell text has its non-breaking spaces turned into spaces, so
+#'   `thousands = "\u00a0"` matches either.
+#' * A value with a leading zero, such as `"0012"`, or `"0,123"` with
+#'   `thousands = ","`, keeps the column character: it is an identifier,
+#'   not a number. `"0"` and `"0.5"` are numbers.
+#' * A value with more than 15 significant digits, which a double need not
+#'   hold exactly, or one that overflows to infinity, underflows to zero or
+#'   is subnormal, such as `"12345678901234567890"`, `"1e999"` or
+#'   `"1e-310"`, keeps the column character.
 #' * `Inf`, `NaN`, `NA`, currency symbols and percentages are not numbers;
 #'   list such strings in `na`, or convert them yourself. A column with no
 #'   non-missing values stays character.
@@ -116,6 +122,9 @@ html_table <- function(x, header = "auto", trim = TRUE, na = character(),
                     call = call)
   }
   limits <- zuh_check_limits(limits, call = call)
+  # Cell text has its non-breaking spaces turned into spaces, so a
+  # non-breaking space as the grouping mark matches a space.
+  if (identical(thousands, "\u00a0")) thousands <- " "
   zuh_check_convert(convert, decimal, thousands, call)
   n <- zuh_nodes(t)
   g <- zuh_grid(n, limits, call)
@@ -218,6 +227,19 @@ html_tables <- function(x, css = "table", match = NULL, ...) {
       (!is.character(match) || length(match) != 1L || is.na(match))) {
     zuh_input_error("match", "`match` must be NULL or a single string.",
                     call = call)
+  }
+  if (!is.null(match)) {
+    tryCatch(
+      suppressWarnings(grepl(match, "")),
+      error = function(e) {
+        zuh_input_error(
+          "match",
+          sprintf("`match` is not a valid regular expression: %s",
+                  conditionMessage(e)),
+          call = call
+        )
+      }
+    )
   }
   tabs <- zuh_select_including(x, css, call)
   tabs <- tabs[html_name(tabs) %in% "table" &
@@ -369,11 +391,26 @@ zuh_convert <- function(v, decimal, thousands) {
   }
   num <- paste0("^[+-]?(", int, "(", d, "[0-9]*)?|", d, "[0-9]+)",
                 "([eE][+-]?[0-9]+)?$")
-  if (!all(grepl(num, x)) || any(grepl("^[+-]?0[0-9]", x))) return(v)
+  if (!all(grepl(num, x))) return(v)
   if (!is.null(thousands)) y <- gsub(thousands, "", y, fixed = TRUE)
   if (decimal != ".") y <- sub(decimal, ".", y, fixed = TRUE)
+  x <- y[!is.na(y)]
+  # After the grouping marks are gone, so that "0,123" is caught too.
+  if (any(grepl("^[+-]?0[0-9]", x))) return(v)
+  # The significant digits of the mantissa: more than 15 need not survive
+  # a double (DBL_DIG), so such a column stays character.
+  digits <- gsub("[^0-9]", "", sub("[eE].*$", "", x))
+  digits <- sub("0+$", "", sub("^0+", "", digits))
+  if (any(nchar(digits) > 15L)) return(v)
   out <- as.numeric(y)
-  whole <- !grepl("[.eE]", y[!is.na(y)])
+  got <- out[!is.na(y)]
+  # Overflow to Inf, underflow to 0 and subnormals lose the value.
+  if (any(!is.finite(got)) ||
+      any(got == 0 & nzchar(digits)) ||
+      any(got != 0 & abs(got) < .Machine$double.xmin)) {
+    return(v)
+  }
+  whole <- !grepl("[.eE]", x)
   if (all(whole) && all(abs(out[!is.na(out)]) <= .Machine$integer.max)) {
     out <- as.integer(out)
   }

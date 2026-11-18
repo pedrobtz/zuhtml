@@ -19,6 +19,9 @@ typedef struct zuh_ledger {
    * long-jumps here with the status as the value. NULL outside it. */
   jmp_buf *abort_to;
   zuh_status status;     /* why the last abort happened */
+  size_t observed;       /* for a budget breach: the live bytes the
+                            refused allocation would have made, saturating;
+                            0 when the abort had another cause */
 
   void **blocks;         /* live block headers, in no particular order */
   size_t count;

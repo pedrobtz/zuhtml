@@ -94,3 +94,68 @@ test_that("limit errors carry the zuhtml_error parent class", {
   expect_s3_class(err, "error")
   expect_s3_class(err, "condition")
 })
+
+test_that("a max_memory breach reports the bytes it would have needed", {
+  err <- expect_error(
+    html_parse(strrep("<p>text", 1000), limits = html_limits(max_memory = 1e4)),
+    class = "zuhtml_limit_error"
+  )
+  expect_true(is.finite(err$observed))
+  expect_gt(err$observed, 1e4)
+  expect_match(conditionMessage(err), sprintf("%.0f bytes", err$observed),
+               fixed = TRUE)
+})
+
+test_that("an injected allocation failure has no observed size", {
+  lim <- html_limits()
+  input <- zuhtml:::zuh_decode("<p>x", NULL, lim, NULL)
+  err <- expect_error(
+    zuhtml:::zuh_parse_bytes(input$bytes, "UTF-8", NULL, lim, fail_at = 1),
+    class = "zuhtml_limit_error"
+  )
+  expect_identical(err$limit, "max_memory")
+  expect_identical(err$observed, NA_real_)
+})
+
+test_that("every native status maps to a classed condition", {
+  # zuh_r_status() objects, as the C entry points return them; the
+  # conditions they stand for (strings over 2^31 - 1 bytes, documents over
+  # 2^32 pool bytes) cannot be built in a test.
+  doc <- html_parse("<p>x")
+  n <- zuhtml:::zuh_nodes(doc)
+  status <- function(name, observed) {
+    structure(c(match(name, zuhtml:::zuh_status_names) - 1, observed),
+              class = "zuhtml_status")
+  }
+  err <- expect_error(zuhtml:::zuh_checked(status("limit_string", 3e9), n),
+                      class = "zuhtml_limit_error")
+  expect_identical(err$limit, "string_length")
+  expect_identical(err$maximum, 2147483647)
+  expect_identical(err$observed, 3e9)
+  err <- expect_error(zuhtml:::zuh_checked(status("limit_arena", 5e9), n),
+                      class = "zuhtml_limit_error")
+  expect_identical(err$limit, "arena")
+  expect_identical(err$observed, 5e9)
+  err <- expect_error(zuhtml:::zuh_checked(status("limit_memory", NA), n),
+                      class = "zuhtml_limit_error")
+  expect_identical(err$limit, "memory")
+  for (s in c("internal", "limit_depth", "table_overlap")) {
+    expect_error(zuhtml:::zuh_checked(status(s, NA), n),
+                 class = "zuhtml_parse_error")
+  }
+  expect_error(zuhtml:::zuh_checked(structure(c(99, NA), class =
+                                                "zuhtml_status"), n),
+               class = "zuhtml_parse_error")
+  # The table statuses keep their place after the parse ones, as in
+  # src/zuh_status.h.
+  expect_identical(zuhtml:::zuh_status_names[7:10],
+                   c("limit_table", "table_overlap", "limit_arena",
+                     "limit_string"))
+})
+
+test_that("the tree dump is a string, through the cleanup-safe path", {
+  doc <- html_parse("<p>x")
+  out <- .Call(zuhtml:::C_zuh_doc_dump, doc$ptr)
+  expect_type(out, "character")
+  expect_match(out, "| <html>", fixed = TRUE)
+})
