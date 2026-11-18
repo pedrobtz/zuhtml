@@ -31,8 +31,8 @@ html_text <- function(x, recursive = TRUE) {
 #' Text as a reader would want it from a page, rather than exactly as
 #' parsed. It is not a browser's `innerText`: there is no layout or CSS, and
 #' hidden elements are included. The rules are fixed and documented:
-#' * text inside `<script>`, `<style>` and `<template>` is skipped, and so
-#'   are comments;
+#' * text inside `<script>`, `<style>` (HTML's or SVG's) and `<template>`
+#'   is skipped, and so are comments;
 #' * runs of whitespace (space, tab, newline, carriage return, form feed)
 #'   collapse to a single space, except inside `<pre>`, `<textarea>`,
 #'   `<listing>` and `<plaintext>`, where whitespace is kept;
@@ -48,8 +48,9 @@ html_text <- function(x, recursive = TRUE) {
 #' * table cells (`<td>`, `<th>`) are separated by a space.
 #'
 #' @param x A `zuhtml_document` or `zuhtml_nodeset`.
-#' @param trim If `TRUE`, no whitespace at the start or end. If `FALSE`,
-#'   whitespace there is kept, collapsed to a single space.
+#' @param trim If `TRUE`, no whitespace at the start or end, even from
+#'   `<pre>` or `<textarea>`. If `FALSE`, whitespace there is kept, collapsed
+#'   to a single space outside preformatted elements.
 #' @param nbsp If `TRUE`, treat non-breaking spaces (U+00A0) as whitespace,
 #'   so they collapse like spaces; inside `<pre>` they become spaces.
 #'

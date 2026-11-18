@@ -26,6 +26,7 @@ BugReports: https://github.com/pedrobtz/zuhtml/issues
 Depends: 
     R (>= 4.1)
 Suggests: 
+    commonmark,
     jsonlite,
     knitr,
     rmarkdown,

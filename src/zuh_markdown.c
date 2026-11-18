@@ -60,10 +60,13 @@ typedef struct {
   unsigned char ordered;    /* list */
   unsigned char reversed;   /* list */
   unsigned char level;      /* heading */
+  char bullet;              /* list: '-' or '*', or '.' or ')' if ordered */
   char marker[16];          /* list item: "- " or "12. " */
   long next;                /* list: the next item's number */
+  int list;                 /* list item: its list's frame index, or -1 */
   const char *url;          /* link */
-  size_t open_at;           /* emphasis: where its opener was written */
+  size_t open_at;           /* emphasis: where its opener was written;
+                             * list: md.content on entry */
   int table_prev;           /* table: the enclosing md.table */
 } frame;
 
@@ -74,6 +77,8 @@ typedef struct {
   zuh_buf *out;
   zuh_buf stack;            /* frames */
   zuh_buf tmp;              /* code text */
+  zuh_buf ends;             /* collect_text(): ends of the open blocks */
+  zuh_buf code;             /* the content of the last code span */
   int fail;
 
   int started;        /* visible content has been written */
@@ -85,6 +90,15 @@ typedef struct {
   size_t closer_end;  /* output length right after an emphasis closer */
   unsigned char closer_delim;   /* its D_*, or D_NONE */
   size_t closer_open_at;        /* where that emphasis opened */
+  size_t opener_end;  /* output length right after an emphasis opener */
+  int opener_valid;   /* opener_end is set */
+  size_t code_start;  /* where the last code span starts */
+  size_t code_end;    /* and the output length right after it */
+  int code_valid;     /* code_start, code_end and m->code are set */
+  size_t content;     /* how many times content_start() has run */
+  size_t list_end;    /* m->content where the last list ended */
+  int list_end_depth; /* the containers around it */
+  char list_end_bullet; /* its bullet or delimiter; 0 for none */
   int space;          /* a collapsed space is pending */
   int pending_nl;     /* line breaks wanted before the next content */
   int nl_written;     /* line breaks already at the end of the output */
@@ -110,6 +124,61 @@ put(md *m, const char *s, size_t n) {
     return;
   zuh_buf_put(m->out, s, n);
   m->prev = (unsigned char) s[n - 1];
+}
+
+/* Remove n bytes of output at `at`. The last emphasis delimiters written
+ * are forgotten; the last code span moves with the output, or is
+ * forgotten if the cut is inside it. */
+static void
+cut(md *m, size_t at, size_t n) {
+  zuh_buf *o = m->out;
+  if (o->failed || at + n > o->len)
+    return;
+  memmove(o->buf + at, o->buf + at + n, o->len - at - n);
+  o->len -= n;
+  o->buf[o->len] = '\0';
+  m->prev = o->len > 0 ? (unsigned char) o->buf[o->len - 1] : 0;
+  m->closer_delim = D_NONE;
+  m->opener_valid = 0;
+  if (m->code_valid && at < m->code_end) {
+    if (at + n <= m->code_start) {
+      m->code_start -= n;
+      m->code_end -= n;
+    } else {
+      m->code_valid = 0;
+    }
+  }
+}
+
+static int is_alnum(unsigned char ch);
+
+/* Remove the emphasis opener of n bytes at `at`. Text around it keeps its
+ * meaning: an unescaped '!' before a link's "[" or an '&' before what
+ * would make an entity reference is escaped in its place. (Text after an
+ * opener at a line start was escaped as at a line start.) */
+static void
+cut_opener(md *m, size_t at, size_t n) {
+  zuh_buf *o = m->out;
+  unsigned char before, after;
+  size_t k;
+  if (o->failed || at == 0 || at + n >= o->len) {
+    cut(m, at, n);
+    return;
+  }
+  before = (unsigned char) o->buf[at - 1];
+  after = (unsigned char) o->buf[at + n];
+  for (k = at - 1; k > 0 && o->buf[k - 1] == '\\'; k--)
+    ;
+  if (((at - 1 - k) % 2 == 0) &&
+      ((before == '!' && after == '[') ||
+       (before == '&' && (is_alnum(after) || after == '#')))) {
+    /* "!*[" becomes "\![": the same length, less n - 1. */
+    o->buf[at - 1] = '\\';
+    o->buf[at] = (char) before;
+    cut(m, at + 1, n - 1);
+    return;
+  }
+  cut(m, at, n);
 }
 
 static const char *
@@ -150,8 +219,9 @@ is_ws(unsigned char ch) {
 
 static int is_alnum(unsigned char ch);
 
-/* Character classes for CommonMark's flanking rules. */
-enum { C_NONE = 0, C_WS, C_PUNCT, C_OTHER };
+/* Character classes for CommonMark's flanking rules. C_CODE, for
+ * content_start() only, is a code span: punctuation. */
+enum { C_NONE = 0, C_WS, C_PUNCT, C_OTHER, C_CODE };
 
 /* The class of the code point at p (UTF-8). Unicode whitespace and the
  * common Unicode punctuation blocks are recognized; the rest is C_OTHER. */
@@ -318,6 +388,30 @@ kind_of(const zuh_doc *doc, zuh_id id) {
 
 /* ---- Prefixes, breaks and delimiters ---------------------------------- */
 
+/* The marker of list item f[i], numbered when it is written, so that the
+ * items left out (empty ones) take no number. */
+static void
+item_marker(md *m, int i) {
+  frame *f = FRAMES(m);
+  frame *it = &f[i];
+  frame *list = it->list >= 0 ? &f[it->list] : NULL;
+  if (list != NULL && list->ordered) {
+    long n = int_attr(attr_of(m->doc, it->id, "value"), list->next);
+    list->next = list->reversed ? n - 1 : n + 1;
+    /* CommonMark has no negative numbers, and nine digits at most. */
+    if (n < 0)
+      n = 0;
+    if (n > 999999999L)
+      n = 999999999L;
+    snprintf(it->marker, sizeof(it->marker), "%ld%c ", n, list->bullet);
+  } else {
+    it->marker[0] = list != NULL ? list->bullet : '-';
+    it->marker[1] = ' ';
+    it->marker[2] = '\0';
+  }
+  it->marker_len = (unsigned char) strlen(it->marker);
+}
+
 /* The prefix of a line: "> " per quote, and per list item its marker on
  * the item's first line, else as many spaces. A blank line takes the
  * prefix without trailing spaces and leaves markers pending. */
@@ -332,6 +426,7 @@ put_prefix(md *m, int blank) {
     if (f[i].kind == M_QUOTE) {
       put(m, "> ", 2);
     } else if (f[i].marker_pending && !blank) {
+      item_marker(m, i);
       put(m, f[i].marker, f[i].marker_len);
       f[i].marker_pending = 0;
     } else {
@@ -392,6 +487,12 @@ put_opener(md *m, const frame *f) {
     put(m, "**", 2);
     break;
   case D_LINK:
+    /* Text ending in '!' would make the link an image. */
+    if (!m->out->failed && m->out->len > 0 &&
+        m->out->buf[m->out->len - 1] == '!') {
+      m->out->len--;
+      put(m, "\\!", 2);
+    }
     put(m, "[", 1);
     break;
   case D_HEADING:
@@ -403,15 +504,20 @@ put_opener(md *m, const frame *f) {
   }
 }
 
+static void close_emphasis(md *m, const frame *f, int after);
+
 /* Close the inline markup that is open, innermost first, to reopen on the
- * next content. */
+ * next content. What follows is a line break or a cell's end. */
 static void
 close_open(md *m) {
   frame *f = FRAMES(m);
   int i;
   for (i = NFRAMES(m) - 1; i >= 0; i--) {
     if (f[i].dstate == S_OPEN && f[i].delim != D_HEADING) {
-      put_closer(m, &f[i]);
+      if (f[i].delim == D_EM || f[i].delim == D_STRONG)
+        close_emphasis(m, &f[i], C_WS);
+      else
+        put_closer(m, &f[i]);
       f[i].dstate = S_PENDING;
     }
   }
@@ -459,6 +565,9 @@ emit_breaks(md *m) {
 static void
 content_start(md *m, int next) {
   int delims = next != C_NONE;
+  int code_next = next == C_CODE;
+  if (code_next)
+    next = C_PUNCT;
   if (m->soft_list_end && m->pending_nl == 1) {
     /* Text after a nested list, in the same item, needs a blank line or
      * it would continue the nested list's last item. */
@@ -505,12 +614,16 @@ content_start(md *m, int next) {
     int i, pass, nf = NFRAMES(m);
     for (pass = 0; pass < 2; pass++) {
       for (i = 0; i < nf; i++) {
-        int after = next, j, emph;
+        int after = next, j, emph, code_around = code_next;
         if (f[i].dstate != S_PENDING || (f[i].delim == D_HEADING) != !pass)
           continue;
+        /* What follows the opener: a link's "[" if one is pending; not
+         * an inner emphasis opener, which would touch it and is left
+         * out. */
         for (j = i + 1; j < nf; j++) {
-          if (f[j].dstate == S_PENDING && f[j].delim != D_HEADING) {
+          if (f[j].dstate == S_PENDING && f[j].delim == D_LINK) {
             after = C_PUNCT;
+            code_around = 0;
             break;
           }
         }
@@ -519,20 +632,27 @@ content_start(md *m, int next) {
             m->closer_end == m->out->len) {
           /* Emphasis right after emphasis of its kind continues it:
            * "*a**b*" would not parse, "*ab*" does. */
-          m->out->len -= f[i].delim == D_EM ? 1 : 2;
-          m->out->buf[m->out->len] = '\0';
-          m->closer_delim = D_NONE;
-          f[i].open_at = m->closer_open_at;
+          size_t at = m->closer_open_at;
+          cut(m, m->out->len - (f[i].delim == D_EM ? 1 : 2),
+              f[i].delim == D_EM ? 1 : 2);
+          f[i].open_at = at;
           f[i].dstate = S_OPEN;
           continue;
         }
         if (emph) {
-          /* An opener before whitespace, between a letter and
-           * punctuation ("a*."), or against a closer cannot open:
-           * leave that emphasis out. */
-          int star = !m->out->failed && m->closer_delim != D_NONE &&
-                     m->closer_end == m->out->len;
-          if (after == C_WS || star ||
+          /* An opener that could not open (before whitespace, or between
+           * a letter and punctuation, "a*."), or one that would touch
+           * another delimiter run (a closer, "*a***b**", or an opener,
+           * "***a**b*"), is left out with its emphasis. */
+          int touch = !m->out->failed &&
+                      ((m->closer_delim != D_NONE &&
+                        m->closer_end == m->out->len) ||
+                       (m->opener_valid && m->opener_end == m->out->len));
+          /* Nor one between two code spans: removed later, it would join
+           * them ("`a``b`"). */
+          code_around = code_around && m->code_valid &&
+                        m->code_end == m->out->len;
+          if (after == C_WS || touch || code_around ||
               (after == C_PUNCT && tail_class(m) == C_OTHER)) {
             f[i].dstate = S_NONE;
             continue;
@@ -541,11 +661,19 @@ content_start(md *m, int next) {
         }
         put_opener(m, &f[i]);
         f[i].dstate = S_OPEN;
-        m->line_start = 0;
+        if (emph) {
+          /* The text after it is escaped as at a line start, in case the
+           * opener is removed. */
+          m->opener_end = m->out->len;
+          m->opener_valid = 1;
+        } else {
+          m->line_start = 0;
+        }
       }
     }
   }
   m->started = 1;
+  m->content++;
   m->nl_written = 0;
 }
 
@@ -567,7 +695,11 @@ put_escaped(md *m, const unsigned char *p, const unsigned char *end) {
     unsigned char nx = p + 1 < end ? p[1] : 0;
     int esc = 0;
     if (m->line_start) {
-      if (ch == '#' || ch == '-' || ch == '+' || ch == '=' || ch == '~')
+      /* Block markers, and the first character of a GFM table's
+       * delimiter row ("-", ":" or "|"), which would turn the line above
+       * into a table header. */
+      if (ch == '#' || ch == '-' || ch == '+' || ch == '=' || ch == '~' ||
+          ch == ':' || ch == '|')
         esc = 1;
       m->lead_digits = ch >= '0' && ch <= '9';
       m->line_start = 0;
@@ -638,23 +770,46 @@ static void
 collect_text(md *m, zuh_id id) {
   const zuh_doc *doc = m->doc;
   zuh_id j, end = doc->nodes[id].subtree_end;
+  int nl = 0; /* a block has ended since the last text */
   m->tmp.len = 0;
   zuh_buf_put(&m->tmp, "", 0);
+  m->ends.len = 0;
   for (j = id + 1; j <= end && j != ZUH_NONE; j++) {
     const zuh_node *n = &doc->nodes[j];
+    while (m->ends.len >= sizeof(zuh_id)) {
+      zuh_id e;
+      memcpy(&e, m->ends.buf + m->ends.len - sizeof(zuh_id), sizeof(e));
+      if (e >= j)
+        break;
+      m->ends.len -= sizeof(zuh_id);
+      nl = 1;
+    }
     if (n->type == ZUH_NODE_TEXT) {
-      zuh_buf_str(&m->tmp, zuh_str(doc, n->value));
+      const char *t = zuh_str(doc, n->value);
+      if (*t == '\0')
+        continue;
+      if (nl && m->tmp.len > 0 && m->tmp.buf[m->tmp.len - 1] != '\n')
+        zuh_buf_put(&m->tmp, "\n", 1);
+      nl = 0;
+      zuh_buf_str(&m->tmp, t);
     } else if (n->type == ZUH_NODE_ELEMENT) {
       int k = kind_of(doc, j);
       if (k == M_SKIP) {
         j = n->subtree_end;
       } else if (k == M_BR) {
         zuh_buf_put(&m->tmp, "\n", 1);
+        nl = 0;
       } else if (k != M_INLINE && k != M_EM && k != M_STRONG &&
-                 k != M_LINK && k != M_CODE && k != M_IMG &&
-                 m->tmp.len > 0 && m->tmp.buf[m->tmp.len - 1] != '\n') {
-        /* A block inside <pre>, as some highlighters write lines. */
-        zuh_buf_put(&m->tmp, "\n", 1);
+                 k != M_LINK && k != M_CODE && k != M_IMG) {
+        /* A block inside <pre>, as some highlighters write lines: a line
+         * break before it, and one after it if text follows. */
+        if (m->tmp.len > 0 && m->tmp.buf[m->tmp.len - 1] != '\n')
+          zuh_buf_put(&m->tmp, "\n", 1);
+        nl = 0;
+        zuh_buf_put(&m->ends, (const char *) &n->subtree_end,
+                    sizeof(zuh_id));
+        if (m->ends.failed)
+          m->tmp.failed = 1;
       }
     }
   }
@@ -677,12 +832,15 @@ put_repeat(md *m, char ch, size_t n) {
     put(m, &ch, 1);
 }
 
-/* An inline code span, whitespace collapsed. */
+/* An inline code span, whitespace collapsed. Whitespace at its ends is
+ * written outside it, as a space, so that it still separates words. A
+ * span right after another, with nothing between, joins it: "`a``b`"
+ * would read as one span with "``" in it. */
 static void
 put_code(md *m, zuh_id id) {
   char *s;
   size_t i, len = 0, fence;
-  int ws = 0;
+  int ws = 0, lead = 0;
   if (suppressed(m))
     return;
   collect_text(m, id);
@@ -691,7 +849,10 @@ put_code(md *m, zuh_id id) {
   s = m->tmp.buf;
   for (i = 0; i < m->tmp.len; i++) {
     if (is_ws((unsigned char) s[i])) {
-      ws = len > 0;
+      if (len == 0)
+        lead = 1;
+      else
+        ws = 1;
       continue;
     }
     if (ws)
@@ -699,9 +860,24 @@ put_code(md *m, zuh_id id) {
     ws = 0;
     s[len++] = s[i];
   }
+  if (lead)
+    m->space = 1;
   if (len == 0)
     return;
-  content_start(m, C_PUNCT);
+  content_start(m, C_CODE);
+  if (!m->out->failed && m->code_valid && m->code_end == m->out->len) {
+    cut(m, m->code_start, m->out->len - m->code_start);
+  } else {
+    m->code.len = 0;
+  }
+  zuh_buf_put(&m->code, s, len);
+  if (m->code.failed) {
+    m->fail = 1;
+    return;
+  }
+  s = m->code.buf;
+  len = m->code.len;
+  m->code_start = m->out->len;
   fence = longest_run(s, len, '`') + 1;
   put_repeat(m, '`', fence);
   if (s[0] == '`' || s[len - 1] == '`')
@@ -715,6 +891,10 @@ put_code(md *m, zuh_id id) {
     put(m, " ", 1);
   put_repeat(m, '`', fence);
   m->line_content = 1;
+  m->code_end = m->out->len;
+  m->code_valid = 1;
+  if (ws)
+    m->space = 1;
 }
 
 /* The language of a code block: a "language-x" or "lang-x" class on the
@@ -923,6 +1103,59 @@ row_end(md *m) {
   want_break(m, 1);
 }
 
+/* ---- Lists --------------------------------------------------------------- */
+
+/* Whether list item `li` writes anything: an empty item is left out. */
+static int
+item_written(const zuh_doc *doc, zuh_id li) {
+  zuh_id j, end = doc->nodes[li].subtree_end;
+  for (j = li + 1; j <= end && j != ZUH_NONE; j++) {
+    const zuh_node *n = &doc->nodes[j];
+    if (n->type == ZUH_NODE_TEXT) {
+      const unsigned char *t = (const unsigned char *) zuh_str(doc, n->value);
+      int w;
+      while ((w = ws_len(t)) > 0)
+        t += w;
+      if (*t != '\0')
+        return 1;
+    } else if (n->type == ZUH_NODE_ELEMENT) {
+      int k = kind_of(doc, j);
+      if (k == M_SKIP)
+        j = n->subtree_end;
+      else if (k == M_IMG || k == M_HR || k == M_PRE)
+        return 1;
+    }
+  }
+  return 0;
+}
+
+/* The items of list `id` that are written: its <li> descendants outside
+ * nested lists and items. Returns their number; with `first`, stops at
+ * the first one and stores it there. */
+static size_t
+list_items(const md *m, zuh_id id, zuh_id *first) {
+  const zuh_doc *doc = m->doc;
+  zuh_id j, end = doc->nodes[id].subtree_end;
+  size_t count = 0;
+  for (j = id + 1; j <= end && j != ZUH_NONE; j++) {
+    const zuh_node *n = &doc->nodes[j];
+    int k;
+    if (n->type != ZUH_NODE_ELEMENT)
+      continue;
+    k = kind_of(doc, j);
+    if (k == M_ITEM && item_written(doc, j)) {
+      count++;
+      if (first != NULL) {
+        *first = j;
+        return count;
+      }
+    }
+    if (k == M_ITEM || k == M_LIST || k == M_QUOTE || k == M_SKIP)
+      j = n->subtree_end;
+  }
+  return count;
+}
+
 /* ---- Enter and leave ----------------------------------------------------- */
 
 /* Enter element or document `id`. Returns 1 if a frame was pushed (the
@@ -1017,10 +1250,19 @@ enter(md *m, zuh_id id) {
     m->heading++;
     break;
   case M_EM:
-  case M_STRONG:
-    f.delim = kind == M_EM ? D_EM : D_STRONG;
-    f.dstate = S_PENDING;
+  case M_STRONG: {
+    /* Emphasis inside emphasis of its kind adds nothing to it. */
+    const frame *fr = FRAMES(m);
+    int i, delim = kind == M_EM ? D_EM : D_STRONG;
+    for (i = NFRAMES(m) - 1; i >= 0; i--)
+      if (fr[i].delim == delim)
+        break;
+    if (i < 0) {
+      f.delim = (unsigned char) delim;
+      f.dstate = S_PENDING;
+    }
     break;
+  }
   case M_LINK:
     f.delim = D_LINK;
     f.dstate = S_PENDING;
@@ -1033,20 +1275,46 @@ enter(md *m, zuh_id id) {
     break;
   case M_LIST: {
     const frame *fr = FRAMES(m);
-    int i, in_item = 0;
+    const char *start = attr_of(doc, id, "start");
+    int i, in_item = 0, depth = 0;
+    long first;
     for (i = NFRAMES(m) - 1; i >= 0; i--) {
       if (fr[i].container) {
-        in_item = fr[i].kind == M_ITEM;
-        break;
+        if (depth == 0)
+          in_item = fr[i].kind == M_ITEM;
+        depth++;
       }
     }
     f.ordered = (unsigned char) elem_is(doc, id, "ol");
     f.reversed = (unsigned char) (f.ordered &&
                                   attr_of(doc, id, "reversed") != NULL);
-    f.next = int_attr(attr_of(doc, id, "start"), 1);
+    /* A reversed list counts down from its number of items, as in HTML;
+     * the items left out are not counted. */
+    f.next = start != NULL || !f.reversed
+               ? int_attr(start, 1)
+               : (long) list_items(m, id, NULL);
+    /* A list right after another of its kind, with nothing between,
+     * would continue it: it takes the other bullet or delimiter. */
+    if (m->list_end_bullet != 0 && m->list_end == m->content &&
+        m->list_end_depth == depth &&
+        (m->list_end_bullet == '.' || m->list_end_bullet == ')') ==
+            (f.ordered != 0))
+      f.bullet = f.ordered ? (m->list_end_bullet == '.' ? ')' : '.')
+                           : (m->list_end_bullet == '-' ? '*' : '-');
+    else
+      f.bullet = f.ordered ? '.' : '-';
+    f.open_at = m->content;
     /* A nested list follows its item's text on the next line, except an
-     * ordered one not starting at 1, which cannot interrupt a paragraph. */
-    want_break(m, in_item && (!f.ordered || f.next == 1) ? 1 : 2);
+     * ordered one whose first written number is not 1, which cannot
+     * interrupt a paragraph. */
+    first = f.next;
+    if (in_item && f.ordered) {
+      zuh_id li = ZUH_NONE;
+      list_items(m, id, &li);
+      if (li != ZUH_NONE)
+        first = int_attr(attr_of(doc, li, "value"), f.next);
+    }
+    want_break(m, in_item && (!f.ordered || first == 1) ? 1 : 2);
     break;
   }
   case M_ITEM: {
@@ -1063,18 +1331,9 @@ enter(md *m, zuh_id id) {
     }
     want_break(m, 1);
     emit_breaks(m);
-    if (list != NULL && list->ordered) {
-      long n = int_attr(attr_of(doc, id, "value"), list->next);
-      list->next = list->reversed ? n - 1 : n + 1;
-      if (n < 0)
-        n = 0;
-      if (n > 999999999L)
-        n = 999999999L;
-      snprintf(f.marker, sizeof(f.marker), "%ld. ", n);
-    } else {
-      strcpy(f.marker, "- ");
-    }
-    f.marker_len = (unsigned char) strlen(f.marker);
+    /* The marker is made when it is written: see item_marker(). */
+    f.list = list != NULL ? (int) (list - FRAMES(m)) : -1;
+    f.marker_len = 2;
     f.marker_pending = 1;
     f.container = 1;
     break;
@@ -1160,20 +1419,35 @@ class_after(const md *m, zuh_id id) {
   return C_WS;
 }
 
-/* Close emphasis on leaving it. A closer after punctuation and before a
- * letter ("*a.*b") cannot close; then the opener is removed instead. */
+/* Close emphasis `f`; `after` is the class of what follows. Emphasis
+ * written this way is CommonMark's to parse back unchanged: emphasis of
+ * one kind never nests in its own kind (enter() collapses it), so there
+ * are two levels at most, of different kinds; no two delimiter runs touch,
+ * so each run is a single opener or closer of one or two '*'; an opener
+ * can open and a closer can close. A run that can do both (inside a word)
+ * cannot pair with the enclosing emphasis of the other kind, by the "rule
+ * of 3", so every closer pairs with its own opener.
+ *
+ * A closer right after an inner closer ("**a *b***") would touch it: the
+ * inner emphasis is removed. A closer after punctuation and before a
+ * letter ("*a.*b") cannot close: the opener is removed instead. */
 static void
-close_emphasis(md *m, const frame *f) {
+close_emphasis(md *m, const frame *f, int after) {
   size_t olen = f->delim == D_EM ? 1 : 2;
   zuh_buf *o = m->out;
-  if (!o->failed && !m->space && tail_class(m) == C_PUNCT &&
-      class_after(m, f->id) == C_OTHER && f->open_at + olen <= o->len &&
-      o->buf[f->open_at] == '*') {
-    memmove(o->buf + f->open_at, o->buf + f->open_at + olen,
-            o->len - f->open_at - olen);
-    o->len -= olen;
-    o->buf[o->len] = '\0';
-    m->closer_delim = D_NONE;
+  if (o->failed)
+    return;
+  if (m->closer_delim != D_NONE && m->closer_end == o->len &&
+      m->closer_open_at > f->open_at) {
+    size_t ilen = m->closer_delim == D_EM ? 1 : 2;
+    size_t at = m->closer_open_at;
+    cut(m, o->len - ilen, ilen);
+    if (at + ilen <= o->len && o->buf[at] == '*')
+      cut_opener(m, at, ilen);
+  }
+  if (!m->space && tail_class(m) == C_PUNCT && after == C_OTHER &&
+      f->open_at + olen <= o->len && o->buf[f->open_at] == '*') {
+    cut_opener(m, f->open_at, olen);
     return;
   }
   put_closer(m, f);
@@ -1190,7 +1464,7 @@ leave(md *m) {
   f = FRAMES(m)[NFRAMES(m) - 1];
   if (f.dstate == S_OPEN) {
     if (f.delim == D_EM || f.delim == D_STRONG)
-      close_emphasis(m, &f);
+      close_emphasis(m, &f, class_after(m, f.id));
     else
       put_closer(m, &f);
   }
@@ -1217,6 +1491,15 @@ leave(md *m) {
     } else {
       want_break(m, 1);
       m->soft_list_end = 1;
+      if (m->content > f.open_at) {
+        const frame *fr = FRAMES(m);
+        int i, depth = 0;
+        for (i = NFRAMES(m) - 1; i >= 0; i--)
+          depth += fr[i].container;
+        m->list_end = m->content;
+        m->list_end_depth = depth;
+        m->list_end_bullet = f.bullet;
+      }
     }
     break;
   case M_ITEM:
@@ -1251,6 +1534,49 @@ leave(md *m) {
   }
 }
 
+/* The pass in which a child of a pipe table is written: html_table()'s
+ * row order, heads (with the caption and the rest), then bodies and rows,
+ * then feet. */
+static int
+table_pass(const zuh_doc *doc, zuh_id c) {
+  if (elem_is(doc, c, "tfoot"))
+    return 2;
+  if (elem_is(doc, c, "tbody") || elem_is(doc, c, "tr"))
+    return 1;
+  return 0;
+}
+
+/* The child of pipe table `table` written after `after` (ZUH_NONE: the
+ * first one). */
+static zuh_id
+table_next(const zuh_doc *doc, zuh_id table, zuh_id after) {
+  int pass = after == ZUH_NONE ? 0 : table_pass(doc, after);
+  zuh_id c = after == ZUH_NONE ? doc->nodes[table].first_child
+                               : doc->nodes[after].next_sibling;
+  for (; pass < 3; pass++) {
+    for (; c != ZUH_NONE; c = doc->nodes[c].next_sibling)
+      if (table_pass(doc, c) == pass)
+        return c;
+    c = doc->nodes[table].first_child;
+  }
+  return ZUH_NONE;
+}
+
+static int
+is_pipe_table(md *m, zuh_id id) {
+  return m->table >= 0 && FRAMES(m)[m->table].id == id;
+}
+
+/* The walk's next node after `cur`, which it has left: its next sibling,
+ * in a pipe table's row order among a pipe table's children. */
+static zuh_id
+next_of(md *m, zuh_id cur) {
+  zuh_id p = m->doc->nodes[cur].parent;
+  if (p != ZUH_NONE && is_pipe_table(m, p))
+    return table_next(m->doc, p, cur);
+  return m->doc->nodes[cur].next_sibling;
+}
+
 zuh_status
 zuh_markdown(const zuh_doc *doc, zuh_id id, const zuh_md_urls *urls,
              zuh_buf *out) {
@@ -1267,26 +1593,35 @@ zuh_markdown(const zuh_doc *doc, zuh_id id, const zuh_md_urls *urls,
   m.table = -1;
   zuh_buf_init(&m.stack, out->alloc, out->userdata);
   zuh_buf_init(&m.tmp, out->alloc, out->userdata);
+  zuh_buf_init(&m.ends, out->alloc, out->userdata);
+  zuh_buf_init(&m.code, out->alloc, out->userdata);
   m.stack.len = 0;
 
   if (root->type == ZUH_NODE_TEXT) {
     put_text(&m, zuh_str(doc, root->value));
   } else if ((root->type == ZUH_NODE_ELEMENT ||
               root->type == ZUH_NODE_DOCUMENT) && enter(&m, id)) {
-    zuh_id cur = root->first_child;
+    zuh_id cur = is_pipe_table(&m, id) ? table_next(doc, id, ZUH_NONE)
+                                       : root->first_child;
     while (cur != ZUH_NONE && !m.fail) {
       const zuh_node *n = &doc->nodes[cur];
       if (n->type == ZUH_NODE_TEXT) {
         put_text(&m, zuh_str(doc, n->value));
       } else if (enter(&m, cur)) {
         if (n->first_child != ZUH_NONE) {
-          cur = n->first_child;
+          cur = is_pipe_table(&m, cur) ? table_next(doc, cur, ZUH_NONE)
+                                       : n->first_child;
           continue;
         }
         leave(&m);
       }
       /* Move on: to the next sibling, or up, leaving each ancestor. */
-      while (cur != ZUH_NONE && doc->nodes[cur].next_sibling == ZUH_NONE) {
+      for (;;) {
+        zuh_id next = next_of(&m, cur);
+        if (next != ZUH_NONE) {
+          cur = next;
+          break;
+        }
         cur = doc->nodes[cur].parent;
         if (cur == id || cur == ZUH_NONE) {
           cur = ZUH_NONE;
@@ -1294,15 +1629,16 @@ zuh_markdown(const zuh_doc *doc, zuh_id id, const zuh_md_urls *urls,
         }
         leave(&m);
       }
-      if (cur != ZUH_NONE)
-        cur = doc->nodes[cur].next_sibling;
     }
     leave(&m);
   }
-  failed = m.fail || m.stack.failed || m.tmp.failed || out->failed;
+  failed = m.fail || m.stack.failed || m.tmp.failed || m.ends.failed ||
+           m.code.failed || out->failed;
   if (out->alloc == NULL) {
     zuh_buf_free(&m.stack);
     zuh_buf_free(&m.tmp);
+    zuh_buf_free(&m.ends);
+    zuh_buf_free(&m.code);
   }
   return failed ? ZUH_LIMIT_MEMORY : ZUH_OK;
 }

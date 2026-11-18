@@ -262,7 +262,7 @@ Deferred past 0.1.0: `html_has_attr()` (`!is.na(html_attr())`), `html_strings()`
 
 *(As built: see the `html_text_clean()` documentation for the fixed block-element list. `<td>`/`<th>` are separated by a space, adjacent block boundaries merge into one line break, consecutive `<br>` give one line break each, and `trim = FALSE` keeps outer whitespace collapsed to a single space. A nested list or table left out of an item's or a cell's text still acts as a block boundary where it stood.)*
 
-`html_text_clean()` is an extraction-oriented alternative. It skips script/style and unentered template content, collapses HTML ASCII whitespace outside preformatted regions, adds line breaks at `<br>` and documented block boundaries, and preserves `<pre>`/`<textarea>` whitespace. `nbsp = TRUE` converts nonbreaking spaces to regular spaces before normalization. It uses a fixed, tested HTML tag list rather than computed CSS. It is not browser `innerText` and makes no claim to visual layout or visibility.
+`html_text_clean()` is an extraction-oriented alternative. It skips script/style (HTML's and SVG's; MathML has none) and unentered template content, collapses HTML ASCII whitespace outside preformatted regions, adds line breaks at `<br>` and documented block boundaries, and preserves `<pre>`/`<textarea>` whitespace inside the text; `trim = TRUE` removes whitespace at the ends of the result whatever its source, `<pre>` included. `nbsp = TRUE` converts nonbreaking spaces to regular spaces before normalization. It uses a fixed, tested HTML tag list rather than computed CSS. It is not browser `innerText` and makes no claim to visual layout or visibility.
 
 `html_strings(x, trim, drop_empty)` (roadmap Stage 10) returns each node's text nodes as separate strings in tree order, skipping script, style and template contents. `html_serialize(pretty = TRUE)` lays block-level elements (a fixed list in `src/zuh_write.c`) on lines indented two spaces per level. Elements with block-level children close on their own line, and whitespace-only text in them is dropped. Inline content and the contents of whitespace-sensitive elements (`pre`, `textarea`, `listing`, `plaintext`, `xmp`, `script`, `style`, `iframe`, `noembed`, `noframes`) are unchanged. It is for reading, not a round-trip format.
 
@@ -286,13 +286,23 @@ The round trip is checked against every applicable conformance case: 1,785 of 1,
 - Line prefixes for quotes and list items come from the frames at each line start.
 - Inline markup open at a block break is closed and reopened.
 
-Emphasis is written only where CommonMark's flanking rules parse it back:
-- An opener before whitespace, or between a letter and punctuation, is left out.
-- Adjacent emphasis of one kind is merged.
-- A closer that could not close, judged by a document-order lookahead, has its opener removed from the buffer instead.
+Emphasis is written only where CommonMark's delimiter algorithm parses it back as written; elsewhere it is dropped and its text kept. The rule is chosen to be simple enough to prove, not to keep the most emphasis:
+- Emphasis inside emphasis of its kind is not written, so there are at most two levels, of different kinds.
+- No two delimiter runs touch, so every run is one opener or one closer of one or two `*`. Adjacent emphasis of one kind is merged (`*a**b*` becomes `*ab*`). Otherwise an opener that would touch another run (after a closer, or right after an outer opener: `<b><i>x</i></b>` is `**x**`) is left out, and so is an inner emphasis whose closer would touch its parent's (`**Note: *this***` is `**Note: this**`).
+- An opener must be able to open: one before whitespace, or between a letter and punctuation, is left out. A closer must be able to close: one between punctuation and a letter, judged by a document-order lookahead, has its opener removed from the buffer instead.
+- Then every closer pairs with its own opener. A run inside a word can both open and close, but the "rule of 3" keeps it from pairing with the enclosing emphasis of the other kind (lengths 1 and 2).
+- Removing an opener must not change the text around it. Text after an opener at a line start is escaped as at a line start; an opener between two code spans is not written (removed, it would join them); and a `!` before a link's `[`, or an `&` before an entity name, that the removal would expose is escaped in its place.
+
+Code spans: whitespace at a span's ends is written outside it, as a space. A span right after another, with nothing between, joins it, as `` `a``b` `` would read as one span containing two backticks.
+
+Escaping: besides the inline delimiters, a line start escapes the block markers and `:` and `|`, the characters that could begin a GFM table delimiter row under a line with a pipe. A `!` before a link is escaped, so the link does not become an image.
+
+Lists: items are numbered as they are written, so an empty item left out takes no number. A reversed list without `start` counts down from its number of written items. CommonMark reads only the first number; negative numbers are written as `0`. A list right after another of its kind, with nothing written between, takes the other bullet (`-`, `*`) or delimiter (`.`, `)`), or the two would read as one list.
+
+Code blocks: a block element inside `<pre>` is a line break before it and, if text follows, after it.
 
 Tables:
-- GFM pipe tables are only for data tables: no spans, and only inline content in cells.
+- GFM pipe tables are only for data tables: no spans, and only inline content in cells. Their rows are in `html_table()`'s order (§9): heads, then bodies and rows, then feet, so the header row is the same.
 - Layout tables, which the corpus showed are common, are written as their content, one paragraph per row. This keeps their headings and lists.
 
 URLs:

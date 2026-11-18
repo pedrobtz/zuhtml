@@ -26,20 +26,29 @@ The conversion covers:
 \item headings (\verb{#} to \verb{######}), paragraphs and the other block elements
 (separated by blank lines), and thematic breaks (\verb{<hr>}, as \verb{---});
 \item emphasis (\verb{<em>}, \verb{<i>}) as \verb{*...*} and strong (\verb{<strong>}, \verb{<b>}) as
-\verb{**...**}, and inline code (\verb{<code>}, \verb{<kbd>}, \verb{<samp>}, \verb{<tt>}) as a
-code span;
+\verb{**...**}, where CommonMark reads it back as written: emphasis that
+cannot be written safely, such as emphasis inside emphasis of its
+kind, or bold italics of one element (written as \verb{**...**}), keeps its
+text without the markup;
+\item inline code (\verb{<code>}, \verb{<kbd>}, \verb{<samp>}, \verb{<tt>}) as a code span, with
+whitespace at its ends written outside it; adjacent spans join into
+one;
 \item \verb{<pre>} as a fenced code block, with its language when a
 \verb{language-*} or \verb{lang-*} class names one;
 \item block quotes, and ordered and unordered lists, nested, with \code{start},
-\code{reversed} and \code{value} honored; empty list items are left out;
+\code{reversed} and \code{value} honored; empty list items are left out and
+take no number. A list right after another of its kind takes the other
+bullet (\code{-} or \code{*}) or delimiter (\code{.} or \verb{)}), so that the two stay
+separate;
 \item links and images, their URLs resolved against the document's base URL
 as \code{\link[=html_url]{html_url()}} does, or as written where that is not possible; \verb{<a>}
 without \code{href} is plain text, and \verb{<img>} without \code{src} is left out;
 \item \verb{<br>} as a hard line break;
 \item data tables as GFM pipe tables: tables in which no cell spans rows or
 columns and every cell holds only inline content (no paragraphs,
-lists, headings, \verb{<div>}s, code blocks or tables). The first row is
-the header row, and cell contents stay on one line. Other tables,
+lists, headings, \verb{<div>}s, code blocks or tables). Rows are in
+\code{\link[=html_table]{html_table()}}'s order (head, bodies, foot), the first is the header
+row, and cell contents stay on one line. Other tables,
 such as tables used for page layout, are written as their content,
 one paragraph per row, with cells separated by spaces.
 }
