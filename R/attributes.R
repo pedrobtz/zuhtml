@@ -49,10 +49,17 @@ html_attr <- function(x, name, default = NA_character_) {
     zuh_input_error("default", "`default` must be a single string or NA.",
                     call = call)
   }
+  name <- zuh_utf8(name, "name", call)
+  default <- zuh_utf8(as.character(default), "default", call)
+  if (!validUTF8(name) || (!is.na(default) && !validUTF8(default))) {
+    zuh_input_error(
+      if (validUTF8(name)) "default" else "name",
+      "`name` and `default` must be valid UTF-8.", call = call
+    )
+  }
   n <- zuh_nodes(x, call = call)
   zuh_checked(
-    .Call(C_zuh_node_attr, n$doc$ptr, n$ids, enc2utf8(name),
-          enc2utf8(as.character(default))),
+    .Call(C_zuh_node_attr, n$doc$ptr, n$ids, name, default),
     n, call = call
   )
 }

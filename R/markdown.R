@@ -14,7 +14,7 @@
 #' * `<pre>` as a fenced code block, with its language when a
 #'   `language-*` or `lang-*` class names one;
 #' * block quotes, and ordered and unordered lists, nested, with `start`,
-#'   `reversed` and `value` honored; empty list items are left out;
+#'   `reversed` and `value` honoured; empty list items are left out;
 #' * links and images, their URLs resolved against the document's base URL
 #'   as [html_url()] does, or as written where that is not possible; `<a>`
 #'   without `href` is plain text, and `<img>` without `src` is left out;

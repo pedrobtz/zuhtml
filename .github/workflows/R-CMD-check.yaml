@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
   # `labeled` so that adding `full-ci` to a pull request reruns it in full.
   pull_request:
-    types: [opened, synchronize, reopened, labeled]
+    types: [opened, synchronize, reopened, labeled, unlabeled]
 
 name: R-CMD-check
 
@@ -19,7 +19,13 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # ci:minimal still runs R CMD check (ci.md, Labels), so it is not tested.
   R-CMD-check:
+    if: >-
+      github.event_name != 'pull_request'
+      || contains(github.event.pull_request.labels.*.name, 'full-ci')
+      || !(contains(github.event.pull_request.labels.*.name, 'ci:docs')
+        || contains(github.event.pull_request.labels.*.name, 'skip-ci:R-CMD-check'))
     uses: pedrobtz/r-actions/.github/workflows/r-cmd-check.yml@v1
     with:
       # Quick on each push to a pull request, full after merge. The

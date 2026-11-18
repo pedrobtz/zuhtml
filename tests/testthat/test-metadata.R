@@ -180,3 +180,85 @@ test_that("metadata functions take a nodeset scope", {
   expect_identical(html_json_ld(two), "{}")
   expect_identical(html_json_ld(html_elements(doc, "#one")), character())
 })
+
+test_that("html_json_ld(parse = TRUE) never reads a path or fetches a URL", {
+  skip_if_not_installed("jsonlite")
+  path <- withr::local_tempfile(fileext = ".json")
+  writeLines('{"secret": 42}', path)
+  url <- "http://127.0.0.1:1/x"
+  doc <- html_parse(paste0(
+    "<script type='application/ld+json'>", c(path, url), "</script>",
+    collapse = ""
+  ))
+  # Neither text is JSON. jsonlite::fromJSON() read the file and tried the
+  # URL; a block is parsed as a JSON string or not at all.
+  expect_identical(html_json_ld(doc, parse = TRUE),
+                   structure(list(NULL, NULL), json = c(path, url)))
+})
+
+test_that("itemref finds IDs with any character, at any length", {
+  # Character references for every character, so the IDs can hold
+  # controls, quotes and backslashes; itemref tokens cannot hold whitespace.
+  ref <- function(s) {
+    paste0("&#", utf8ToInt(s), ";", collapse = "")
+  }
+  ctl <- intToUtf8(setdiff(c(1:31, 127), c(9, 10, 12, 13)))
+  ids <- c(paste0(ctl, "\"'\\]"), strrep("a", 17000L))
+  doc <- html_parse(paste0(
+    "<div itemscope itemref='&#0;", ref(ids[1]), " ", ids[2], "'></div>",
+    "<b id='&#0;", ref(ids[1]), "' itemprop=p>1</b>",
+    "<b id='", ids[2], "' itemprop=q>2</b>"
+  ))
+  items <- html_microdata(doc)
+  expect_length(items, 1L)
+  expect_identical(items[[1]]$properties, list(p = list("1"), q = list("2")))
+})
+
+test_that("microdata URL properties are empty without their attribute", {
+  tags <- c(a = "href", area = "href", link = "href", img = "src",
+            audio = "src", video = "src", source = "src", track = "src",
+            iframe = "src", embed = "src", object = "data")
+  # Non-void elements are closed (an <iframe> would swallow the rest as
+  # text); <source> and <track> sit in a <video>, <area> in a <map>.
+  wrap <- function(tag, attr) {
+    el <- paste0("<", tag, " itemprop=", tag, attr, ">")
+    if (tag %in% c("a", "audio", "video", "iframe", "object")) {
+      el <- paste0(el, "</", tag, ">")
+    }
+    if (tag %in% c("source", "track")) paste0("<video>", el, "</video>")
+    else if (tag == "area") paste0("<map>", el, "</map>")
+    else el
+  }
+  body <- function(attr) {
+    paste0("<div itemscope>",
+           paste0(vapply(names(tags), function(t) {
+             wrap(t, if (attr) paste0(" ", tags[[t]], "=u/", t) else "")
+           }, ""), collapse = ""),
+           "</div>")
+  }
+  base <- "http://b/dir/"
+  without <- html_microdata(html_parse(body(FALSE), base_url = base))
+  with <- html_microdata(html_parse(body(TRUE), base_url = base))
+  p0 <- without[[1]]$properties
+  p1 <- with[[1]]$properties
+  expect_setequal(names(p0), names(tags))
+  expect_setequal(names(p1), names(tags))
+  for (t in names(tags)) {
+    expect_identical(p0[[t]], list(""), info = t)
+    expect_identical(p1[[t]], list(paste0(base, "u/", t)), info = t)
+  }
+  # A present but empty attribute is a URL: the base itself.
+  e <- html_microdata(html_parse("<div itemscope><a itemprop=u href=''></a>",
+                                 base_url = base))
+  expect_identical(e[[1]]$properties$u, list(base))
+})
+
+test_that("html_json_ld() ignores SVG and MathML script elements", {
+  doc <- html_parse(paste0(
+    "<svg><script type='application/ld+json'>{\"svg\": 1}</script></svg>",
+    "<math><script type='application/ld+json'>{\"m\": 1}</script></math>",
+    "<script type='application/ld+json'>{\"html\": 1}</script>"
+  ))
+  expect_identical(html_json_ld(doc), "{\"html\": 1}")
+  expect_identical(html_json_ld(html_elements(doc, "svg > *")), character())
+})

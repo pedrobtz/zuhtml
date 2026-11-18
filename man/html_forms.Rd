@@ -45,7 +45,9 @@ owns the controls without another owner that follow it in that table,
 up to the next form.
 
 Controls are \verb{<input>}, \verb{<select>}, \verb{<textarea>} and \verb{<button>}
-elements, in document order. Values follow the DOM:
+elements, in document order. Only HTML elements count: an element of
+those names inside \verb{<svg>} or \verb{<math>} is not a form or a control.
+Values follow the DOM:
 \itemize{
 \item \code{type} is an input's \code{type} (lowercased; \code{"text"} when missing or
 unknown), \code{"select-one"} or \code{"select-multiple"}, \code{"textarea"}, or a
@@ -53,7 +55,8 @@ button's \code{type} (\code{"submit"} by default);
 \item \code{value} is the \code{value} attribute (\code{"on"} for a checkbox or radio
 button without one, else \code{""}); a textarea's text; or a select's
 first selected option's value, where a single select with no option
-marked selected selects its first enabled option;
+marked selected selects its first enabled option if it shows one row
+(its \code{size} is absent, invalid or 1), and none otherwise;
 \item \code{disabled} is \code{TRUE} for a control with a \code{disabled} attribute or
 inside a disabled \verb{<fieldset>} (except in its first \verb{<legend>}).
 }
