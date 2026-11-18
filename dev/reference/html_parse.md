@@ -1,0 +1,189 @@
+# Parse HTML
+
+`html_parse()` parses one string or raw vector of HTML the way a browser
+does: omitted end tags, unquoted attributes, character references and
+misnested elements are repaired by the HTML parsing algorithm, never
+rejected. `html_read()` reads and parses one file, URL or connection.
+
+## Usage
+
+``` r
+html_parse(
+  x,
+  encoding = NULL,
+  base_url = NULL,
+  comments = TRUE,
+  limits = html_limits()
+)
+
+html_read(path, ...)
+```
+
+## Arguments
+
+- x:
+
+  One string, or a raw vector of encoded bytes.
+
+- encoding:
+
+  The encoding of raw input, as a name
+  [`iconv()`](https://rdrr.io/r/base/iconv.html) accepts; `NULL` to use
+  a byte-order mark, the page's declaration, or UTF-8.
+
+- base_url:
+
+  The document's URL, used to resolve relative links; `NULL` if unknown.
+
+- comments:
+
+  Whether to keep comment nodes.
+
+- limits:
+
+  Resource limits from
+  [`html_limits()`](https://pedrobtz.github.io/zuhtml/dev/reference/html_limits.md).
+
+- path:
+
+  One file path, URL or connection; see "Reading files, URLs and
+  connections".
+
+- ...:
+
+  Arguments passed on to `html_parse()`.
+
+## Value
+
+A `zuhtml_document`.
+
+## Details
+
+`html_parse()` never treats a string as a file name or URL.
+
+## Reading files, URLs and connections
+
+`html_read()` reads its input as raw bytes, then decodes and parses them
+as `html_parse()` does:
+
+- a string with an `http`, `https`, `ftp`, `ftps` or `file` scheme (in
+  any case) is read with
+  [`url()`](https://rdrr.io/r/base/connections.html), and becomes the
+  document's `base_url` unless `base_url` is given. A redirect is not
+  seen, so after one the base URL is the address asked for. HTTP headers
+  are not read either: the encoding comes from a byte-order mark,
+  `encoding` or the page's `<meta>`. For anything more (headers,
+  authentication, retries), fetch with an HTTP client and pass the body
+  to `html_parse()`;
+
+- any other string is a file path;
+
+- a connection, such as
+  [`gzfile()`](https://rdrr.io/r/base/connections.html) or
+  [`rawConnection()`](https://rdrr.io/r/base/rawConnection.html), is
+  read as [`readBin()`](https://rdrr.io/r/base/readBin.html) reads one:
+  an unopened connection is opened in `"rb"` mode and closed afterwards;
+  an open one must be in binary mode, is read from its current position,
+  and is left open. A non-blocking pipe or socket that has no data yet
+  is an error rather than a short read.
+
+Reading stops with a `zuhtml_limit_error` as soon as the input passes
+four times `max_input` bytes, before a larger file is read at all. A
+file that does not exist, an unreachable URL, and a connection that
+cannot be read are `zuhtml_input_error`s. The input is always read whole
+before parsing, because decoding needs all of it.
+
+## Encoding
+
+A character string is taken as text: it is converted to UTF-8 with
+[`enc2utf8()`](https://rdrr.io/r/base/Encoding.html), and `encoding`
+must be `NULL` or `"UTF-8"`. A string marked as `"bytes"` is rejected;
+pass a raw vector instead.
+
+A raw vector is decoded with, in order of precedence, a byte-order mark
+(UTF-8, UTF-16LE or UTF-16BE), `encoding`, a declaration in the page, or
+UTF-8. A byte-order mark that contradicts `encoding` is an error, and so
+is any byte sequence that is invalid in the chosen encoding: nothing is
+replaced silently. A fetcher that knows the HTTP charset should pass it
+as `encoding`.
+
+The declaration is found as browsers find it, by the HTML standard's
+prescan of the first 1024 bytes for `<meta charset="...">` or
+`<meta http-equiv="Content-Type" content="...; charset=...">`. The
+prescan skips comments and the insides of tags, but not the text of
+scripts. Labels are those of the Encoding Standard, which maps several
+to a superset: `"iso-8859-1"`, `"latin1"` and `"us-ascii"` mean
+windows-1252, `"gb2312"` means GBK, and a UTF-16 label means UTF-8 (the
+bytes read as ASCII, so they are not UTF-16). An unknown label is
+ignored.
+[`html_info()`](https://pedrobtz.github.io/zuhtml/dev/reference/html_info.md)
+reports the encoding used and its source.
+
+A file saved in another encoding without updating its declaration, as
+some tools do when they convert pages to UTF-8, decodes wrongly or fails
+to decode, as it would in a browser. Pass its real encoding as
+`encoding`.
+
+A leading byte-order mark is removed. Input containing a NUL character
+after decoding is rejected.
+
+## See also
+
+[`html_problems()`](https://pedrobtz.github.io/zuhtml/dev/reference/html_problems.md)
+for the parse errors that were repaired;
+[`html_limits()`](https://pedrobtz.github.io/zuhtml/dev/reference/html_limits.md);
+[zuhtml-conditions](https://pedrobtz.github.io/zuhtml/dev/reference/zuhtml-conditions.md)
+for the errors these functions raise.
+
+Other parsing:
+[`html_fragment()`](https://pedrobtz.github.io/zuhtml/dev/reference/html_fragment.md),
+[`html_info()`](https://pedrobtz.github.io/zuhtml/dev/reference/html_info.md),
+[`html_limits()`](https://pedrobtz.github.io/zuhtml/dev/reference/html_limits.md),
+[`html_problems()`](https://pedrobtz.github.io/zuhtml/dev/reference/html_problems.md),
+[`zuhtml_info()`](https://pedrobtz.github.io/zuhtml/dev/reference/zuhtml_info.md)
+
+## Examples
+
+``` r
+doc <- html_parse("<p>Hello <b>world</b>")
+doc
+#> <zuhtml_document>
+#> root:     <html> with <head>, <body>
+#> nodes:    8
+#> input:    21 bytes (UTF-8)
+#> problems: 1
+
+# Raw bytes in a declared encoding:
+html_parse(as.raw(c(0x3c, 0x70, 0x3e, 0xe9)), encoding = "latin1")
+#> <zuhtml_document>
+#> root:     <html> with <head>, <body>
+#> nodes:    6
+#> input:    5 bytes (latin1)
+#> problems: 1
+
+# From a file:
+path <- tempfile(fileext = ".html")
+writeLines("<title>Saved page</title><p>Text", path)
+html_read(path)
+#> <zuhtml_document>
+#> root:     <html> with <head>, <body>
+#> nodes:    8
+#> input:    33 bytes (UTF-8)
+#> problems: 1
+
+# From a compressed file, through a connection:
+gz <- tempfile(fileext = ".html.gz")
+writeLines("<p>Compressed", gzfile(gz))
+html_read(gzfile(gz))
+#> <zuhtml_document>
+#> root:     <html> with <head>, <body>
+#> nodes:    6
+#> input:    14 bytes (UTF-8)
+#> problems: 1
+
+# From a URL, when online; relative links resolve against it:
+if (interactive()) {
+  doc <- html_read("https://cran.r-project.org/web/packages/")
+  head(html_links(doc, absolute = TRUE))
+}
+```
