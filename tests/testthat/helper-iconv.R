@@ -30,8 +30,10 @@ local_c_ctype <- function(env = parent.frame()) {
   set <- suppressWarnings(Sys.setlocale("LC_CTYPE", "C"))
   if (!nzchar(set)) testthat::skip("LC_CTYPE cannot be set to C")
   withr::defer(Sys.setlocale("LC_CTYPE", old), envir = env)
-  if (isTRUE(l10n_info()[["UTF-8"]]) || isTRUE(l10n_info()[["Latin-1"]])) {
-    testthat::skip("LC_CTYPE = C is not a single-byte ASCII locale here")
+  # The #92 rule applies only where zuh_ascii_locale() sees an ASCII codeset;
+  # Windows reports none, so its C locale keeps the old behaviour (#122).
+  if (!zuh_ascii_locale()) {
+    testthat::skip("LC_CTYPE = C is not an ASCII codeset zuhtml recognises here")
   }
 }
 
