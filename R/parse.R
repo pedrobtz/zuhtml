@@ -537,9 +537,10 @@ zuh_iconv <- function(x, from, call, name = from, hint = NULL) {
 }
 
 # Status codes of zuh_status in src/zuh_status.h, in enum order.
+# The zuh_status enumerators of src/zuh_status.h, in the same order.
 zuh_status_names <- c(
   "ok", "limit_input", "limit_memory", "limit_depth", "limit_nodes",
-  "internal"
+  "internal", "limit_table", "table_overlap", "limit_arena", "limit_string"
 )
 
 # Parse decoded UTF-8 bytes. fail_at > 0 injects an allocation failure at
@@ -567,12 +568,24 @@ zuh_parse_bytes <- function(bytes, encoding, base_url, limits,
               observed, limits$max_input),
       call = call
     ),
-    limit_memory = zuh_limit_error(
-      "max_memory", limits$max_memory, NA_real_,
-      sprintf(paste0("Parsing needed more native memory than ",
-                     "max_memory = %.0f bytes allows."), limits$max_memory),
-      call = call
-    ),
+    # observed is 0 when the cause was not the budget: an injected
+    # failure, or the system refusing memory.
+    limit_memory = if (observed > 0) {
+      zuh_limit_error(
+        "max_memory", limits$max_memory, observed,
+        sprintf(paste0("Parsing needed %.0f bytes of native memory; ",
+                       "max_memory = %.0f bytes allows less."),
+                observed, limits$max_memory),
+        call = call
+      )
+    } else {
+      zuh_limit_error(
+        "max_memory", limits$max_memory, NA_real_,
+        sprintf(paste0("Parsing ran out of native memory ",
+                       "(max_memory = %.0f bytes)."), limits$max_memory),
+        call = call
+      )
+    },
     limit_depth = zuh_limit_error(
       "max_depth", limits$max_depth, observed,
       sprintf("Elements are nested deeper than max_depth = %.0f.",
@@ -585,6 +598,7 @@ zuh_parse_bytes <- function(bytes, encoding, base_url, limits,
               limits$max_nodes),
       call = call
     ),
+    limit_arena = zuh_status_error(status, observed, call),
     zuh_abort("parse", "Internal parser error; please report it.",
               call = call)
   )

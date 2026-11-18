@@ -25,9 +25,14 @@ zuh_nodes <- function(x, arg = "x", call = sys.call(-1L)) {
 }
 
 # Check the result of a native node accessor: NULL means a dead document
-# or a node ID that does not belong to it. Each caller names its routine in
+# or a node ID that does not belong to it, and a "zuhtml_status" object
+# (zuh_r_status() in src/r_api.c) a failure the C code returned rather
+# than raised. Each caller names its routine in
 # its own .Call(), which R CMD check needs to see.
 zuh_checked <- function(res, nodes, call = sys.call(-1L)) {
+  if (inherits(res, "zuhtml_status")) {
+    zuh_status_error(zuh_status_names[res[[1L]] + 1L], res[[2L]], call)
+  }
   if (is.null(res)) {
     if (!.Call(C_zuh_doc_alive, nodes$doc$ptr)) {
       zuh_abort(

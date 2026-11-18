@@ -33,6 +33,19 @@
 * `html_tables(match =)` with an invalid regular expression is a
   `zuhtml_input_error`, not a base error and a warning (#84).
 
+* Native failures outside parsing are classed conditions (#84). A result
+  string longer than R allows, from `html_text()`, `html_text_clean()`,
+  `html_markdown()` or `html_serialize()`, is a `zuhtml_limit_error` with
+  `limit = "string_length"`, and running out of native memory while
+  building a result or a table grid one with `limit = "memory"`; both were
+  plain R errors. A document whose attributes or strings overflow the
+  arena's 32-bit offsets is a `zuhtml_limit_error` with `limit = "arena"`
+  rather than a misleading `max_memory` error. A `max_memory` error now
+  reports in `observed` the bytes the parse would have needed.
+
+* The internal tree dump used by the tests and the conformance gate no
+  longer leaks its buffer if R fails to allocate the result string (#86).
+
 # zuhtml 0.1.0
 
 First release.

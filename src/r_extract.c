@@ -51,6 +51,7 @@ C_zuh_text_clean(SEXP ptr, SEXP ids, SEXP opts) {
     uint8_t type;
     const void *vmax;
     zuh_buf b;
+    zuh_status st;
     if (id == NA_INTEGER) {
       SET_STRING_ELT(out, i, NA_STRING);
       continue;
@@ -63,10 +64,14 @@ C_zuh_text_clean(SEXP ptr, SEXP ids, SEXP opts) {
     }
     vmax = vmaxget();
     zuh_buf_init(&b, zuh_r_alloc, NULL);
-    if (zuh_text_clean(doc, (zuh_id) id, &o, &b) != ZUH_OK)
-      Rf_error("out of memory extracting text");
-    if (b.len > (size_t) INT_MAX)
-      Rf_error("text too long for an R string");
+    st = zuh_text_clean(doc, (zuh_id) id, &o, &b);
+    if (st == ZUH_OK && b.len > (size_t) INT_MAX)
+      st = ZUH_LIMIT_STRING;
+    if (st != ZUH_OK) {
+      UNPROTECT(1);
+      return zuh_r_status(st, st == ZUH_LIMIT_STRING ? (double) b.len
+                                                     : NA_REAL);
+    }
     SET_STRING_ELT(out, i, Rf_mkCharLenCE(b.buf, (int) b.len, CE_UTF8));
     vmaxset(vmax);
     if ((i & 0xFFF) == 0xFFF)
@@ -112,6 +117,7 @@ C_zuh_markdown(SEXP ptr, SEXP ids, SEXP url_ids, SEXP urls) {
     uint8_t type;
     const void *vmax;
     zuh_buf b;
+    zuh_status st;
     if (id == NA_INTEGER) {
       SET_STRING_ELT(out, i, NA_STRING);
       continue;
@@ -124,10 +130,14 @@ C_zuh_markdown(SEXP ptr, SEXP ids, SEXP url_ids, SEXP urls) {
     }
     vmax = vmaxget();
     zuh_buf_init(&b, zuh_r_alloc, NULL);
-    if (zuh_markdown(doc, (zuh_id) id, &u, &b) != ZUH_OK)
-      Rf_error("out of memory writing Markdown");
-    if (b.len > (size_t) INT_MAX)
-      Rf_error("Markdown too long for an R string");
+    st = zuh_markdown(doc, (zuh_id) id, &u, &b);
+    if (st == ZUH_OK && b.len > (size_t) INT_MAX)
+      st = ZUH_LIMIT_STRING;
+    if (st != ZUH_OK) {
+      UNPROTECT(1);
+      return zuh_r_status(st, st == ZUH_LIMIT_STRING ? (double) b.len
+                                                     : NA_REAL);
+    }
     SET_STRING_ELT(out, i, Rf_mkCharLenCE(b.buf, (int) b.len, CE_UTF8));
     vmaxset(vmax);
     if ((i & 0xFFF) == 0xFFF)
@@ -211,7 +221,7 @@ C_zuh_table(SEXP ptr, SEXP id, SEXP max_cells) {
     return out;
   }
   if (st != ZUH_OK)
-    Rf_error("out of memory building a table grid");
+    return zuh_r_status(st, NA_REAL);
   {
     const char *names[] = {"nrows", "ncols", "row_group", "row_all_th",
                            "cell_node", "slot", ""};

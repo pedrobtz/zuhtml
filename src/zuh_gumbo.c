@@ -209,7 +209,7 @@ parse_core(const char *buf, size_t len, const zuh_parse_opts *opts,
     st = lg->status;
     stats->n_allocs = lg->n_allocs;
     stats->peak_bytes = lg->peak_bytes;
-    stats->observed = lg->live_bytes;
+    stats->observed = lg->observed;
     zuh_ledger_free_all(lg);
     return st;
   }
@@ -437,9 +437,13 @@ count_tree(conv_ctx *c, const GumboOutput *out, zuh_ledger *lg,
   }
   free(st);
   free(seen);
+  /* Attribute indices and pool offsets are 32-bit, and UINT32_MAX is
+   * reserved: a fixed cap, distinct from the max_memory budget. */
   if (status == ZUH_OK &&
-      (c->n_attrs >= (size_t) UINT32_MAX || c->pool_len >= (size_t) UINT32_MAX))
-    status = ZUH_LIMIT_MEMORY;
+      (c->n_attrs >= (size_t) UINT32_MAX || c->pool_len >= (size_t) UINT32_MAX)) {
+    stats->observed = c->n_attrs > c->pool_len ? c->n_attrs : c->pool_len;
+    status = ZUH_LIMIT_ARENA;
+  }
   return status;
 }
 

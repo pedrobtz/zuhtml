@@ -20,7 +20,11 @@ byte-order mark that contradicts \code{encoding}. Field \code{encoding}.
 \item \code{zuhtml_limit_error}: a resource limit from \code{\link[=html_limits]{html_limits()}} was
 exceeded. Fields \code{limit} (its name, such as \code{"max_depth"}), \code{maximum}
 (its value) and \code{observed} (the value that tripped it, where known).
-Nothing is returned and all native memory is released.
+Nothing is returned and all native memory is released. Three fixed
+limits use the same class: \code{"arena"}, the most attributes or
+string-pool bytes one document can hold (just under \eqn{2^{32}});
+\code{"string_length"}, R's limit on the bytes of one string; and
+\code{"memory"}, when native memory runs out while a result is built.
 \item \code{zuhtml_parse_error}: an internal invariant of the parser failed. This
 is a bug; please report it.
 \item \code{zuhtml_pointer_error}: a document is no longer available, for example
