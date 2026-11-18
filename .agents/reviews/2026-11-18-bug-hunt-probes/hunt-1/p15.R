@@ -1,0 +1,33 @@
+source("h.R")
+d <- html_parse("<p>a</p><p>b</p>"); ps <- html_elements(d, "p")
+f <- tempfile(); saveRDS(list(d, ps), f); r <- readRDS(f); d0 <- r[[1]]; ps0 <- r[[2]]
+p("dead print", print(d0)); p("dead ns print", tr(print(ps0))); p("dead text", html_text(ps0)); p("dead elements", html_elements(d0, "p")); p("dead info", html_info(d0)); p("dead root", html_root(d0)); p("dead title", html_title(d0)); p("dead problems", html_problems(d0)); p("dead links", html_links(d0)); p("dead table", html_table(ps0[1])); p("dead forms", html_forms(d0)); p("dead md", html_markdown(d0)); p("dead url", html_url(ps0)); p("dead length", length(ps0)); p("dead subset", class(ps0[1])); p("dead empty", html_text(ps0[0])); p("dead format", tr(format(ps0)))
+d1 <- html_parse("<p>zzz</p><p>yyy</p>"); r2 <- readRDS(f); p("c dead+dead other", tr(length(c(ps0, r2[[2]]))))
+p("dead doc document()", class(html_document(ps0)))
+# tampered objects
+x <- ps; attr(x, "doc") <- NULL; p("no doc attr", html_text(x))
+x <- structure(1:2, class = "zuhtml_nodeset"); p("bare", html_text(x)); p("bare print", tr(print(x)))
+x <- ps; x2 <- unclass(x); p("unclassed", html_text(x2))
+p("ids oob", html_text(structure(c(999L, -1L), class = "zuhtml_nodeset", doc = d))); p("ids dbl", html_text(structure(c(1.9), class = "zuhtml_nodeset", doc = d)))
+dd <- d; dd$base_url <- "http://x/"; p("mutated base", html_info(dd)$base_url); dd$ptr <- NULL; p("no ptr", html_text(dd)); p("no ptr print", tr(print(dd)))
+fake <- structure(list(ptr = 1, encoding = "x", base_url = NULL), class = "zuhtml_document"); p("fake ptr", html_text(fake)); p("fake print", tr(print(fake)))
+# boundaries
+B <- function(expr) { r <- tr(expr); if (inherits(r, "ERR")) paste(r$e$limit, r$e$maximum, r$e$observed) else "ok" }
+s <- "<p>abc</p>"; n <- nchar(s)
+p("max_input exact", c(B(html_parse(s, limits = html_limits(max_input = n))), B(html_parse(s, limits = html_limits(max_input = n - 1)))))
+nn <- html_info(html_parse(s))$nodes; p("max_nodes exact", c(nn, B(html_parse(s, limits = html_limits(max_nodes = nn))), B(html_parse(s, limits = html_limits(max_nodes = nn - 1)))))
+for (k in 1:6) cat("depth", k, B(html_parse("<div><div><div>x", limits = html_limits(max_depth = k))), "\n")
+for (k in 1:5) cat("frag depth", k, B(html_fragment("<div><div><div>x", limits = html_limits(max_depth = k))), "\n")
+t4 <- html_element(html_parse("<table><tr><td>1<td>2<tr><td>3<td>4</table>"), "table")
+for (k in 3:5) cat("cells", k, B(html_table(t4, limits = html_limits(max_table_cells = k))), B(html_table_cells(t4, limits = html_limits(max_table_cells = k))), B(html_tables(html_document(t4), limits = html_limits(max_table_cells = k))), "\n")
+u16 <- as.raw(c(0xff, 0xfe, rbind(utf8ToInt("<p>abcdef"), 0L)))
+p("u16 20 bytes, 9 decoded", c(length(u16), B(html_parse(u16, limits = html_limits(max_input = 9))), B(html_parse(u16, limits = html_limits(max_input = 8))), B(html_parse(u16, limits = html_limits(max_input = 4)))))
+l1 <- c(charToRaw("<p>"), rep(as.raw(0xe9), 10)); p("latin1 13 bytes -> 23", c(B(html_parse(l1, encoding = "latin1", limits = html_limits(max_input = 13))), B(html_parse(l1, encoding = "latin1", limits = html_limits(max_input = 23)))))
+bom <- c(as.raw(c(0xef,0xbb,0xbf)), charToRaw("<p>ab")); p("bom 8 bytes, 5 after", c(B(html_parse(bom, limits = html_limits(max_input = 5))), B(html_parse(bom, limits = html_limits(max_input = 4)))))
+p("sel len exact", c(B(html_elements(d, paste0("p", strrep(" ", 16383)))), B(html_elements(d, paste0("p", strrep(" ", 16382))))))
+# html_read vs html_parse same thing
+ff <- file.path("tmp", "same.html"); raw <- c(charToRaw("<meta charset=latin1><title>t</title><p>"), as.raw(0xe9)); writeBin(raw, ff)
+a <- html_parse(raw); b <- html_read(ff); con <- file(ff, "rb"); c3 <- html_read(con); close(con)
+p("read==parse", c(identical(html_serialize(a), html_serialize(b)), identical(unclass(html_info(a))[-(5:6)], unclass(html_info(b))[-(5:6)]), identical(html_serialize(a), html_serialize(c3))))
+p("read enc arg", html_text(html_read(ff, encoding = "ISO-8859-2")))
+con <- file(ff, "rb"); invisible(readBin(con, "raw", 21)); p("read from position", html_serialize(html_read(con))); close(con)

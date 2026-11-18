@@ -1,0 +1,6 @@
+source("pre.R")
+d <- html_parse("<p> a <b> </b> </p>")
+print(html_strings(d)); print(html_strings(d, trim=TRUE)); print(html_strings(html_element(d,"p"), trim=TRUE))
+print(html_serialize(d))
+print(utf8ToInt(html_text(html_parse("a\vb"))))
+print(utf8ToInt(html_text(html_parse("a\u0001b\u007fc\u0080d﷐e"))))
