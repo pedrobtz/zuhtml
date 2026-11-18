@@ -134,3 +134,30 @@ test_that("reading stops at four times max_input", {
                       class = "zuhtml_limit_error")
   expect_identical(err$limit, "max_input")
 })
+
+test_that("html_read() takes the same argument forms for every source (#99)", {
+  path <- withr::local_tempfile(fileext = ".html")
+  writeBin(c(charToRaw("<a href=x>"), as.raw(0xe9), charToRaw("<!--c-->")),
+           path)
+  url <- file_url(path)
+  lim <- html_limits()
+  forms <- list(
+    function(src) html_read(src, "latin1", "http://h/"),
+    function(src) html_read(src, "latin1", "http://h/", FALSE, lim),
+    function(src) html_read(src, enc = "latin1", base = "http://h/"),
+    function(src) html_read(src, "latin1", base_url = "http://h/",
+                            comm = FALSE),
+    function(src) html_read(src, limits = lim, encoding = "latin1",
+                            base_url = "http://h/", comments = FALSE)
+  )
+  for (form in forms) {
+    ref <- form(path)
+    for (doc in list(form(url), form(file(path)))) {
+      expect_identical(html_serialize(doc), html_serialize(ref))
+      expect_identical(html_info(doc)[c("encoding", "base_url")],
+                       html_info(ref)[c("encoding", "base_url")])
+    }
+  }
+  expect_identical(html_info(ref)$base_url, "http://h/")
+  expect_match(html_serialize(ref), "é", fixed = TRUE)
+})

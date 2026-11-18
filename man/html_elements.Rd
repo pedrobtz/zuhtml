@@ -18,7 +18,9 @@ html_filter(x, css)
 \arguments{
 \item{x}{A \code{zuhtml_document} or \code{zuhtml_nodeset}.}
 
-\item{css}{A CSS selector: a single string.}
+\item{css}{A CSS selector: a single string, of at most the
+\code{max_selector_length} bytes of the \code{\link[=html_limits]{html_limits()}} the document was
+parsed with.}
 }
 \value{
 \itemize{

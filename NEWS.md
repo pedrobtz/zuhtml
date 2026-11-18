@@ -10,6 +10,50 @@
   connection) is no longer wrapped as "Cannot open ...: ..." with a
   doubled full stop.
 
+* windows-1255 and windows-1258 input no longer loses its last character
+  on macOS, whose iconv held it back for a combining mark (#89). Both are
+  now decoded from the Encoding Standard's indexes, so a base letter and a
+  combining mark stay two characters, as in a browser. Other `iconv()`
+  encodings with the same behaviour, such as TCVN, keep their last
+  character too.
+
+* In a C locale, a string with non-ASCII characters that was not marked
+  UTF-8 (as `readLines()` returns them there) is read as UTF-8 by
+  `html_parse()`, `html_fragment()`, the selection functions and
+  `html_attr()`, instead of each byte becoming the text `<c3>` (#92).
+  Selector error positions count characters there too.
+
+* A `<meta>` charset label with a non-ASCII byte is ignored as an unknown
+  label, in every locale, instead of failing with an unclassed error, so a
+  later valid declaration is used (#93).
+
+* `encoding` naming an encoding that is not ASCII-compatible, such as
+  UCS-2LE or UTF-32LE, is an encoding error that names it rather than
+  "The input contains a NUL byte" (#94). `encoding = "UTF-8-MAC"` decodes
+  valid input instead of refusing it.
+
+* A second byte-order mark is kept as text in UTF-16 input, as it already
+  was in UTF-8, rather than dropped (#95).
+
+* `html_read()` now has the arguments of `html_parse()` (`encoding`,
+  `base_url`, `comments`, `limits`) instead of `...`, so positional and
+  partial arguments work for a URL as they do for a path (#99).
+
+* The error for raw input longer than four times `max_input` says so; it
+  is a bound on raw bytes of its own, which input in a stateful encoding
+  such as ISO-2022-JP can reach while decoding within `max_input` (#85).
+
+* `html_limits(max_selector_length =)` now takes effect: a document keeps
+  the limits it was parsed with, and selection on it uses their
+  `max_selector_length` (#83).
+
+* `print()` of `html_limits()` and `html_info()` works under
+  `options(OutDec = ",")` (#110).
+
+* A `css`, `html_attr()` `name` or `default`, `html_fragment()` `context`
+  or `encoding` string marked as `"bytes"` is a `zuhtml_input_error` (part
+  of #84).
+
 # zuhtml 0.1.0
 
 First release.

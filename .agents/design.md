@@ -45,7 +45,7 @@ The principle: an argument or export left out now can be added in a patch releas
 
 | Area | Exports |
 |---|---|
-| Parse | `html_parse(x, encoding, base_url, comments, limits)`, `html_read(path, ...)`, `html_fragment(x, context, ...)`, `html_problems()`, `html_info()`, `html_limits()`, `zuhtml_info()` |
+| Parse | `html_parse(x, encoding, base_url, comments, limits)`, `html_read(path, encoding, base_url, comments, limits)`, `html_fragment(x, context, ...)`, `html_problems()`, `html_info()`, `html_limits()`, `zuhtml_info()` |
 | Navigate | `html_elements(x, css)`, `html_element(x, css)`, `html_matches()`, `html_filter()`, `html_children()`, `html_parent()`, `html_ancestors()`, `html_next_sibling()`, `html_previous_sibling()`, `html_root()`, `html_document()`, `html_template_content()` |
 | Values | `html_name()`, `html_namespace()`, `html_type()`, `html_attr(x, name, default)`, `html_attrs()`, `html_classes()`, `html_text(x, recursive)`, `html_text_clean(x, trim, nbsp)`, `html_serialize(x, outer)` |
 | Extract | `html_list(x, mode = c("text", "tree"))`, `html_table(x, header, trim, na, limits)`, `html_tables(x, css)`, `html_links(x, absolute)`, `html_url(x, attr, base_url)` |
@@ -142,7 +142,8 @@ Proposed signatures:
 ```r
 html_parse(x, encoding = NULL, base_url = NULL,
            comments = TRUE, limits = html_limits())
-html_read(path, ...)
+html_read(path, encoding = NULL, base_url = NULL,
+          comments = TRUE, limits = html_limits())
 html_fragment(x, context = "div", ...)
 html_problems(x)
 html_info(x)
@@ -160,6 +161,7 @@ Deferred past 0.1.0: `html_read_connection()` (a fetcher passes a string; folded
 - **Bounded read:** the read stops at four times `max_input`, and a file's size is checked before reading.
 - **Base URL:** a URL becomes the default `base_url`. Redirects and HTTP headers are not visible through `url()`, so the encoding comes from the BOM, `encoding` or `<meta>`.
 - **Errors:** open and read failures are `zuhtml_input_error`.
+- **Arguments** *(amended in 0.1.0.9000, #99)*: `html_read()` names `html_parse()`'s arguments instead of passing `...`, so positional and partial arguments mean the same for a path, a URL and a connection. A URL is the `base_url` when `base_url` is missing; an explicit `NULL` keeps none.
 - **Still out of scope:** an HTTP client with headers, retries or authentication. `html_parse()` still never treats a string as a path or URL.
 
 Gumbo is a whole-buffer parser. Reading a connection in chunks does not make parsing incremental or constant-memory. Do not expose an Expat-like `feed()` API in the first version.
@@ -168,7 +170,15 @@ Gumbo is a whole-buffer parser. Reading a connection in chunks does not make par
 
 Character input is normalized with `enc2utf8()`; reject strings marked as bytes. An `encoding` argument on character input must be absent or UTF-8, avoiding accidental double decoding.
 
+*Amended in 0.1.0.9000 (#92, #84):* in a C locale `enc2utf8()` rewrites each non-ASCII byte of an unmarked string as the text `<xx>`, which is valid UTF-8, so there an unmarked string's bytes are marked UTF-8 instead and then validated. Every string argument that reaches C (`x`, `css`, `html_attr()`'s `name` and `default`, `html_fragment()`'s `context`) goes through the same helper, `zuh_utf8()`, and a string marked `"bytes"` there, or as `encoding`, is a `zuhtml_input_error`.
+
 Raw input uses a documented initial policy: explicit encoding, otherwise a recognized UTF-8/UTF-16 BOM, otherwise UTF-8. Explicit contradictory BOMs are errors. Strip a matching BOM after decoding. Convert supported non-UTF-8 encodings through R's conversion facilities; report unavailable encodings and invalid byte sequences instead of substituting silently. R's `iconv()` on raw input does not reliably signal invalid sequences: macOS libiconv returns the input bytes unchanged under the default `sub = NA`, and on Windows an invalid UTF-16 input came back with a NUL in it. UTF-16 (LE, BE, and BOM-selected plain "UTF-16", big-endian without a BOM) is therefore decoded in R, strictly: an odd byte count or an unpaired surrogate is an error. Every other encoding is ASCII-compatible, so input with a NUL byte is rejected before conversion, and a conversion fails if two runs with different substitution bytes differ, if the output is identical to input with non-ASCII bytes, if the output contains a NUL, or if it is not valid UTF-8. Reject embedded NUL bytes after decoding because R character values cannot represent them reliably. Raw input longer than four times `max_input` is rejected before decoding, and `html_read()` applies the same bound to the file size before reading.
+
+*Amended in 0.1.0.9000:*
+- **Raw bound (#85).** The four-times bound is a bound of its own on raw input, not a proxy for the decoded size: the escape sequences of a stateful encoding (ISO-2022-JP) decode to nothing, so raw input that decodes within `max_input` can still be refused. It stays, because it is what keeps a huge input from being decoded at all; its message now says "more than four times max_input", and `observed` is the raw size. (Consecutive escape sequences with no character between them are an error in the Encoding Standard's ISO-2022-JP decoder, so input the bound refuses is almost always input a browser would flag.)
+- **ASCII-compatibility (#94).** "Every other encoding is ASCII-compatible" is checked, not assumed: before conversion, a fixed ASCII markup probe must convert to itself (with `sub` set, so macOS libiconv cannot hand invalid input back unchanged). UCS-2, UTF-32 and EBCDIC names are encoding errors naming the encoding, not "a NUL byte". The identity check is skipped for UTF-8 variants (UTF-8-MAC), whose valid output can equal the input.
+- **End-of-input flush (#89).** `iconv()` never flushes a converter's state, and libiconv's CP1255, CP1258 and TCVN hold back a base character awaiting a combining mark, so the last character was lost. windows-1255 and windows-1258 are decoded in R from the WHATWG indexes (which also keep a base and a mark as two code points, where libiconv composes them). For every other `iconv()` encoding a newline is appended before conversion and removed after; when the result does not end in it, the input is converted as it is.
+- **One BOM (#95).** A BOM is stripped exactly once: `zuh_utf16()` drops the BOM bytes and no longer strips a decoded U+FEFF as well, so a second BOM is text in UTF-16 as in UTF-8.
 
 *Amended at roadmap Stage 14:* raw input is now sniffed. The precedence is a BOM, then `encoding` (the transport-layer charset), then the HTML standard's prescan of the first 1024 bytes for a `<meta>` declaration, then UTF-8. This is the standard's order, except that a BOM contradicting `encoding` stays an error rather than silently winning.
 
@@ -235,7 +245,7 @@ As built (`src/zuh_selector.c`, `src/r_select.c`):
 - **Complexity bounds.** A complex selector may have at most 128 compounds and `:not()` may nest 32 deep; beyond either, the selector fails to compile.
 - **`:scope`** is the context element. In a document search it is the `<html>` element; in a fragment search it is nothing. `:root` is the element whose parent is the document node, never in a fragment.
 - **Matching** is right to left with the restart statuses of Servo's `selectors` crate, so descendant and sibling combinators do not backtrack exponentially. A work counter (10⁹ compound tests per call) raises `zuhtml_limit_error` with `limit = "selector_work"`, and the R-facing loop polls for interrupts.
-- **Length limit.** The selection functions take no `limits` argument in 0.1.0, so `max_selector_length` is `html_limits()`'s default there.
+- **Length limit.** The selection functions take no `limits` argument in 0.1.0, so `max_selector_length` is `html_limits()`'s default there. *Amended in 0.1.0.9000 (#83):* the document stores the validated limits it was parsed with (`doc$limits`), and selection on it and its nodesets uses their `max_selector_length`; the default applies only to a document without stored limits.
 - **Ownership.** The compiled selector is owned by an external pointer created before compiling, so an interrupt cannot leak it. Sibling-position caches come from `R_alloc`.
 
 Implement a small selector parser producing a native query plan and match right-to-left. Compile once per call; there is no per-document cache. Bound selector length, combinator count, nesting, and matching work; the R-facing loop polls `R_CheckUserInterrupt()` over the frozen document. Gumbo does not provide this engine. Do not claim full CSS Selectors Level 4 support.

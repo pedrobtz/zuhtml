@@ -39,7 +39,9 @@
 #' whitespace does.
 #'
 #' @param x A `zuhtml_document` or `zuhtml_nodeset`.
-#' @param css A CSS selector: a single string.
+#' @param css A CSS selector: a single string, of at most the
+#'   `max_selector_length` bytes of the [html_limits()] the document was
+#'   parsed with.
 #'
 #' @return
 #' * `html_elements()`: a `zuhtml_nodeset` of the matching elements below
@@ -107,8 +109,15 @@ zuh_select <- function(nodes, css, mode, call) {
     zuh_input_error("css", "`css` must be a single selector string.",
                     call = call)
   }
-  css <- enc2utf8(css)
-  max_len <- html_limits()$max_selector_length
+  css <- zuh_utf8(css, "css", call)
+  if (!validUTF8(css)) {
+    zuh_input_error("css", "`css` is not valid UTF-8.", call = call)
+  }
+  # The limits the document was parsed with, or the default where none are
+  # stored (a document saved by zuhtml 0.1.0).
+  limits <- nodes$doc$limits
+  max_len <- if (is.null(limits)) html_limits()$max_selector_length else
+    limits$max_selector_length
   if (nchar(css, type = "bytes") > max_len) {
     zuh_limit_error(
       "max_selector_length", max_len, nchar(css, type = "bytes"),
@@ -138,8 +147,10 @@ zuh_selector_failure <- function(res, css, call) {
     zuh_abort("selector", "Out of memory compiling the selector.",
               selector = css, position = NA_integer_, call = call)
   }
-  bytes <- charToRaw(css)
-  pos <- nchar(rawToChar(bytes[seq_len(res$position)]), type = "chars") + 1L
+  # Characters, not bytes, before the error, in every locale.
+  before <- rawToChar(charToRaw(css)[seq_len(res$position)])
+  Encoding(before) <- "UTF-8"
+  pos <- nchar(before, type = "chars") + 1L
   zuh_abort(
     "selector",
     sprintf("Invalid selector at position %d: %s.\n  %s\n  %s^",
