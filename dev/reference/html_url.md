@@ -37,8 +37,9 @@ missing nodes. The original attribute value stays available through
 
 ## Details
 
-The base URL is `base_url` if given; otherwise the document's first
-`<base href>` resolved against the `base_url` given to
+The base URL is `base_url` if given; otherwise the document's first HTML
+`<base href>` (not an SVG or MathML `<base>`) resolved against the
+`base_url` given to
 [`html_parse()`](https://pedrobtz.github.io/zuhtml/dev/reference/html_parse.md);
 otherwise that `base_url` alone.
 

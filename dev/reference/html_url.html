@@ -92,7 +92,8 @@ available through <code><a href="html_attr.html">html_attr()</a></code>.</p>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
     <p>The base URL is <code>base_url</code> if given; otherwise the document's first
-<code>&lt;base href&gt;</code> resolved against the <code>base_url</code> given to <code><a href="html_parse.html">html_parse()</a></code>;
+HTML <code>&lt;base href&gt;</code> (not an SVG or MathML <code>&lt;base&gt;</code>) resolved against the
+<code>base_url</code> given to <code><a href="html_parse.html">html_parse()</a></code>;
 otherwise that <code>base_url</code> alone.</p>
 <p>This is RFC 3986, not the WHATWG URL Standard browsers implement: there
 is no IDNA processing, no percent-encoding of characters that need it,

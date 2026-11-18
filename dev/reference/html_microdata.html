@@ -87,7 +87,8 @@ string or a nested item.</p>
 with <code>itemscope</code>; the <code>content</code> attribute of <code>&lt;meta&gt;</code>; the resolved
 <code>src</code> of <code>&lt;audio&gt;</code>, <code>&lt;embed&gt;</code>, <code>&lt;iframe&gt;</code>, <code>&lt;img&gt;</code>, <code>&lt;source&gt;</code>, <code>&lt;track&gt;</code>
 and <code>&lt;video&gt;</code>, <code>href</code> of <code>&lt;a&gt;</code>, <code>&lt;area&gt;</code> and <code>&lt;link&gt;</code>, and <code>data</code> of
-<code>&lt;object&gt;</code> (resolved as <code><a href="html_url.html">html_url()</a></code> does, <code>""</code> when that fails); the
+<code>&lt;object&gt;</code> (resolved as <code><a href="html_url.html">html_url()</a></code> does, <code>""</code> when the attribute is
+absent or does not resolve); the
 <code>value</code> attribute of <code>&lt;data&gt;</code> and <code>&lt;meter&gt;</code>; the <code>datetime</code> attribute of
 <code>&lt;time&gt;</code> when present. Otherwise it is the element's text, which here is
 cleaned as <code><a href="html_text_clean.html">html_text_clean()</a></code> does, not the raw <code>textContent</code>. An item

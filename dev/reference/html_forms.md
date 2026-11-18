@@ -52,7 +52,9 @@ controls without another owner that follow it in that table, up to the
 next form.
 
 Controls are `<input>`, `<select>`, `<textarea>` and `<button>`
-elements, in document order. Values follow the DOM:
+elements, in document order. Only HTML elements count: an element of
+those names inside `<svg>` or `<math>` is not a form or a control.
+Values follow the DOM:
 
 - `type` is an input's `type` (lowercased; `"text"` when missing or
   unknown), `"select-one"` or `"select-multiple"`, `"textarea"`, or a
@@ -61,7 +63,8 @@ elements, in document order. Values follow the DOM:
 - `value` is the `value` attribute (`"on"` for a checkbox or radio
   button without one, else `""`); a textarea's text; or a select's first
   selected option's value, where a single select with no option marked
-  selected selects its first enabled option;
+  selected selects its first enabled option if it shows one row (its
+  `size` is absent, invalid or 1), and none otherwise;
 
 - `disabled` is `TRUE` for a control with a `disabled` attribute or
   inside a disabled `<fieldset>` (except in its first `<legend>`).

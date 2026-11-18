@@ -95,13 +95,16 @@ following controls with it; such a form, left empty inside a table,
 owns the controls without another owner that follow it in that table,
 up to the next form.</p>
 <p>Controls are <code>&lt;input&gt;</code>, <code>&lt;select&gt;</code>, <code>&lt;textarea&gt;</code> and <code>&lt;button&gt;</code>
-elements, in document order. Values follow the DOM:</p><ul><li><p><code>type</code> is an input's <code>type</code> (lowercased; <code>"text"</code> when missing or
+elements, in document order. Only HTML elements count: an element of
+those names inside <code>&lt;svg&gt;</code> or <code>&lt;math&gt;</code> is not a form or a control.
+Values follow the DOM:</p><ul><li><p><code>type</code> is an input's <code>type</code> (lowercased; <code>"text"</code> when missing or
 unknown), <code>"select-one"</code> or <code>"select-multiple"</code>, <code>"textarea"</code>, or a
 button's <code>type</code> (<code>"submit"</code> by default);</p></li>
 <li><p><code>value</code> is the <code>value</code> attribute (<code>"on"</code> for a checkbox or radio
 button without one, else <code>""</code>); a textarea's text; or a select's
 first selected option's value, where a single select with no option
-marked selected selects its first enabled option;</p></li>
+marked selected selects its first enabled option if it shows one row
+(its <code>size</code> is absent, invalid or 1), and none otherwise;</p></li>
 <li><p><code>disabled</code> is <code>TRUE</code> for a control with a <code>disabled</code> attribute or
 inside a disabled <code>&lt;fieldset&gt;</code> (except in its first <code>&lt;legend&gt;</code>).</p></li>
 </ul></div>
