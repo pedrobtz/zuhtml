@@ -5,6 +5,10 @@
 # for the vendored units themselves.
 PKG_CPPFLAGS = -Ivendor/gumbo
 
+# Hidden by default: the shared object exports R_init_zuhtml alone, which
+# init.c marks attribute_visible (test-abi.R).
+PKG_CFLAGS = $(C_VISIBILITY)
+
 # The 12 translation units upstream's meson.build compiles.
 GUMBO_OBJECTS = \
 	vendor/gumbo/attribute.o \
