@@ -1,0 +1,27 @@
+# Holds .agents/assurance.md to the portfolio standard (the shared
+# assurance.md rules) through r-actions' assurance.yml, and fails on any job
+# of the package's own workflows that a documentation-only pull request
+# would still run (ungated-jobs: fail; #51).
+#
+# No `push:`: a pull request already checks its merge with main (ci.md).
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+  workflow_dispatch:
+
+name: assurance
+
+permissions:
+  contents: read
+
+jobs:
+  assurance:
+    if: >-
+      github.event_name != 'pull_request'
+      || contains(github.event.pull_request.labels.*.name, 'full-ci')
+      || !(contains(github.event.pull_request.labels.*.name, 'ci:docs')
+        || contains(github.event.pull_request.labels.*.name, 'ci:minimal')
+        || contains(github.event.pull_request.labels.*.name, 'skip-ci:assurance'))
+    uses: pedrobtz/r-actions/.github/workflows/assurance.yml@v1
+    with:
+      ungated-jobs: fail

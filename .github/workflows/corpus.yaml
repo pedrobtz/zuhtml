@@ -10,11 +10,8 @@ on:
   # No `push:`: a pull request already checks its merge with main,
   # and the schedule checks main (r-actions README, "Pushes to main").
   pull_request:
-    paths-ignore:
-      - '**.md'
-      - '_pkgdown.yml'
-      - '.agents/**'
-      - 'vignettes/**'
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+  workflow_dispatch:
 
 name: corpus
 
@@ -25,7 +22,25 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # The gate for every job below. Label-tested first, so a `ci:docs` or
+  # `ci:minimal` pull request takes no runner at all.
+  changes:
+    if: >-
+      github.event_name != 'pull_request'
+      || contains(github.event.pull_request.labels.*.name, 'full-ci')
+      || !(contains(github.event.pull_request.labels.*.name, 'ci:docs')
+        || contains(github.event.pull_request.labels.*.name, 'ci:minimal')
+        || contains(github.event.pull_request.labels.*.name, 'skip-ci:corpus'))
+    uses: pedrobtz/r-actions/.github/workflows/changes.yml@v1
+    with:
+      name: corpus
+      profile: auto
+
   corpus:
+    needs: changes
+    if: >-
+      ${{ !cancelled() && needs.changes.result != 'skipped'
+      && needs.changes.outputs.docs-only != 'true' }}
     runs-on: ubuntu-latest
     name: external HTML corpus
     steps:
