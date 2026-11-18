@@ -51,7 +51,7 @@ jobs:
     runs-on: ubuntu-latest
     name: vendored Gumbo is upstream plus the patch series
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: re-derive src/vendor/gumbo from the pinned archive
         run: ./tools/verify-vendor
       - name: canary - leaving a patch out must fail verification
@@ -65,7 +65,7 @@ jobs:
     runs-on: ubuntu-latest
     name: strict warnings and no stdio symbols
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: r-lib/actions/setup-r@v2
       - name: project-owned code is warning-free; the .so imports no stdio
         run: CC=clang ./tools/run-lint
@@ -80,7 +80,7 @@ jobs:
     runs-on: ubuntu-latest
     name: ASan + UBSan + LSan over the parse seam
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: fault injection at every allocation index, limits, canaries
         # LeakSanitizer is unavailable on macOS, so this Linux job is the only
         # place a block the abort path forgets is actually caught.
@@ -94,7 +94,7 @@ jobs:
     runs-on: ubuntu-latest
     name: html5lib tree-construction conformance and round trip
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: r-lib/actions/setup-r@v2
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
@@ -115,7 +115,7 @@ jobs:
     runs-on: ubuntu-latest
     name: fuzz
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       # The corpus libFuzzer grows is cached, not committed. A fresh key per
       # run, restored from the newest earlier one, lets fuzzing time
       # accumulate across runs instead of restarting from the seeds.
