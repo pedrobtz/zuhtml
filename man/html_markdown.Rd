@@ -36,7 +36,7 @@ one;
 \item \verb{<pre>} as a fenced code block, with its language when a
 \verb{language-*} or \verb{lang-*} class names one;
 \item block quotes, and ordered and unordered lists, nested, with \code{start},
-\code{reversed} and \code{value} honored; empty list items are left out and
+\code{reversed} and \code{value} honoured; empty list items are left out and
 take no number. A list right after another of its kind takes the other
 bullet (\code{-} or \code{*}) or delimiter (\code{.} or \verb{)}), so that the two stay
 separate;

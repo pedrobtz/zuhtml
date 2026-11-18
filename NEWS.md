@@ -1,5 +1,9 @@
 # zuhtml 0.1.0.9000
 
+* The shared object is compiled with hidden symbol visibility and exports
+  only `R_init_zuhtml`, so its internal and vendored 'Gumbo' symbols cannot
+  clash with another library loaded into the same session.
+
 * `html_read()` raises a path, URL or connection that cannot be opened
   through the new `fail` hook of the shared `zu_source.R` (copied again from
   zuxml). It was already a `zuhtml_input_error` naming the cause, without
@@ -9,6 +13,111 @@
 * The message of an invalid `path` (not a string, a directory, a text-mode
   connection) is no longer wrapped as "Cannot open ...: ..." with a
   doubled full stop.
+
+* `html_json_ld(parse = TRUE)` parses each block with
+  `jsonlite::parse_json()` instead of `jsonlite::fromJSON()`, which read a
+  block whose text was the name of an existing file as that file, and
+  downloaded one that was an `http(s)://` URL. Such a block is now `NULL`,
+  like any other invalid JSON (#88).
+
+* `html_forms()` and `html_microdata()` find the element named by a `form`
+  or `itemref` attribute by comparing IDs, not through a CSS selector. A
+  value holding a newline gave a `zuhtml_selector_error` and one over
+  16 KiB a `zuhtml_limit_error`; any value now works (#96).
+
+* `html_microdata()` gives `""` for a URL property (`href`, `src` or
+  `data`) whose attribute is absent, as the HTML standard does, instead of
+  the base URL (#97).
+
+* An SVG or MathML `<base>` no longer sets the document's base URL for
+  `html_url()` and the other URL resolution; `html_forms()` ignores SVG and
+  MathML forms, controls and fieldsets; and `html_json_ld()` ignores SVG
+  and MathML `<script>` elements (#98).
+
+* `html_forms()` selects the first enabled option of a single select with
+  nothing marked selected only when its display size is 1 (no `size`, an
+  invalid one, or `size=1`), as the DOM does; a list box such as
+  `<select size=5>` now has no value (#111).
+
+* windows-1255 and windows-1258 input no longer loses its last character
+  on macOS, whose iconv held it back for a combining mark (#89). Both are
+  now decoded from the Encoding Standard's indexes, so a base letter and a
+  combining mark stay two characters, as in a browser. Other `iconv()`
+  encodings with the same behaviour, such as TCVN, keep their last
+  character too.
+
+* In a C locale, a string with non-ASCII characters that was not marked
+  UTF-8 (as `readLines()` returns them there) is read as UTF-8 by
+  `html_parse()`, `html_fragment()`, the selection functions and
+  `html_attr()`, instead of each byte becoming the text `<c3>` (#92).
+  Selector error positions count characters there too.
+
+* A `<meta>` charset label with a non-ASCII byte is ignored as an unknown
+  label, in every locale, instead of failing with an unclassed error, so a
+  later valid declaration is used (#93).
+
+* `encoding` naming an encoding that is not ASCII-compatible, such as
+  UCS-2LE or UTF-32LE, is an encoding error that names it rather than
+  "The input contains a NUL byte" (#94). `encoding = "UTF-8-MAC"` decodes
+  valid input instead of refusing it.
+
+* A second byte-order mark is kept as text in UTF-16 input, as it already
+  was in UTF-8, rather than dropped (#95).
+
+* `html_read()` now has the arguments of `html_parse()` (`encoding`,
+  `base_url`, `comments`, `limits`) instead of `...`, so positional and
+  partial arguments work for a URL as they do for a path (#99).
+
+* The error for raw input longer than four times `max_input` says so; it
+  is a bound on raw bytes of its own, which input in a stateful encoding
+  such as ISO-2022-JP can reach while decoding within `max_input` (#85).
+
+* `html_limits(max_selector_length =)` now takes effect: a document keeps
+  the limits it was parsed with, and selection on it uses their
+  `max_selector_length` (#83).
+
+* `print()` of `html_limits()` and `html_info()` works under
+  `options(OutDec = ",")` (#110).
+
+* A `css`, `html_attr()` `name` or `default`, `html_fragment()` `context`
+  or `encoding` string marked as `"bytes"` is a `zuhtml_input_error` (part
+  of #84).
+
+* `[<-` and `[[<-` on a nodeset accept only nodes of the same document, or
+  `NA`, as `c()` already did. Assigning a node of another document, or a
+  bare number, used to keep its ID and silently address a different node
+  of the target document; it is now a `zuhtml_input_error` (#82).
+  Arithmetic, comparison and math functions on a nodeset are refused the
+  same way (use `as.integer()` for the IDs), and `length<-` keeps the
+  nodeset class, padding with missing nodes.
+
+* Printing a nodeset shows a newline in text as `\n`, not `\\n` (#109).
+  `print(x, n =)` checks that `n` is a single non-negative whole number
+  before printing anything, and `n = 0` prints only the header and count.
+
+* `html_table(convert = TRUE)` no longer changes values silently (#100). A
+  column stays character when a value has a leading zero once grouping
+  marks are removed (`"0,123"` with `thousands = ","` was 123), has more
+  than 15 significant digits (`"12345678901234567890"` was
+  12345678901234567168), or overflows, underflows or is subnormal
+  (`"1e999"` was `Inf`). `thousands = "\u00a0"` now matches, since cell
+  text has its non-breaking spaces turned into spaces.
+
+* `html_tables(match =)` with an invalid regular expression is a
+  `zuhtml_input_error`, not a base error and a warning (#84).
+
+* Native failures outside parsing are classed conditions (#84). A result
+  string longer than R allows, from `html_text()`, `html_text_clean()`,
+  `html_markdown()` or `html_serialize()`, is a `zuhtml_limit_error` with
+  `limit = "string_length"`, and running out of native memory while
+  building a result or a table grid one with `limit = "memory"`; both were
+  plain R errors. A document whose attributes or strings overflow the
+  arena's 32-bit offsets is a `zuhtml_limit_error` with `limit = "arena"`
+  rather than a misleading `max_memory` error. A `max_memory` error now
+  reports in `observed` the bytes the parse would have needed.
+
+* The internal tree dump used by the tests and the conformance gate no
+  longer leaks its buffer if R fails to allocate the result string (#86).
 
 * `html_text_clean(trim = TRUE)` now trims whitespace at the ends that
   came from `<pre>` or `<textarea>`, as documented; whitespace inside them

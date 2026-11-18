@@ -55,3 +55,29 @@ test_that("limits print one line each", {
   expect_length(out, 8L)
   expect_match(out[[1L]], "zuhtml_limits")
 })
+
+test_that("limits and document info print with a comma decimal mark (#110)", {
+  withr::local_options(OutDec = ",", warn = 2)
+  out <- capture.output(print(html_limits()))
+  expect_match(out, "16,777,216", fixed = TRUE, all = FALSE)
+  out <- capture.output(print(html_info(html_parse("<p>x"))))
+  expect_match(out, "input_bytes", fixed = TRUE, all = FALSE)
+})
+
+test_that("max_selector_length given at parse time bounds selectors (#83)", {
+  doc <- html_parse("<p title=x>",
+                    limits = html_limits(max_selector_length = 8))
+  err <- expect_error(html_elements(doc, "p[title=x]"),
+                      class = "zuhtml_limit_error")
+  expect_identical(err$limit, "max_selector_length")
+  expect_identical(err$maximum, 8)
+  expect_length(html_elements(doc, "p"), 1L)
+  # A document's nodes carry its limits.
+  expect_error(html_matches(html_elements(doc, "p"), "p[title=x]"),
+               class = "zuhtml_limit_error")
+  long <- sprintf("p[title=\"%s\"]", strrep("x", 20000))
+  expect_error(html_elements(html_parse("<p>"), long),
+               class = "zuhtml_limit_error")
+  roomy <- html_parse("<p>", limits = html_limits(max_selector_length = 1e5))
+  expect_length(html_elements(roomy, long), 0L)
+})

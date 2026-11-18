@@ -24,6 +24,7 @@ zuh_ledger_new(size_t max_bytes, size_t fail_at) {
     return NULL;
   lg->abort_to = NULL;
   lg->status = ZUH_OK;
+  lg->observed = 0;
   lg->blocks = NULL;
   lg->max_bytes = max_bytes;
   lg->fail_at = fail_at;
@@ -52,8 +53,11 @@ zuh_ledger_alloc(void *userdata, size_t size) {
   if (size > SIZE_MAX - sizeof(zuh_header))
     ledger_abort(lg, ZUH_LIMIT_MEMORY);
   total = sizeof(zuh_header) + size;
-  if (total > lg->max_bytes || lg->live_bytes > lg->max_bytes - total)
+  if (total > lg->max_bytes || lg->live_bytes > lg->max_bytes - total) {
+    lg->observed = total > SIZE_MAX - lg->live_bytes ? SIZE_MAX
+                                                     : lg->live_bytes + total;
     ledger_abort(lg, ZUH_LIMIT_MEMORY);
+  }
 
   /* Grow the block array before allocating the block, so that a failure
    * here leaves nothing unrecorded. */

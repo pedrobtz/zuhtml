@@ -257,6 +257,24 @@ test_that("positions count characters, not bytes", {
   expect_identical(err$position, 3L)
 })
 
+test_that("unmarked non-ASCII selectors are UTF-8 in a C locale (#92)", {
+  doc <- html_parse("<p title=\"café\">x</p><p>y</p>")
+  css <- "p[title=caf\xc3\xa9]"
+  bad <- "\xc3\xa9\xc3\xa9:hover"
+  local_c_ctype()
+  expect_length(html_elements(doc, css), 1L)
+  err <- expect_error(html_elements(doc, bad),
+                      class = "zuhtml_selector_error")
+  expect_identical(err$position, 3L)
+})
+
+test_that("a selector marked as bytes is an input error (#84)", {
+  css <- "p[title=caf\xc3\xa9]"
+  Encoding(css) <- "bytes"
+  expect_error(html_elements(html_parse("<p>"), css),
+               class = "zuhtml_input_error")
+})
+
 test_that("css is validated and bounded", {
   doc <- html_parse("<p>")
   expect_error(html_elements(doc, c("p", "a")), class = "zuhtml_input_error")

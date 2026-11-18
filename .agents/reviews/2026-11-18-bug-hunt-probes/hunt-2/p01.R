@@ -1,0 +1,30 @@
+source("pre.R")
+R.version.string; l10n_info(); extSoftVersion()["iconv"]
+# invalid meta label bytes
+show("meta charset non-ascii", html_parse(c(s('<meta charset="'), r(0xe9), s('"><p>x'))))
+show("content charset non-ascii", html_parse(c(s('<meta http-equiv=content-type content="text/html; charset='), r(0xe9), s('"><p>x'))))
+show("attr name non-ascii", cp(html_parse(c(s('<meta '), r(0xe9), s('=1 charset=latin1><p>'), r(0xe9)))))
+show("attr value nonascii other", cp(html_parse(c(s('<meta name="'), r(0xe9), s('" charset=latin1><p>'), r(0xe9)))))
+show("http-equiv nonascii", cp(html_parse(c(s('<meta http-equiv="'), r(0xe9), s('" charset=latin1><p>'), r(0xe9)))))
+# two BOMs
+show("utf8 2 boms", cp(html_parse(r(0xef,0xbb,0xbf,0xef,0xbb,0xbf,0x41))))
+show("utf16le 2 boms", cp(html_parse(r(0xff,0xfe,0xff,0xfe,0x41,0x00))))
+show("utf16be 2 boms", cp(html_parse(r(0xfe,0xff,0xfe,0xff,0x00,0x41))))
+show("string 2 boms", cp(html_parse("﻿﻿A")))
+show("string 1 bom", cp(html_parse("﻿A")))
+show("utf16le arg no bom, U+FEFF data", cp(html_parse(r(0xff,0xfe,0x41,0x00)[-(1:0)], encoding="UTF-16LE")))
+show("utf16 no bom", cp(html_parse(r(0x41,0x00), encoding="UTF-16")))
+show("utf16 no bom BE", cp(html_parse(r(0x00,0x41), encoding="UTF-16")))
+show("utf-16 LE bom + enc utf-16be", cp(html_parse(r(0xff,0xfe,0x41,0x00), encoding="UTF-16BE")))
+show("utf8 bom + latin1", cp(html_parse(r(0xef,0xbb,0xbf,0x41), encoding="latin1")))
+show("utf16le bom + meta latin1", {d<-html_parse(c(r(0xff,0xfe), as.vector(rbind(s('<meta charset=latin1>A'), as.raw(0))))); str(html_info(d)[c("encoding","encoding_source","input_bytes")]); cp(d)})
+show("meta utf-16 in utf8 file", {d<-html_parse(c(s('<meta charset=utf-16>'), r(0xc3,0xa9))); str(html_info(d)[c("encoding","encoding_source","input_bytes")]); cp(d)})
+show("x-user-defined", {d<-html_parse(c(s('<meta charset=x-user-defined>'), r(0xe9, 0x80))); str(html_info(d)[c("encoding","encoding_source","input_bytes")]); cp(d)})
+show("replacement", html_parse(c(s('<meta charset=iso-2022-kr>'), r(0x41))))
+show("two metas", {d<-html_parse(c(s('<meta charset=koi8-r><meta charset=latin1>'), r(0xe9))); cp(d)})
+show("label ws/mixed", {d<-html_parse(c(s('<meta charset=" \tLaTiN1\n">'), r(0xe9))); cp(d)})
+show("unknown then known", {d<-html_parse(c(s('<meta charset=bogus><meta charset=latin1>'), r(0xe9))); cp(d)})
+for (pad in c(990:1010)) {
+  x <- c(s(strrep(" ", pad)), s('<meta charset=latin1>'), r(0xe9))
+  d <- try_(html_parse(x)); cat(pad, pad+21, if (inherits(d,"err")) "ERR" else html_info(d)$encoding_source, "\n")
+}

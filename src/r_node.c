@@ -416,9 +416,11 @@ C_zuh_node_attrs(SEXP ptr, SEXP ids) {
 
 /* Text of one node. Recursive: every text node in its subtree, in tree
  * order, skipping template contents. Otherwise its direct text children.
- * A text, comment or PI node is its own content; a doctype has none. */
+ * A text, comment or PI node is its own content; a doctype has none.
+ * NULL, with the length in *too_long, when the text is longer than an R
+ * string can be. */
 static SEXP
-node_text(const zuh_doc *doc, zuh_id id, int recursive) {
+node_text(const zuh_doc *doc, zuh_id id, int recursive, size_t *too_long) {
   const zuh_node *nd = &doc->nodes[id];
   size_t len = 0, pos = 0;
   zuh_id c, end = 0;
@@ -447,8 +449,10 @@ node_text(const zuh_doc *doc, zuh_id id, int recursive) {
       if (doc->nodes[c].type == ZUH_NODE_TEXT)
         len += strlen(zuh_str(doc, doc->nodes[c].value));
   }
-  if (len > (size_t) INT_MAX)
-    Rf_error("text too long for an R string");
+  if (len > (size_t) INT_MAX) {
+    *too_long = len;
+    return NULL;
+  }
   buf = R_alloc(len + 1, 1);
   if (recursive) {
     for (c = id + 1; c <= end; c++) {
@@ -488,8 +492,14 @@ C_zuh_node_text(SEXP ptr, SEXP ids, SEXP recursive) {
   for (i = 0; i < n; i++) {
     int id = INTEGER(ids)[i];
     const void *vmax = vmaxget();
-    SET_STRING_ELT(out, i,
-                   id == NA_INTEGER ? NA_STRING : node_text(doc, (zuh_id) id, rec));
+    size_t too_long = 0;
+    SEXP s = id == NA_INTEGER ? NA_STRING
+                              : node_text(doc, (zuh_id) id, rec, &too_long);
+    if (s == NULL) {
+      UNPROTECT(1);
+      return zuh_r_status(ZUH_LIMIT_STRING, (double) too_long);
+    }
+    SET_STRING_ELT(out, i, s);
     vmaxset(vmax);
     poll(i);
   }
@@ -519,6 +529,7 @@ C_zuh_node_serialize(SEXP ptr, SEXP ids, SEXP outer, SEXP pretty) {
     int id = INTEGER(ids)[i];
     const void *vmax = vmaxget();
     zuh_buf b;
+    zuh_status st;
     if (id == NA_INTEGER) {
       SET_STRING_ELT(out, i, NA_STRING);
       continue;
@@ -526,10 +537,14 @@ C_zuh_node_serialize(SEXP ptr, SEXP ids, SEXP outer, SEXP pretty) {
     /* R_alloc-backed: an allocation failure long-jumps with nothing to
      * free. */
     zuh_buf_init(&b, zuh_r_alloc, NULL);
-    if (zuh_serialize(doc, (zuh_id) id, out_, pretty_, &b) != ZUH_OK)
-      Rf_error("out of memory serializing a node");
-    if (b.len > (size_t) INT_MAX)
-      Rf_error("serialization too long for an R string");
+    st = zuh_serialize(doc, (zuh_id) id, out_, pretty_, &b);
+    if (st == ZUH_OK && b.len > (size_t) INT_MAX)
+      st = ZUH_LIMIT_STRING;
+    if (st != ZUH_OK) {
+      UNPROTECT(1);
+      return zuh_r_status(st, st == ZUH_LIMIT_STRING ? (double) b.len
+                                                     : NA_REAL);
+    }
     SET_STRING_ELT(out, i, Rf_mkCharLenCE(b.buf, (int) b.len, CE_UTF8));
     vmaxset(vmax);
     R_CheckUserInterrupt();

@@ -143,3 +143,29 @@ test_that("every label maps to an encoding iconv() can use here", {
     expect_false(is.na(iconv("a", name, "UTF-8")), info = e)
   }
 })
+
+test_that("a label with a non-ASCII byte is unknown, in any locale (#93)", {
+  forms <- list(
+    function(b) c(charToRaw('<meta charset="'), b, charToRaw('">')),
+    function(b) c(charToRaw(paste0("<meta http-equiv=content-type ",
+                                   "content=\"text/html; charset=")),
+                  b, charToRaw('">'))
+  )
+  check <- function() {
+    for (form in forms) {
+      for (b in 0x80:0xff) {
+        x <- c(form(as.raw(c(0x6c, b, 0xff))),
+               charToRaw("<meta charset=latin1><p>hi"))
+        expect_identical(zuh_prescan(x)$encoding, "windows-1252")
+      }
+    }
+    x <- c(charToRaw('<meta charset="'), as.raw(c(0xe9, 0xff)),
+           charToRaw('"><meta charset=latin1><p>hi'))
+    info <- html_info(html_parse(x))
+    expect_identical(info[c("encoding", "encoding_source")],
+                     list(encoding = "windows-1252", encoding_source = "meta"))
+  }
+  check()
+  local_c_ctype()
+  check()
+})

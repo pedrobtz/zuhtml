@@ -11,8 +11,81 @@ length.zuhtml_nodeset <- function(x) length(unclass(x))
   new_nodeset(unclass(x)[[i]], zuh_owner(x))
 }
 
+# The IDs a value assigned into nodeset `x` stands for: nodes of the same
+# document, or missing nodes. IDs from another document, or bare numbers,
+# would be read as nodes of `x`'s document, so they are refused, as c()
+# refuses them.
+zuh_assign_ids <- function(x, value, call) {
+  if (inherits(value, "zuhtml_nodeset")) {
+    if (!identical(zuh_owner(value)$ptr, zuh_owner(x)$ptr)) {
+      zuh_input_error(
+        "value", "Nodes from a different document cannot be assigned.",
+        call = call
+      )
+    }
+    return(as.vector(unclass(value), "integer"))
+  }
+  if (is.atomic(value) && !is.object(value) && all(is.na(value))) {
+    return(rep(NA_integer_, length(value)))
+  }
+  zuh_input_error(
+    "value",
+    "Only nodes of the same document, or NA, can be assigned into a nodeset.",
+    call = call
+  )
+}
+
 #' @export
-rev.zuhtml_nodeset <- function(x) new_nodeset(rev(unclass(x)), zuh_owner(x))
+`[<-.zuhtml_nodeset` <- function(x, i, value) {
+  ids <- unclass(x)
+  ids[i] <- zuh_assign_ids(x, value, sys.call())
+  new_nodeset(ids, zuh_owner(x))
+}
+
+#' @export
+`[[<-.zuhtml_nodeset` <- function(x, i, value) {
+  call <- sys.call()
+  value <- zuh_assign_ids(x, value, call)
+  if (length(value) != 1L) {
+    zuh_input_error("value", "`[[<-` takes exactly one node.", call = call)
+  }
+  ids <- unclass(x)
+  ids[[i]] <- value
+  new_nodeset(ids, zuh_owner(x))
+}
+
+#' @export
+`length<-.zuhtml_nodeset` <- function(x, value) {
+  ids <- unclass(x)
+  length(ids) <- value
+  new_nodeset(ids, zuh_owner(x))
+}
+
+# Node IDs are document-local labels, not numbers: arithmetic on them, or
+# comparing them, would silently address or match other nodes. Use
+# as.integer() to work with the IDs themselves.
+#' @export
+Ops.zuhtml_nodeset <- function(e1, e2) {
+  zuh_input_error(
+    "x",
+    sprintf(paste0("`%s` is not defined for nodesets; use as.integer() ",
+                   "for the node IDs."), .Generic),
+    call = sys.call()
+  )
+}
+
+#' @export
+Math.zuhtml_nodeset <- function(x, ...) {
+  zuh_input_error(
+    "x",
+    sprintf(paste0("`%s()` is not defined for nodesets; use as.integer() ",
+                   "for the node IDs."), .Generic),
+    call = sys.call()
+  )
+}
+
+#' @export
+rev.zuhtml_nodeset <-function(x) new_nodeset(rev(unclass(x)), zuh_owner(x))
 
 #' @export
 rep.zuhtml_nodeset <- function(x, ...) {
@@ -54,7 +127,8 @@ as.list.zuhtml_nodeset <- function(x, ...) {
 }
 
 zuh_trunc <- function(s, width) {
-  s <- gsub("\n", "\\\\n", s, fixed = TRUE)
+  # fixed = TRUE takes the replacement literally: one backslash, then n.
+  s <- gsub("\n", "\\n", s, fixed = TRUE)
   long <- !is.na(s) & nchar(s) > width
   s[long] <- paste0(substr(s[long], 1L, width - 3L), "...")
   s
@@ -99,12 +173,17 @@ format.zuhtml_nodeset <- function(x, width = 60L, ...) {
 
 #' @export
 print.zuhtml_nodeset <- function(x, n = 10L, ...) {
+  if (!is.numeric(n) || length(n) != 1L || is.na(n) || n < 0 ||
+      (is.finite(n) && n != trunc(n))) {
+    zuh_input_error("n", "`n` must be a single non-negative whole number.",
+                    call = sys.call())
+  }
   len <- length(x)
   cat(sprintf("<zuhtml_nodeset[%d]>\n", len))
-  if (len > 0L) {
-    show <- seq_len(min(len, n))
+  show <- seq_len(min(len, n))
+  if (length(show)) {
     cat(paste0("[", show, "] ", format(x[show])), sep = "\n")
-    if (len > n) cat(sprintf("... and %d more\n", len - n))
   }
+  if (len > n) cat(sprintf("... and %.0f more\n", len - n))
   invisible(x)
 }

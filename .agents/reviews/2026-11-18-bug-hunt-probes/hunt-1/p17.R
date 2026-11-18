@@ -1,0 +1,6 @@
+source("h.R")
+d <- html_parse("<p title='a\nb'>line1\nline2</p><!--c1\nc2-->")
+x <- c(html_element(d, "p"), html_children(html_element(d, "p"), FALSE))
+print(x)
+cat(format(x), sep = "\n"); print(charToRaw(format(x)[2]))
+print(html_children(html_parse("<!--c1\nc2--><p>"), FALSE))

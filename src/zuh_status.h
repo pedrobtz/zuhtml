@@ -12,7 +12,14 @@ typedef enum {
   ZUH_ERR_INTERNAL,  /* an invariant failed, e.g. a free the ledger
                         does not recognise */
   ZUH_LIMIT_TABLE,   /* a table would expand past max_table_cells */
-  ZUH_ERR_TABLE_OVERLAP /* two table cells cover the same slot */
+  ZUH_ERR_TABLE_OVERLAP, /* two table cells cover the same slot */
+  ZUH_LIMIT_ARENA,   /* attributes or string-pool bytes would not fit the
+                        arena's 32-bit offsets, whatever max_memory is */
+  ZUH_LIMIT_STRING   /* a result string longer than R allows (INT_MAX
+                        bytes) */
 } zuh_status;
+
+/* R's zuh_status_names (R/parse.R) lists these in the same order; add an
+ * enumerator there in the same change. */
 
 #endif

@@ -253,31 +253,50 @@ C_zuh_doc_meta(SEXP ptr) {
   return out;
 }
 
-/* The tree in the html5lib test format, as one string, or NULL for a dead
- * pointer. Internal: the conformance gate and the tests use it. */
+SEXP
+zuh_r_status(zuh_status st, double observed) {
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, 2));
+  REAL(out)[0] = (double) st;
+  REAL(out)[1] = observed;
+  Rf_setAttrib(out, R_ClassSymbol, Rf_mkString("zuhtml_status"));
+  UNPROTECT(1);
+  return out;
+}
+
+typedef struct {
+  char *buf;
+  size_t len;
+} dump_buf;
+
+static SEXP
+dump_string(void *data) {
+  const dump_buf *d = (const dump_buf *) data;
+  return Rf_ScalarString(Rf_mkCharLenCE(d->buf, (int) d->len, CE_UTF8));
+}
+
+static void
+dump_free(void *data) {
+  free(((dump_buf *) data)->buf);
+}
+
+/* The tree in the html5lib test format, as one string, NULL for a dead
+ * pointer, or a zuhtml_status. Internal: the conformance gate and the
+ * tests use it. The dump is malloc'd; R_ExecWithCleanup() frees it whether
+ * building the R string returns or long-jumps. */
 SEXP
 C_zuh_doc_dump(SEXP ptr) {
   zuh_doc *doc = zuh_r_doc(ptr);
-  char *buf;
-  size_t len;
-  SEXP out;
+  dump_buf d;
+  zuh_status st;
 
   if (doc == NULL)
     return R_NilValue;
-  if (zuh_doc_dump(doc, &buf, &len) != ZUH_OK)
-    Rf_error("out of memory rendering the tree");
-  if (len > (size_t) INT_MAX) {
-    free(buf);
-    Rf_error("tree rendering too long for an R string");
+  st = zuh_doc_dump(doc, &d.buf, &d.len);
+  if (st != ZUH_OK)
+    return zuh_r_status(st, NA_REAL);
+  if (d.len > (size_t) INT_MAX) {
+    free(d.buf);
+    return zuh_r_status(ZUH_LIMIT_STRING, (double) d.len);
   }
-  /* mkCharLenCE can fail and long-jump; free the buffer first by copying
-   * into R_alloc memory, which R reclaims either way. */
-  {
-    char *copy = R_alloc(len + 1, 1);
-    memcpy(copy, buf, len + 1);
-    free(buf);
-    out = PROTECT(Rf_ScalarString(Rf_mkCharLenCE(copy, (int) len, CE_UTF8)));
-  }
-  UNPROTECT(1);
-  return out;
+  return R_ExecWithCleanup(dump_string, &d, dump_free, &d);
 }

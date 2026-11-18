@@ -81,6 +81,19 @@ test_that("html_attr() validates its arguments", {
   expect_error(html_attr(doc, "a", default = 1), class = "zuhtml_input_error")
   expect_error(html_attr(doc, "a", default = c("x", "y")),
                class = "zuhtml_input_error")
+  name <- "data-\xc3\xa9"
+  Encoding(name) <- "bytes"
+  expect_error(html_attr(doc, name), class = "zuhtml_input_error")
+})
+
+test_that("unmarked non-ASCII attribute arguments are UTF-8 in a C locale (#92)", {
+  doc <- html_parse("<p data-é=v>x</p>")
+  p <- html_element(doc, "p")
+  name <- "data-\xc3\xa9"
+  default <- "caf\xc3\xa9"
+  local_c_ctype()
+  expect_identical(html_attr(p, name), "v")
+  expect_identical(html_attr(p, "title", default = default), "café")
 })
 
 test_that("html_text() concatenates descendant text without separators", {

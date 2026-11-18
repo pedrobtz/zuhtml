@@ -19,7 +19,7 @@
 #' * `<pre>` as a fenced code block, with its language when a
 #'   `language-*` or `lang-*` class names one;
 #' * block quotes, and ordered and unordered lists, nested, with `start`,
-#'   `reversed` and `value` honored; empty list items are left out and
+#'   `reversed` and `value` honoured; empty list items are left out and
 #'   take no number. A list right after another of its kind takes the other
 #'   bullet (`-` or `*`) or delimiter (`.` or `)`), so that the two stay
 #'   separate;

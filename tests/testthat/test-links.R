@@ -82,6 +82,19 @@ test_that("<base href> resolves against the parse-time URL and wins", {
                    "http://q/r/p")
 })
 
+test_that("only an HTML <base> sets the document's base URL", {
+  doc <- html_parse(paste0(
+    "<body><svg><base href='http://svg/'></base></svg>",
+    "<math><base href='http://math/'></base></math><a href='y'>x</a>"
+  ), base_url = "http://p/")
+  expect_identical(html_url(html_element(doc, "a")), "http://p/y")
+  doc <- html_parse(paste0(
+    "<body><svg><base href='http://svg/'></base></svg>",
+    "<base href='http://html/'><a href='y'>x</a>"
+  ), base_url = "http://p/")
+  expect_identical(html_url(html_element(doc, "a")), "http://html/y")
+})
+
 test_that("relative references without an absolute base are NA", {
   doc <- html_parse("<a href='rel'>r</a><a href='https://x.org/abs'>a</a>")
   expect_identical(html_url(html_elements(doc, "a")),

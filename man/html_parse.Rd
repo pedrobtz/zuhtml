@@ -13,13 +13,20 @@ html_parse(
   limits = html_limits()
 )
 
-html_read(path, ...)
+html_read(
+  path,
+  encoding = NULL,
+  base_url = NULL,
+  comments = TRUE,
+  limits = html_limits()
+)
 }
 \arguments{
 \item{x}{One string, or a raw vector of encoded bytes.}
 
-\item{encoding}{The encoding of raw input, as a name \code{\link[=iconv]{iconv()}} accepts;
-\code{NULL} to use a byte-order mark, the page's declaration, or UTF-8.}
+\item{encoding}{The encoding of raw input: UTF-16 or the name of an
+ASCII-compatible encoding \code{\link[=iconv]{iconv()}} accepts (see "Encoding"); \code{NULL} to
+use a byte-order mark, the page's declaration, or UTF-8.}
 
 \item{base_url}{The document's URL, used to resolve relative links; \code{NULL}
 if unknown.}
@@ -30,8 +37,6 @@ if unknown.}
 
 \item{path}{One file path, URL or connection; see "Reading files, URLs
 and connections".}
-
-\item{...}{Arguments passed on to \code{html_parse()}.}
 }
 \value{
 A \code{zuhtml_document}.
@@ -69,14 +74,17 @@ Reading stops with a \code{zuhtml_limit_error} as soon as the input passes
 four times \code{max_input} bytes, before a larger file is read at all. A
 file that does not exist, an unreachable URL, and a connection that
 cannot be read are \code{zuhtml_input_error}s. The input is always read
-whole before parsing, because decoding needs all of it.
+whole before parsing, because decoding needs all of it. The other
+arguments mean what they mean to \code{html_parse()}, whatever \code{path} is.
 }
 
 \section{Encoding}{
 
 A character string is taken as text: it is converted to UTF-8 with
-\code{\link[=enc2utf8]{enc2utf8()}}, and \code{encoding} must be \code{NULL} or \code{"UTF-8"}. A string marked
-as \code{"bytes"} is rejected; pass a raw vector instead.
+\code{\link[=enc2utf8]{enc2utf8()}}, and \code{encoding} must be \code{NULL} or \code{"UTF-8"}. In a C locale,
+where \code{\link[=enc2utf8]{enc2utf8()}} cannot convert, an unmarked string's non-ASCII bytes
+are read as UTF-8, as \code{\link[=readLines]{readLines()}} returns a UTF-8 file's lines there.
+A string marked as \code{"bytes"} is rejected; pass a raw vector instead.
 
 A raw vector is decoded with, in order of precedence, a byte-order mark
 (UTF-8, UTF-16LE or UTF-16BE), \code{encoding}, a declaration in the page, or
@@ -84,6 +92,17 @@ UTF-8. A byte-order mark that contradicts \code{encoding} is an error, and so
 is any byte sequence that is invalid in the chosen encoding: nothing is
 replaced silently. A fetcher that knows the HTTP charset should pass it
 as \code{encoding}.
+
+Raw input longer than four times \code{max_input} is refused before it is
+decoded, whatever it decodes to: no supported encoding needs more than
+four bytes for a character, but the escape sequences of a stateful
+encoding such as ISO-2022-JP decode to nothing.
+
+UTF-16 is decoded by zuhtml itself, and windows-1255 and windows-1258
+from the Encoding Standard's indexes, so that a combining mark stays a
+character of its own as in a browser. Every other encoding is converted
+by \code{\link[=iconv]{iconv()}} and must be ASCII-compatible: UCS-2, UTF-32 and EBCDIC are
+encoding errors.
 
 The declaration is found as browsers find it, by the HTML standard's
 prescan of the first 1024 bytes for \verb{<meta charset="...">} or
