@@ -4,6 +4,19 @@ title: "Real-world pages: long tables, lists and text"
 
 ```{r, include = FALSE}
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+# A chunk with `needs = <url>` runs only when that page could be fetched, so
+# one site that is down (Project Gutenberg answered 503 on 2026-11-18) leaves
+# its section's code unrun instead of failing the whole site build.
+knitr::opts_hooks$set(needs = function(options) {
+  if (is.na(fetch(options$needs))) {
+    options$eval <- FALSE
+    options$code <- c(
+      "# Not run: the page did not answer when this site was built.",
+      options$code
+    )
+  }
+  options
+})
 ```
 
 The other guides use small, made-up snippets. This one works on real,
@@ -25,17 +38,21 @@ temporary file, with a few retries for a busy server, and `html_read()`
 parses the file:
 
 ```{r}
+fetched <- new.env()
 fetch <- function(url) {
+  if (!is.null(fetched[[url]])) {
+    return(fetched[[url]])
+  }
   path <- tempfile(fileext = ".html")
   for (attempt in 1:4) {
     ok <- tryCatch({
       utils::download.file(url, path, quiet = TRUE, mode = "wb")
       TRUE
-    }, error = function(e) if (attempt == 4) stop(e) else FALSE)
+    }, error = function(e) FALSE)
     if (ok) break
-    Sys.sleep(5 * attempt)
+    if (attempt < 4) Sys.sleep(5 * attempt)
   }
-  path
+  fetched[[url]] <- if (ok) path else NA_character_
 }
 cran <- "https://cran.r-project.org/"
 ```
@@ -142,7 +159,7 @@ sort(table(mirrors$country), decreasing = TRUE)[1:5]
 Project Gutenberg's top-100 page has six ordered lists, each under a
 heading:
 
-```{r}
+```{r, needs = "https://www.gutenberg.org/browse/scores/top"}
 top <- html_read(fetch("https://www.gutenberg.org/browse/scores/top"))
 html_text_clean(html_elements(top, "h2"))
 ```
@@ -151,7 +168,7 @@ html_text_clean(html_elements(top, "h2"))
 item. The lists are the `<ol>`s right after a heading, and
 `html_previous_sibling()`, being aligned, gives each list's heading:
 
-```{r}
+```{r, needs = "https://www.gutenberg.org/browse/scores/top"}
 ols <- html_elements(top, "h2 + ol")
 lists <- lapply(ols, html_list)
 names(lists) <- html_text_clean(html_previous_sibling(ols))
@@ -162,7 +179,7 @@ head(lists[["Top 100 EBooks yesterday"]])
 Each item is a string of the form "Title by Author (downloads)". Plain
 string handling turns a list into a data frame:
 
-```{r}
+```{r, needs = "https://www.gutenberg.org/browse/scores/top"}
 books <- lists[["Top 100 EBooks last 30 days"]]
 m <- regmatches(books, regexec("^(.*) by (.*) \\(([0-9]+)\\)$", books))
 ok <- lengths(m) == 4
@@ -174,7 +191,7 @@ top30 <- data.frame(
 head(top30)
 ```
 
-A few items have no author, and the pattern skips them (`r sum(!ok)`
+A few items have no author, and the pattern skips them (`r if (exists("top30")) sum(!ok) else "an unknown number"`
 this time).
 
 ## Text: the R FAQ
@@ -342,7 +359,7 @@ There is no cell to select for the date. It is the text node after each
 link, and `html_next_sibling(..., elements_only = FALSE)` returns exactly
 that, one per link, aligned:
 
-```{r}
+```{r, needs = "https://cdn.kernel.org/pub/linux/kernel/v6.x/"}
 kernel_url <- "https://cdn.kernel.org/pub/linux/kernel/v6.x/"
 kernel <- html_read(fetch(kernel_url), base_url = kernel_url)
 links <- html_elements(kernel, "pre > a:not([href='../'])")
@@ -367,7 +384,7 @@ tail(tarballs[, c("name", "date", "size")], 3)
 The dates are written like `03-Oct-2022`; month names are English
 whatever the locale, so parse them in the C locale:
 
-```{r}
+```{r, needs = "https://cdn.kernel.org/pub/linux/kernel/v6.x/"}
 old <- Sys.getlocale("LC_TIME")
 invisible(Sys.setlocale("LC_TIME", "C"))
 tarballs$date <- as.Date(tarballs$date, format = "%d-%b-%Y")
@@ -380,7 +397,7 @@ but tables are off, as on archive.apache.org. The header links there
 sort the listing (`?C=N;O=D`), and an attribute selector leaves them
 out:
 
-```{r}
+```{r, needs = "https://archive.apache.org/dist/httpd/"}
 httpd_url <- "https://archive.apache.org/dist/httpd/"
 httpd <- html_read(fetch(httpd_url), base_url = httpd_url)
 all_links <- html_elements(httpd, "pre a")
