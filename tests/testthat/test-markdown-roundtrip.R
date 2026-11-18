@@ -3,7 +3,7 @@
 # images, lists and code, and adds no emphasis.
 
 test_that("a '!' before a link stays text, and ':-:' lines make no table", {
-  skip_if_not_installed("commonmark")
+  skip_without_round_trip()
   r <- expect_round_trip('<p>Wow!<a href="u">Click</a></p>')
   expect_length(html_elements(r$back, "img"), 0)
   expect_round_trip('<p>Wow! <a href="u">Click</a> !<a href="v">x</a></p>')
@@ -15,7 +15,7 @@ test_that("a '!' before a link stays text, and ':-:' lines make no table", {
 })
 
 test_that("adjacent code spans keep their text, and edge spaces stay", {
-  skip_if_not_installed("commonmark")
+  skip_without_round_trip()
   r <- round_trip("<p><code>foo</code><code>bar</code></p>")
   expect_identical(html_text_clean(r$back), "foobar")
   expect_identical(html_text_clean(html_elements(r$back, "code")), "foobar")
@@ -27,7 +27,7 @@ test_that("adjacent code spans keep their text, and edge spaces stay", {
 })
 
 test_that("nested and adjacent emphasis leaves no literal asterisks", {
-  skip_if_not_installed("commonmark")
+  skip_without_round_trip()
   cases <- c(
     "<p><i><b>A</b>x<b>B</b>y</i></p>",
     "<p><i><i>a</i></i></p>",
@@ -45,7 +45,7 @@ test_that("nested and adjacent emphasis leaves no literal asterisks", {
 })
 
 test_that("list numbering survives reversed lists and empty items", {
-  skip_if_not_installed("commonmark")
+  skip_without_round_trip()
   expect_identical(md("<ol reversed><li>a<li>b<li>c</ol>"),
                    "3. a\n2. b\n1. c")
   r <- expect_round_trip("<ol reversed><li>a<li>b<li>c</ol>")
@@ -60,7 +60,7 @@ test_that("list numbering survives reversed lists and empty items", {
 })
 
 test_that("a block inside <pre> keeps its line break", {
-  skip_if_not_installed("commonmark")
+  skip_without_round_trip()
   for (html in c("<pre><div>a</div>b</pre>",
                  "<pre>x<div>a</div><div>b</div>y</pre>",
                  "<pre><span><p>a</p></span>b<p>c</p></pre>")) {
@@ -71,7 +71,7 @@ test_that("a block inside <pre> keeps its line break", {
 })
 
 test_that("pipe tables order rows as html_table() does", {
-  skip_if_not_installed("commonmark")
+  skip_without_round_trip()
   rows <- function(doc) {
     unname(as.matrix(html_table(html_element(doc, "table"), header = FALSE)))
   }
@@ -88,7 +88,7 @@ test_that("pipe tables order rows as html_table() does", {
 })
 
 test_that("adjacent lists of one kind stay separate", {
-  skip_if_not_installed("commonmark")
+  skip_without_round_trip()
   expect_round_trip("<ul><li>a</ul><ul><li>b</ul><ul><li>c</ul>")
   expect_round_trip("<ol><li>a</ol><ol><li>b</ol>")
   expect_round_trip("<ul><li>a</ul><p> </p><ul><li>b</ul>")
@@ -98,7 +98,7 @@ test_that("adjacent lists of one kind stay separate", {
 })
 
 test_that("random inline trees survive the round trip", {
-  skip_if_not_installed("commonmark")
+  skip_without_round_trip()
   withr::local_seed(20261118)
   words <- c("a", "b", "word", "x1", ".", ",", "!", "(", ")", "*", "_",
              "-", ":", "[", "]", "`", "#", "|", "é")

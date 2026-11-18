@@ -84,3 +84,14 @@ expect_styles_kept <- function(r) {
     expect_identical(b$link, a$link, label = r$md)
   }
 }
+
+# The commonmark round trip needs commonmark, and is skipped under r-actions'
+# gctorture job: there most of its cost is commonmark's own allocations, and it
+# alone ran the job past its 120-minute limit (#117). zuhtml's Markdown writer
+# is still tortured through test-markdown.R.
+skip_without_round_trip <- function() {
+  testthat::skip_if_not_installed("commonmark")
+  if (identical(Sys.getenv("R_ACTIONS_WORKFLOW"), "gctorture")) {
+    testthat::skip("the commonmark round trip is not run under gctorture")
+  }
+}
