@@ -1,5 +1,9 @@
 # zuhtml 0.1.0.9000
 
+* The shared object is compiled with hidden symbol visibility and exports
+  only `R_init_zuhtml`, so its internal and vendored 'Gumbo' symbols cannot
+  clash with another library loaded into the same session.
+
 * `html_read()` raises a path, URL or connection that cannot be opened
   through the new `fail` hook of the shared `zu_source.R` (copied again from
   zuxml). It was already a `zuhtml_input_error` naming the cause, without
@@ -9,6 +13,31 @@
 * The message of an invalid `path` (not a string, a directory, a text-mode
   connection) is no longer wrapped as "Cannot open ...: ..." with a
   doubled full stop.
+
+* `html_json_ld(parse = TRUE)` parses each block with
+  `jsonlite::parse_json()` instead of `jsonlite::fromJSON()`, which read a
+  block whose text was the name of an existing file as that file, and
+  downloaded one that was an `http(s)://` URL. Such a block is now `NULL`,
+  like any other invalid JSON (#88).
+
+* `html_forms()` and `html_microdata()` find the element named by a `form`
+  or `itemref` attribute by comparing IDs, not through a CSS selector. A
+  value holding a newline gave a `zuhtml_selector_error` and one over
+  16 KiB a `zuhtml_limit_error`; any value now works (#96).
+
+* `html_microdata()` gives `""` for a URL property (`href`, `src` or
+  `data`) whose attribute is absent, as the HTML standard does, instead of
+  the base URL (#97).
+
+* An SVG or MathML `<base>` no longer sets the document's base URL for
+  `html_url()` and the other URL resolution; `html_forms()` ignores SVG and
+  MathML forms, controls and fieldsets; and `html_json_ld()` ignores SVG
+  and MathML `<script>` elements (#98).
+
+* `html_forms()` selects the first enabled option of a single select with
+  nothing marked selected only when its display size is 1 (no `size`, an
+  invalid one, or `size=1`), as the DOM does; a list box such as
+  `<select size=5>` now has no value (#111).
 
 * windows-1255 and windows-1258 input no longer loses its last character
   on macOS, whose iconv held it back for a combining mark (#89). Both are
