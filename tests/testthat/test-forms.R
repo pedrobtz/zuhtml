@@ -132,6 +132,58 @@ test_that("form= and the parser's association decide ownership", {
   expect_identical(names[[3]], c("cell1", "cell2"))
 })
 
+test_that("form= finds IDs with any character, at any length", {
+  ref <- function(s) paste0("&#", utf8ToInt(s), ";", collapse = "")
+  ids <- c(paste0("x", intToUtf8(c(1:31, 127)), "\"'\\]"),
+           strrep("a", 17000L))
+  doc <- html_parse(paste0(
+    "<form id='&#0;", ref(ids[1]), "'></form>",
+    "<form id='", ids[2], "'></form>",
+    "<input name=one form='&#0;", ref(ids[1]), "'>",
+    "<input name=two form='", ids[2], "'>",
+    "<input name=none form='a&#10;b'>"
+  ))
+  f <- html_forms(doc)
+  expect_length(f, 2L)
+  expect_identical(f[[1]]$fields$name, "one")
+  expect_identical(f[[2]]$fields$name, "two")
+})
+
+test_that("html_forms() ignores SVG and MathML elements", {
+  doc <- html_parse(paste0(
+    "<form id=f><svg><input name=svgin></svg><input name=real>",
+    "<svg><fieldset disabled><foreignObject><input name=fs>",
+    "</foreignObject></fieldset></svg></form>",
+    "<svg><form id=g><input name=svgform></form></svg>",
+    "<math><form><input name=mathform></form></math>",
+    "<input form=g name=to_svg_form>"
+  ))
+  f <- html_forms(doc)
+  expect_length(f, 1L)
+  expect_identical(f[[1]]$fields$name, c("real", "fs"))
+  expect_identical(f[[1]]$fields$disabled, c(FALSE, FALSE))
+})
+
+test_that("only a select with display size 1 selects a first option", {
+  doc <- html_parse(paste0(
+    "<form>",
+    "<select name=absent><option>a<option>b</select>",
+    "<select name=s0 size=0><option>a<option>b</select>",
+    "<select name=s1 size=' +1px'><option>a<option>b</select>",
+    "<select name=s2 size=2><option>a<option>b</select>",
+    "<select name=bad size=x><option>a<option>b</select>",
+    "<select name=neg size=-1><option>a<option>b</select>",
+    "<select name=sel size=5><option>a<option selected>b</select>",
+    "<select name=m multiple size=1><option>a<option>b</select>",
+    "</form>"
+  ))
+  fl <- html_forms(doc)[[1]]$fields
+  expect_identical(stats::setNames(fl$value, fl$name),
+                   c(absent = "a", s0 = "", s1 = "a", s2 = "", bad = "a",
+                     neg = "a", sel = "b", m = ""))
+  expect_identical(fl$options[[4]]$selected, c(FALSE, FALSE))
+})
+
 test_that("html_forms() scopes to the given nodes", {
   doc <- html_parse(paste0(
     "<div id=a><form><input name=x></form></div>",

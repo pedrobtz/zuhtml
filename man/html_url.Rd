@@ -30,7 +30,8 @@ protocol-relative references are handled. Nothing is fetched.
 }
 \details{
 The base URL is \code{base_url} if given; otherwise the document's first
-\verb{<base href>} resolved against the \code{base_url} given to \code{\link[=html_parse]{html_parse()}};
+HTML \verb{<base href>} (not an SVG or MathML \verb{<base>}) resolved against the
+\code{base_url} given to \code{\link[=html_parse]{html_parse()}};
 otherwise that \code{base_url} alone.
 
 This is RFC 3986, not the WHATWG URL Standard browsers implement: there

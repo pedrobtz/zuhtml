@@ -67,14 +67,16 @@ html_meta <- function(x) {
 #'
 #' The structured data pages embed as JSON-LD: the text of each
 #' `<script type="application/ld+json">` below the given nodes (and the
-#' nodes themselves), in document order. The type is matched as a MIME
+#' nodes themselves), in document order; an SVG or MathML `<script>` does
+#' not count. The type is matched as a MIME
 #' type: case-insensitively, ignoring surrounding whitespace and any
 #' parameters.
 #'
 #' @param x A `zuhtml_document` or `zuhtml_nodeset`.
-#' @param parse If `TRUE`, parse each block with [jsonlite::fromJSON()]
+#' @param parse If `TRUE`, parse each block with [jsonlite::parse_json()]
 #'   (with `simplifyVector = FALSE`, so objects are named lists and arrays
-#'   are lists). This needs the jsonlite package. A wrapper around the
+#'   are lists). The text is only ever parsed as JSON, never read as a file
+#'   name or URL. This needs the jsonlite package. A wrapper around the
 #'   whole block, `<![CDATA[ ... ]]>` or `<!-- ... -->`, optionally
 #'   commented out with `//` or `/* */` as pages often do, is removed first.
 #'
@@ -104,12 +106,15 @@ html_json_ld <- function(x, parse = FALSE) {
     )
   }
   s <- zuh_select_including(x, "script[type]", call)
+  s <- s[html_namespace(s) %in% zuh_xhtml]
   mime <- tolower(trimws(sub(";.*$", "", html_attr(s, "type")),
                          whitespace = "[ \t\n\r\f]"))
   text <- html_text(s[mime == "application/ld+json"])
   if (!parse) return(text)
+  # parse_json(), not fromJSON(): fromJSON() reads a string naming an
+  # existing file, or one starting http(s)://, as that file or URL.
   out <- lapply(text, function(t) {
-    tryCatch(jsonlite::fromJSON(zuh_unwrap_json(t), simplifyVector = FALSE),
+    tryCatch(jsonlite::parse_json(zuh_unwrap_json(t), simplifyVector = FALSE),
              error = function(e) NULL)
   })
   attr(out, "json") <- text
@@ -141,7 +146,8 @@ zuh_unwrap_json <- function(t) {
 #' with `itemscope`; the `content` attribute of `<meta>`; the resolved
 #' `src` of `<audio>`, `<embed>`, `<iframe>`, `<img>`, `<source>`, `<track>`
 #' and `<video>`, `href` of `<a>`, `<area>` and `<link>`, and `data` of
-#' `<object>` (resolved as [html_url()] does, `""` when that fails); the
+#' `<object>` (resolved as [html_url()] does, `""` when the attribute is
+#' absent or does not resolve); the
 #' `value` attribute of `<data>` and `<meter>`; the `datetime` attribute of
 #' `<time>` when present. Otherwise it is the element's text, which here is
 #' cleaned as [html_text_clean()] does, not the raw `textContent`. An item
@@ -191,8 +197,10 @@ zuh_item_props <- function(item) {
   doc <- zuh_owner(item)
   root <- as.integer(item)
   found <- zuh_scope_props(item, root, own = TRUE)
-  for (id in zuh_ws_tokens(html_attr(item, "itemref"))) {
-    e <- html_element(doc, paste0("[id=\"", zuh_css_string(id), "\"]"))
+  refs <- zuh_ws_tokens(html_attr(item, "itemref"))
+  targets <- zuh_by_id(doc, refs)
+  for (k in seq_along(refs)) {
+    e <- targets[k]
     if (is.na(unclass(e)) || as.integer(e) == root) next
     found <- c(found, zuh_scope_props(e, as.integer(e), own = FALSE))
   }
@@ -209,7 +217,16 @@ zuh_scope_props <- function(e, start, own) {
   ids
 }
 
-zuh_css_string <- function(s) gsub("([\\\\\"])", "\\\\\\1", s)
+# For each of `ids`, the first element in tree order with exactly that ID,
+# or a missing node. IDs are compared as strings, not through a selector,
+# so any character and any length works.
+zuh_by_id <- function(doc, ids) {
+  if (length(ids) == 0L) return(new_nodeset(integer(), doc))
+  all <- html_elements(doc, "[id]")
+  m <- match(ids, html_attr(all, "id"))
+  m[is.na(ids) | !nzchar(ids)] <- NA_integer_
+  all[m]
+}
 
 zuh_item <- function(item, base, seen) {
   id <- as.integer(item)
@@ -246,7 +263,9 @@ zuh_prop_value <- function(p, base) {
   name <- html_name(p)
   if (name == "meta") return(html_attr(p, "content", default = ""))
   if (name %in% names(zuh_url_props)) {
-    u <- zuh_resolve(html_attr(p, zuh_url_props[[name]], default = ""), base)
+    a <- html_attr(p, zuh_url_props[[name]])
+    if (is.na(a)) return("")
+    u <- zuh_resolve(a, base)
     return(if (is.na(u)) "" else u)
   }
   if (name %in% c("data", "meter")) {

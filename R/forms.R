@@ -14,14 +14,17 @@
 #' up to the next form.
 #'
 #' Controls are `<input>`, `<select>`, `<textarea>` and `<button>`
-#' elements, in document order. Values follow the DOM:
+#' elements, in document order. Only HTML elements count: an element of
+#' those names inside `<svg>` or `<math>` is not a form or a control.
+#' Values follow the DOM:
 #' * `type` is an input's `type` (lowercased; `"text"` when missing or
 #'   unknown), `"select-one"` or `"select-multiple"`, `"textarea"`, or a
 #'   button's `type` (`"submit"` by default);
 #' * `value` is the `value` attribute (`"on"` for a checkbox or radio
 #'   button without one, else `""`); a textarea's text; or a select's
 #'   first selected option's value, where a single select with no option
-#'   marked selected selects its first enabled option;
+#'   marked selected selects its first enabled option if it shows one row
+#'   (its `size` is absent, invalid or 1), and none otherwise;
 #' * `disabled` is `TRUE` for a control with a `disabled` attribute or
 #'   inside a disabled `<fieldset>` (except in its first `<legend>`).
 #'
@@ -62,11 +65,12 @@
 #' forms[[2]]$fields$name
 html_forms <- function(x) {
   call <- sys.call()
-  forms <- zuh_select_including(x, "form", call)
+  forms <- zuh_html_only(zuh_select_including(x, "form", call))
   doc <- zuh_owner(forms)
   if (length(forms) == 0L) return(list())
   base <- zuh_doc_base(doc)
-  ctrls <- html_elements(doc, "input, select, textarea, button")
+  ctrls <- zuh_html_only(html_elements(doc,
+                                       "input, select, textarea, button"))
   owner <- zuh_form_owner(ctrls, doc)
   lapply(seq_along(forms), function(i) {
     f <- forms[i]
@@ -88,28 +92,38 @@ html_forms <- function(x) {
   })
 }
 
+zuh_html_only <- function(x) x[html_namespace(x) %in% zuh_xhtml]
+
+# The nearest inclusive ancestor of each node matching css that is an HTML
+# element, or a missing node: an SVG or MathML match is skipped.
+zuh_closest_html <- function(x, css) {
+  out <- html_closest(x, css)
+  ids <- as.integer(out)
+  doc <- zuh_owner(out)
+  repeat {
+    foreign <- !is.na(ids) & !(html_namespace(out) %in% zuh_xhtml)
+    if (!any(foreign)) return(out)
+    ids[foreign] <- as.integer(html_closest(html_parent(out[foreign]), css))
+    out <- new_nodeset(ids, doc)
+  }
+}
+
 # The node ID of each control's form owner, or NA.
 zuh_form_owner <- function(ctrls, doc) {
   n <- length(ctrls)
   owner <- rep(NA_integer_, n)
   if (n == 0L) return(owner)
   ref <- html_attr(ctrls, "form")
-  anc <- as.integer(html_closest(html_parent(ctrls), "form"))
-  for (i in seq_len(n)) {
-    if (is.na(ref[i])) {
-      owner[i] <- anc[i]
-    } else if (nzchar(ref[i])) {
-      target <- html_element(doc, paste0("[id=\"", zuh_css_string(ref[i]),
-                                         "\"]"))
-      if (!is.na(unclass(target)) && html_name(target) == "form" &&
-          html_namespace(target) == zuh_xhtml) {
-        owner[i] <- as.integer(target)
-      }
-    }
-  }
+  anc <- as.integer(zuh_closest_html(html_parent(ctrls), "form"))
+  has_ref <- !is.na(ref)
+  owner[!has_ref] <- anc[!has_ref]
+  target <- zuh_by_id(doc, ref[has_ref])
+  is_form <- html_name(target) %in% "form" &
+    html_namespace(target) %in% zuh_xhtml
+  owner[has_ref] <- ifelse(is_form, as.integer(target), NA_integer_)
   # Forms the parser closed at once inside a table own the unowned controls
   # that follow them in that table, up to the next form.
-  forms <- html_elements(doc, "form")
+  forms <- zuh_html_only(html_elements(doc, "form"))
   empty <- forms[html_name(html_parent(forms)) %in%
                    c("table", "tbody", "thead", "tfoot", "tr") &
                    lengths(lapply(seq_along(forms), function(i) {
@@ -172,7 +186,9 @@ zuh_fields <- function(ctrls) {
       select = {
         multiple <- !is.na(html_attr(c1, "multiple"))
         type[i] <- if (multiple) "select-multiple" else "select-one"
-        opts <- zuh_options(c1, multiple)
+        opts <- zuh_options(c1, multiple,
+                            zuh_display_size(html_attr(c1, "size"),
+                                             multiple))
         options[i] <- list(opts)
         sel <- which(opts$selected)
         value[i] <- if (length(sel)) opts$value[sel[1L]] else ""
@@ -191,10 +207,24 @@ zuh_fields <- function(ctrls) {
   out
 }
 
+# A select's display size: its size attribute by the HTML standard's rules
+# for parsing non-negative integers (leading whitespace, an optional sign,
+# digits, anything after ignored), else 4 with multiple and 1 without.
+zuh_display_size <- function(size, multiple) {
+  dflt <- if (multiple) 4 else 1
+  if (is.na(size)) return(dflt)
+  s <- sub("^[ \t\n\r\f]*", "", size)
+  m <- regmatches(s, regexec("^([-+]?)([0-9]+)", s))[[1L]]
+  if (length(m) == 0L) return(dflt)
+  v <- as.numeric(m[[3L]])
+  if (m[[2L]] == "-" && v != 0) return(dflt)
+  v
+}
+
 # The options of one select, with the DOM's selectedness: a select-one
-# with none marked selected selects its first enabled option, and one with
-# several keeps the last.
-zuh_options <- function(select, multiple) {
+# with none marked selected selects its first enabled option when its
+# display size is 1, and one with several keeps the last.
+zuh_options <- function(select, multiple, size = 1) {
   o <- html_elements(select, "option")
   label <- html_attr(o, "label")
   text <- gsub("[ \t\n\r\f]+", " ",
@@ -208,7 +238,7 @@ zuh_options <- function(select, multiple) {
   if (!multiple) {
     if (sum(selected) > 1L) {
       selected <- seq_along(selected) == max(which(selected))
-    } else if (!any(selected) && any(!disabled)) {
+    } else if (!any(selected) && any(!disabled) && size == 1) {
       selected <- seq_along(selected) == which(!disabled)[1L]
     }
   }
@@ -224,6 +254,7 @@ zuh_disabled <- function(ctrls) {
     if (!is.na(html_attr(c1, "disabled"))) return(TRUE)
     anc <- html_ancestors(c1)
     fs <- anc[html_name(anc) == "fieldset" &
+                html_namespace(anc) %in% zuh_xhtml &
                 !is.na(html_attr(anc, "disabled"))]
     for (k in seq_along(fs)) {
       legend <- html_element(fs[k], ":scope > legend")
