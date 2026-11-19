@@ -582,7 +582,7 @@ flavour, is tens of megabytes of HTML: larger than the default
 
 summary_page <- fetch(paste0(cran, "web/checks/check_summary_by_package.html"))
 file.size(summary_page) / 2^20
-#> [1] 53.47494
+#> [1] 53.4757
 err <- tryCatch(html_read(summary_page), zuhtml_limit_error = function(e) e)
 err$limit
 #> [1] "max_input"
@@ -596,13 +596,13 @@ big <- html_limits(max_input = 128 * 2^20, max_memory = 4 * 2^30)
 checks <- html_read(summary_page, limits = big)
 html_info(checks)[c("nodes", "native_bytes", "parse_peak_bytes")]
 #> $nodes
-#> [1] 2626704
+#> [1] 2626722
 #> 
 #> $native_bytes
-#> [1] 169815628
+#> [1] 169817310
 #> 
 #> $parse_peak_bytes
-#> [1] 804879646
+#> [1] 804887114
 status <- html_tables(checks, limits = big)[[1]]
 dim(status)
 #> [1] 26160    17
