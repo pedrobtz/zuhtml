@@ -92,7 +92,8 @@ typedef struct zuh_doc {
   int problems_truncated;   /* more problems occurred than max_errors */
 
   size_t input_bytes;       /* decoded UTF-8 input the parse consumed */
-  size_t parse_peak_bytes;  /* peak live bytes in the parse ledger */
+  size_t parse_peak_bytes;  /* the smallest max_memory that parses this
+                               input: zuh_parse_stats.peak_bytes */
   size_t frozen_bytes;      /* bytes owned by this document */
   int quirks_mode;          /* 0 no-quirks, 1 quirks, 2 limited-quirks */
 } zuh_doc;

@@ -8,3 +8,15 @@ BSD License; see `inst/COPYRIGHTS`. The cases, in order:
 
 The full set of 61 files runs in `tools/run-conformance`, outside the CRAN
 tarball.
+
+`whatwg/index-windows-1255.txt` and `whatwg/index-windows-1258.txt` are the
+Encoding Standard's index files, downloaded unmodified from
+<https://encoding.spec.whatwg.org/> on 2026-11-19 (header date 2024-09-18),
+under CC BY 4.0; see `inst/COPYRIGHTS`. SHA-256:
+
+- `index-windows-1255.txt`
+  `4a3ca10dd8ef4ce06b929f6bf66d7ea8932ab3c06e07162b0f8a9536a692e6ac`
+- `index-windows-1258.txt`
+  `2236cdac45f5970629881d09908d13af96965f1c67617160734cbefb54aa3176`
+
+`test-sniff.R` compares all 128 entries of each with `zuh_sb_tables`.

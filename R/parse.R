@@ -674,6 +674,19 @@ zuh_status_names <- c(
   "internal", "limit_table", "table_overlap", "limit_arena", "limit_string"
 )
 
+# The max_memory message. observed is SIZE_MAX (2^64 - 1, which a double
+# rounds to 2^64) when a single request was too large to count
+# (src/zuh_memory.c); that is said in words rather than as 1.8e19 bytes.
+zuh_memory_message <- function(max_memory, observed) {
+  if (observed >= 2^64 - 2^11) {
+    return(sprintf(paste0("Parsing asked for more native memory than can be ",
+                          "counted (max_memory = %.0f bytes)."), max_memory))
+  }
+  sprintf(paste0("Parsing ran past max_memory = %.0f bytes at %.0f ",
+                 "bytes of native memory; the parse needs at least that."),
+          max_memory, observed)
+}
+
 # Parse decoded UTF-8 bytes. fail_at > 0 injects an allocation failure at
 # that allocation index; tests use it, html_parse() never does.
 zuh_parse_bytes <- function(bytes, encoding, base_url, limits,
@@ -699,14 +712,14 @@ zuh_parse_bytes <- function(bytes, encoding, base_url, limits,
               observed, limits$max_input),
       call = call
     ),
-    # observed is 0 when the cause was not the budget: an injected
-    # failure, or the system refusing memory.
+    # observed is the native memory in use had the refused request been
+    # granted: a lower bound on what the parse needs, not the need (#130).
+    # It is 0 when the cause was not the budget: an injected failure, or
+    # the system refusing memory.
     limit_memory = if (observed > 0) {
       zuh_limit_error(
         "max_memory", limits$max_memory, observed,
-        sprintf(paste0("Parsing needed %.0f bytes of native memory; ",
-                       "max_memory = %.0f bytes allows less."),
-                observed, limits$max_memory),
+        zuh_memory_message(limits$max_memory, observed),
         call = call
       )
     } else {
@@ -827,7 +840,9 @@ print.zuhtml_document <- function(x, ...) {
 #'   * `context`: a fragment's context element, `NA` for a document;
 #'   * `nodes`, `attributes`: counts;
 #'   * `native_bytes`: memory the document owns, outside R's heap;
-#'   * `parse_peak_bytes`: the most memory the parser held at once;
+#'   * `parse_peak_bytes`: the most native memory the parse held at once,
+#'     counted as `max_memory` counts it, so it is the smallest
+#'     `max_memory` that parses the same input with the same options;
 #'   * `input_bytes`: size of the decoded UTF-8 input;
 #'   * `encoding`: the encoding the input was decoded from;
 #'   * `encoding_source`: where that encoding came from: `"bom"` (a

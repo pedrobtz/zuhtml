@@ -169,3 +169,27 @@ test_that("a label with a non-ASCII byte is unknown, in any locale (#93)", {
   local_c_ctype()
   check()
 })
+
+test_that("windows-1255 and windows-1258 match the WHATWG indexes (#132)", {
+  # fixtures/whatwg/ holds the Encoding Standard's index files, unmodified
+  # (inst/COPYRIGHTS): one "pointer<TAB>code point<TAB>name" line per
+  # mapped byte 0x80 + pointer; a pointer absent from the file is unmapped.
+  index <- function(name) {
+    path <- test_path("fixtures", "whatwg", paste0("index-", name, ".txt"))
+    lines <- readLines(path, encoding = "UTF-8")
+    lines <- lines[nzchar(lines) & !startsWith(lines, "#")]
+    f <- strsplit(trimws(lines, "left"), "\t", fixed = TRUE)
+    want <- rep(NA_integer_, 128L)
+    want[as.integer(vapply(f, `[`, "", 1L)) + 1L] <-
+      strtoi(sub("^0x", "", vapply(f, `[`, "", 2L)), 16L)
+    want
+  }
+  for (name in c("windows-1255", "windows-1258")) {
+    want <- index(name)
+    expect_identical(zuh_sb_tables[[name]], want, label = name)
+    # And through the decoder: every mapped byte gives its code point.
+    mapped <- which(!is.na(want))
+    got <- utf8ToInt(rawToChar(decoded(as.raw(0x7f + mapped), name)))
+    expect_identical(got, want[mapped], label = name)
+  }
+})

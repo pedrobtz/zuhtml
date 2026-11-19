@@ -49,6 +49,18 @@ those runs fail the ledger's and conversion's allocations, never R's. The
 check asks for R's included, which is where an `R_alloc` longjmp while
 `malloc` memory is live would show (#86 is one such case).
 
+R's allocations failing is also why `zuhtml_limit_error(limit = "memory")`
+is never seen from a result builder (#126): `html_text()`,
+`html_text_clean()`, `html_markdown()`, `html_serialize()` and the table
+grid build in `R_alloc` memory, and `R_alloc` long-jumps with R's own
+error instead of returning NULL. Their `ZUH_LIMIT_MEMORY` branches are
+reachable only through a `size_t` overflow in `zuh_buf_put()`, past what
+a 64-bit build can allocate, so no test reaches them; test-seam.R checks
+the mapping with a synthetic status and says why, and
+`?zuhtml-conditions` tells users R's error is what they see. The tree
+dump's cleanup under `R_ExecWithCleanup()` (#86) is unreachable from a
+test for the same reason.
+
 `fuzz` is the `fuzz` job of `hardening.yaml`: libFuzzer under ASan and UBSan
 (a standalone mutation loop on macOS) over `fuzz_parse`, `fuzz_selector`
 and `fuzz_roundtrip`, seeded with every conformance `#data` block, with a
@@ -74,9 +86,10 @@ One row per boundary the package crosses. An oracle knows the answer:
 | Tree → HTML (`html_serialize()`) | round trip over every html5lib case: serialize, reparse in the same context, compare trees; 144 adjudicated non-fixed points in `roundtrip-deviations.txt`, failing on a mismatch either way; a corrupted serializer must fail | tools/run-conformance --canary-serialize (hardening.yaml); tests/testthat/test-serialize.R; fuzz/fuzz_roundtrip.c |
 | Raw bytes → UTF-8: BOM, `encoding =`, UTF-16 decoder in R | hand-written answers only; nothing compares `zuh_utf16()` with an independent decoder | gap #65 |
 | `<meta>` prescan and encoding labels | hand-written answers transcribed from the algorithm; the label table is never diffed against WHATWG `encodings.json` | gap #66 |
-| Legacy encodings → UTF-8 (windows-125x, GBK, Shift_JIS, Big5 through `iconv()`) | a few hand-written characters; nothing checks the WHATWG index tables | gap #67 |
+| Legacy encodings → UTF-8 (windows-125x, GBK, Shift_JIS, Big5) | windows-1255 and windows-1258 decode through `zuh_sb_tables` (R/sniff.R), compared entry by entry with the WHATWG `index-windows-1255.txt` and `index-windows-1258.txt` committed under fixtures/whatwg/, and every mapped byte decoded (#132); the rest go through `iconv()` with a few hand-written characters and no index table checked | tests/testthat/test-sniff.R for the two tables; the others gap #67 |
+| R string in the native encoding → UTF-8 (`zuh_utf8`, C locale) | equivalent inputs in a UTF-8 and a C locale give the same result; `local_c_ctype()` asserts that `zuh_ascii_locale()` sees the C locale, so a broken detector fails rather than skips (#129) | tests/testthat/test-parse.R, test-select.R, test-values.R and test-sniff.R (#92); not on Windows, gap #122 |
 | CSS selector text → match set | hand-written answers on one document; the rejection list per design §6 form | gap #68 |
-| Tree → Markdown (`html_markdown()`) | hand-written answers; no CommonMark parser reads the output | gap #69 |
+| Tree → Markdown (`html_markdown()`) | cmark-gfm (the commonmark package) round trip of text, links, images, non-empty list count and code text, on fixed cases and random inline trees; blind to escapes, thematic breaks, headings, quotes and list structure | tests/testthat/test-markdown-roundtrip.R (helper-markdown.R); the rest gap #69 |
 | Tree → text (`html_text()`, `html_strings()`) | hand-written answers | gap #70 |
 | Tree → cleaned text (`html_text_clean()`) | Mozilla Readability's `expected.html`: each of its paragraphs appears in the cleaned text of `source.html`, over 11 synthetic pages | tests/testthat/test-realworld.R, fixtures/realworld/readability/ |
 | Table → data frame (spans, headers, `convert`) | pandas' public-domain fixtures with known values; spans hand-written | gap #71 |
@@ -103,7 +116,7 @@ cannot apply.
 | Object | Sequences | Fork | Unwind | Owner |
 | --- | --- | --- | --- | --- |
 | `zuhtml_document` external pointer | tests/testthat/test-parse.R "a document restored from a saved session is a pointer error"; test-nodeset.R "finalization is idempotent and leaves a pointer error"; test-interrupt.R reuse after interrupts; only five accessors are tried on a dead document, gap #75 | n/a: immutable `malloc` memory and no OS handle or PID-bound state; a child's copy-on-write copy is its own to free | the pointer and finalizer exist before Gumbo runs; tests/testthat/test-seam.R and test-tree.R fail every allocation index; tools/run-sanitizers with leak detection | R, through the finalizer; `C_zuh_parse` frees at once on failure; borrows nothing |
-| `zuhtml_nodeset` (IDs plus the document) | test-nodeset.R "a node ID outside its document is a pointer error" (through `html_name()` only, gap #75); "c() refuses nodes from different documents"; `[<-` and `[[<-` have no such guard, gap #82 | n/a: R integers and a reference to the document | n/a: no native state; C accessors use `R_alloc` and an `R_alloc`-backed `zuh_buf` | holds the document: test-nodeset.R "a nodeset keeps its document alive through garbage collection" |
+| `zuhtml_nodeset` (IDs plus the document) | test-nodeset.R "a node ID outside its document is a pointer error" (through `html_name()` only, gap #75); "c() refuses nodes from different documents"; "[<- and [[<- refuse nodes of another document" (#82) | n/a: R integers and a reference to the document | n/a: no native state; C accessors use `R_alloc` and an `R_alloc`-backed `zuh_buf` | holds the document: test-nodeset.R "a nodeset keeps its document alive through garbage collection" |
 | connection opened by `html_read()` | tests/testthat/test-read.R: text-mode and closed connections refused; a caller's open connection read from its position and kept; an unopened one opened in binary and closed | n/a: lives within one synchronous `html_read()` call and is never returned | test-read.R "unreadable URLs are input errors, without a warning or a leak" covers a failed open; an error after a successful open is untested, gap #76 | `html_read()` closes what it opened, on success and error; a caller's open connection stays the caller's |
 <!-- markdownlint-enable MD013 -->
 
@@ -114,11 +127,16 @@ interrupt in the match loop (test-interrupt.R).
 ## Findings that are bugs
 
 The audit that wrote this file found these wrong results, filed as bugs
-rather than gaps: #81 (legacy encodings refuse bytes the Encoding Standard
-maps), #82 (sub-assignment mixes documents' node IDs), #83
-(`max_selector_length` has no effect), #84 (unclassed native errors), #85
-(the 4 × raw pre-check rejects stateful encodings) and #86 (a buffer leak
-in the internal tree dump).
+rather than gaps. Still open: #81 (legacy encodings refuse bytes the
+Encoding Standard maps). Fixed: #82 (sub-assignment mixed documents' node
+IDs), #83 (`max_selector_length` had no effect), #84 (unclassed native
+errors), #85 (the 4 × raw pre-check rejected stateful encodings) and #86
+(a buffer leak in the internal tree dump).
+
+The critical review of `c657fae` found more, fixed with this file's
+update: #130 (the `max_memory` message and `parse_peak_bytes` understated
+what a parse needs) and #126 (`?zuhtml-conditions` promised a
+`zuhtml_limit_error` where users get R's own allocation error).
 
 ## Limits
 
@@ -129,14 +147,16 @@ One row per limit the package enforces. "Straddled by" is the test of
 | Limit | Unit | Straddled by |
 | --- | --- | --- |
 | `max_input` (16 MiB), decoded | UTF-8 bytes after decoding, BOM removed | character input at `limit` and `limit + 1` in tests/testthat/test-seam.R; raw, sniffed, UTF-16 and fragment paths untested, gap #77 |
-| `max_input`, raw pre-checks (`html_parse(raw)`, file size, connection stream) | input bytes, 4 × `max_input` | over the limit only (tests/testthat/test-parse.R, test-read.R), gap #77 |
-| `max_memory` (512 MiB) | ledger bytes, headers included; a payload estimate for conversion | over the limit only (tests/testthat/test-seam.R), gap #78 |
+| `max_input`, raw pre-checks (`html_parse(raw)`, file size, connection stream) | input bytes, 4 × `max_input` | `html_parse(raw)` at the bound and one over (40 and 41 bytes of ISO-2022-JP at `max_input = 10`, tests/testthat/test-parse.R, #132); file size and connection stream over the limit only (test-read.R), gap #77 |
+| `max_memory` (512 MiB) | ledger bytes, headers included; at conversion, Gumbo's live bytes plus the frozen arrays | tests/testthat/test-seam.R bisects the smallest `max_memory` that parses, finds it equal to `parse_peak_bytes`, and fails one byte below with `observed` at that peak (#130); tools/run-sanitizers straddles it in C; fragments untested, gap #78 |
 | `max_depth` (512, patch 0001) | Gumbo open-element stack; `html` and `body` count | over the limit only (tests/testthat/test-seam.R, test-fragment.R), gap #78 |
 | `max_nodes` (4e6) | arena nodes, document node included | tests/testthat/test-tree.R at `limit - 1` and `limit` (203 and 204); fragments and `comments = FALSE` untested, gap #78 |
 | `max_errors` (100) | parse errors kept | over the limit only (tests/testthat/test-problems.R), gap #78 |
 | `max_table_cells` (1e6) | grid slots, spans expanded | over the limit only (tests/testthat/test-table.R, test-table-options.R), gap #79 |
 | colspan clamp (1000) and rowspan clamp (65534) | columns, rows per cell | colspan 999999 → 1000 only (tests/testthat/test-table.R), gap #79 |
-| `max_selector_length` (16 KiB) | selector bytes | over the limit only (tests/testthat/test-select.R), gap #80; the argument has no effect, gap #83 |
+| `max_selector_length` (16 KiB) | selector bytes | over the limit only (tests/testthat/test-select.R; given at parse time, test-limits.R, #83), gap #80 |
 | `ZUH_SEL_MAX_COMPOUNDS` (128), `ZUH_SEL_MAX_NOT_DEPTH` (32) | compounds per complex selector, `:not()` nesting | 200 compounds only (tests/testthat/test-select.R), gap #80 |
 | selector work limit (1e9) | compound tests per call | gap #80 |
+| `string_length` (`.Machine$integer.max` bytes) | bytes of one result string | n/a: cannot be built in a test; R mapping by synthetic status in test-seam.R |
+| `arena` (2^32 - 2 entries) | attributes or string-pool bytes of one document | n/a: cannot be built in a test; R mapping by synthetic status in test-seam.R |
 <!-- markdownlint-enable MD013 -->

@@ -7,6 +7,7 @@
  * success and failure share one teardown path. */
 #include <limits.h>
 #include <setjmp.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -676,7 +677,7 @@ convert_document(const GumboOutput *out, void *vctx, zuh_ledger *lg,
   parse_ctx *ctx = (parse_ctx *) vctx;
   zuh_doc *doc = ctx->doc;
   conv_ctx c;
-  size_t bytes, i;
+  size_t bytes, need, i;
   zuh_status st;
 
   memset(&c, 0, sizeof(c));
@@ -690,12 +691,16 @@ convert_document(const GumboOutput *out, void *vctx, zuh_ledger *lg,
     return st;
 
   /* The frozen document, plus the Gumbo tree still live beside it, must
-   * fit the memory budget together. Checked before allocating. */
+   * fit the memory budget together. Checked before allocating. The sum is
+   * also a peak the budget counts, so the reported peak is the smallest
+   * max_memory that lets the parse finish (#130). */
   bytes = c.n_nodes * sizeof(zuh_node) + c.n_attrs * sizeof(zuh_attr) +
           c.pool_len + N_INTERN * sizeof(uint32_t);
-  if (bytes > ctx->opts->max_memory ||
-      lg->live_bytes > ctx->opts->max_memory - bytes) {
-    stats->observed = lg->live_bytes + bytes;
+  need = bytes > SIZE_MAX - lg->live_bytes ? SIZE_MAX : lg->live_bytes + bytes;
+  if (need > stats->peak_bytes)
+    stats->peak_bytes = need;
+  if (need > ctx->opts->max_memory) {
+    stats->observed = need;
     return ZUH_LIMIT_MEMORY;
   }
 
