@@ -5,8 +5,8 @@ strings: the pieces
 [`html_text()`](https://pedrobtz.github.io/zuhtml/dev/reference/html_text.md)
 concatenates. Boundaries between elements are kept, which matters when
 the markup, not whitespace, separates values (`<td>1</td><td>2</td>` is
-`"1"`, `"2"`, not `"12"`). Text inside `<script>`, `<style>` and
-`<template>` is skipped, as are comments.
+`"1"`, `"2"`, not `"12"`). Text inside `<script>` and `<style>` (HTML's
+and SVG's) and `<template>` is skipped, as are comments.
 
 ## Usage
 

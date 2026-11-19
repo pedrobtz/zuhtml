@@ -2,6 +2,12 @@
 
 ## zuhtml 0.1.0.9000
 
+- [`html_strings()`](https://pedrobtz.github.io/zuhtml/dev/reference/html_strings.md)
+  skips the text of SVG `<script>` and `<style>`, as
+  [`html_text_clean()`](https://pedrobtz.github.io/zuhtml/dev/reference/html_text_clean.md)
+  does, instead of returning their code as text
+  ([\#98](https://github.com/pedrobtz/zuhtml/issues/98)).
+
 - The shared object is compiled with hidden symbol visibility and
   exports only `R_init_zuhtml`, so its internal and vendored ‘Gumbo’
   symbols cannot clash with another library loaded into the same
