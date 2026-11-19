@@ -320,9 +320,14 @@ Additions to, and deviations from, the shared `r-package.md` rules:
   `.github/badges/`.
 - `native-checks.yaml` runs R CMD check instrumented through r-actions:
   `sanitizers.yml` (UBSan and ASan), `valgrind.yml` with leak checking,
-  `gctorture.yml`, `rchk.yml` (hard-failing), `lto.yml`, `analyzers.yml`
-  (gcc `-fanalyzer` on first-party C, advisory until its first findings are
-  read) and `cran-special.yml`.
+  `rchk.yml` (hard-failing), `lto.yml`, `analyzers.yml` (gcc `-fanalyzer` on
+  first-party C, advisory until its first findings are read) and
+  `cran-special.yml`, with `profile: auto` (quick on an ordinary pull
+  request, full on schedule, dispatch and `full-ci`).
+- `gctorture.yaml` calls `gctorture.yml`: step 500 under a 10-minute budget
+  on pull requests, step 20 weekly and on dispatch
+  (`gh workflow run gctorture.yaml --ref <branch>` before a release or a
+  PROTECT/finalizer change). Step 20 takes about 100 minutes.
 - `hardening.yaml` (own) runs every gate script above with its canary, plus
   a weekly 30-minute fuzz run.
 - `corpus.yaml` (own) fetches the external corpus and runs
