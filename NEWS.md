@@ -1,4 +1,4 @@
-# zuhtml 0.1.0.9000
+# zuhtml 0.1.1
 
 * `html_strings()` skips the text of SVG `<script>` and `<style>`, as
   `html_text_clean()` does, instead of returning their code as text (#98).
