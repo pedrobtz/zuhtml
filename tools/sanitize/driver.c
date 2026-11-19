@@ -6,6 +6,8 @@
  *   driver                 the gate
  *   driver canary-overflow a heap overflow ASan must report
  *   driver canary-leak     a leak LeakSanitizer must report */
+#include <setjmp.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,6 +16,7 @@
 #include "zuh_document.h"
 #include "zuh_gumbo.h"
 #include "zuh_markdown.h"
+#include "zuh_memory.h"
 #include "zuh_table.h"
 #include "zuh_text.h"
 #include "zuh_write.h"
@@ -457,6 +460,24 @@ limits(void) {
   st = parse(buf, len, &o, &stats, NULL);
   EXPECT(st == ZUH_LIMIT_MEMORY, "max_memory: status %d", (int) st);
 
+  /* The reported peak is the smallest max_memory that parses (#130): at
+   * the peak the parse completes, one byte below it trips at the peak. */
+  {
+    size_t peak;
+    o = defaults;
+    st = parse(buf, len, &o, &stats, NULL);
+    peak = stats.peak_bytes;
+    o.max_memory = peak;
+    st = parse(buf, len, &o, &stats, NULL);
+    EXPECT(st == ZUH_OK, "max_memory at the peak %zu: status %d", peak,
+           (int) st);
+    o.max_memory = peak - 1;
+    st = parse(buf, len, &o, &stats, NULL);
+    EXPECT(st == ZUH_LIMIT_MEMORY && stats.observed == peak,
+           "max_memory below the peak %zu: status %d, observed %zu", peak,
+           (int) st, stats.observed);
+  }
+
   /* 1000 paragraphs of an element and a text node each, plus html, head,
    * body and the document: 2004 nodes. */
   o = defaults;
@@ -481,6 +502,26 @@ limits(void) {
   EXPECT(st == ZUH_OK && np == 0, "max_errors 0: status %d, kept %zu",
          (int) st, np);
   free(buf);
+}
+
+/* A request too large to count with its header is a budget breach with a
+ * saturated observed size, not the "system refused" sentinel 0 (#130). */
+static void
+ledger_overflow(void) {
+  jmp_buf env;
+  zuh_ledger *lg = zuh_ledger_new(1u << 20, 0);
+  if (lg == NULL)
+    exit(2);
+  lg->abort_to = &env;
+  if (setjmp(env) == 0) {
+    (void) zuh_ledger_alloc(lg, SIZE_MAX);
+    EXPECT(0, "an allocation of SIZE_MAX bytes returned");
+  } else {
+    EXPECT(lg->status == ZUH_LIMIT_MEMORY && lg->observed == SIZE_MAX,
+           "SIZE_MAX request: status %d, observed %zu", (int) lg->status,
+           lg->observed);
+  }
+  zuh_ledger_free_all(lg);
 }
 
 /* 16 MiB of sawtooth nesting under the default caps. */
@@ -552,6 +593,7 @@ main(int argc, char **argv) {
   EXPECT(zuh_gumbo_depth_selftest(), "depth self-test failed");
   fault_injection();
   limits();
+  ledger_overflow();
   sawtooth();
 
   if (failures) {

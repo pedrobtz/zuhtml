@@ -17,7 +17,9 @@ An object of class \code{zuhtml_doc_info}: a list with
 \item \code{context}: a fragment's context element, \code{NA} for a document;
 \item \code{nodes}, \code{attributes}: counts;
 \item \code{native_bytes}: memory the document owns, outside R's heap;
-\item \code{parse_peak_bytes}: the most memory the parser held at once;
+\item \code{parse_peak_bytes}: the most native memory the parse held at once,
+counted as \code{max_memory} counts it, so it is the smallest
+\code{max_memory} that parses the same input with the same options;
 \item \code{input_bytes}: size of the decoded UTF-8 input;
 \item \code{encoding}: the encoding the input was decoded from;
 \item \code{encoding_source}: where that encoding came from: \code{"bom"} (a
