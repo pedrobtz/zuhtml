@@ -90,8 +90,8 @@ zuh_clean <- function(nodes, trim = TRUE, nbsp = TRUE, skip_lists = FALSE,
 #' strings: the pieces [html_text()] concatenates. Boundaries between
 #' elements are kept, which matters when the markup, not whitespace,
 #' separates values (`<td>1</td><td>2</td>` is `"1"`, `"2"`, not `"12"`).
-#' Text inside `<script>`, `<style>` and `<template>` is skipped, as are
-#' comments.
+#' Text inside `<script>` and `<style>` (HTML's and SVG's) and `<template>`
+#' is skipped, as are comments.
 #'
 #' @param x A `zuhtml_document` or `zuhtml_nodeset`.
 #' @param trim If `TRUE`, remove leading and trailing whitespace from each
