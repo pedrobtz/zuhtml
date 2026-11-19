@@ -121,6 +121,13 @@ html_table <- function(x, header = "auto", trim = TRUE, na = character(),
     zuh_input_error("na", "`na` must be a character vector without NA.",
                     call = call)
   }
+  na <- zuh_utf8_valid(na, "na", call)
+  if (is.character(decimal)) {
+    decimal <- zuh_utf8_valid(decimal, "decimal", call)
+  }
+  if (is.character(thousands)) {
+    thousands <- zuh_utf8_valid(thousands, "thousands", call)
+  }
   limits <- zuh_check_limits(limits, call = call)
   # Cell text has its non-breaking spaces turned into spaces, so a
   # non-breaking space as the grouping mark matches a space.
@@ -229,6 +236,7 @@ html_tables <- function(x, css = "table", match = NULL, ...) {
                     call = call)
   }
   if (!is.null(match)) {
+    match <- zuh_utf8_valid(match, "match", call)
     tryCatch(
       suppressWarnings(grepl(match, "")),
       error = function(e) {

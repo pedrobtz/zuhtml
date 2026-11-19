@@ -52,6 +52,15 @@
   `html_attr()`, instead of each byte becoming the text `<c3>` (#92).
   Selector error positions count characters there too.
 
+* The same holds for `base_url` (of `html_parse()`, `html_fragment()`,
+  `html_read()` and `html_url()`) and for `html_table()`'s `na`, `decimal`
+  and `thousands` and `html_tables()`'s `match`. In a C locale a non-ASCII
+  base URL had come out of `html_url()`, `html_links()` and
+  `html_markdown()` as the text `<c3><a9>`, `na` had matched nothing and
+  `match` had failed with an unclassed error. Each of these arguments that
+  is not valid UTF-8, or is marked as `"bytes"`, is now a
+  `zuhtml_input_error` (#125).
+
 * A `<meta>` charset label with a non-ASCII byte is ignored as an unknown
   label, in every locale, instead of failing with an unclassed error, so a
   later valid declaration is used (#93).

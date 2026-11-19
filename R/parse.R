@@ -133,6 +133,7 @@ zuh_parse <- function(x, encoding, base_url, comments, limits,
     zuh_input_error("base_url", "`base_url` must be NULL or a single string.",
                     call = call)
   }
+  if (!is.null(base_url)) base_url <- zuh_utf8_valid(base_url, "base_url", call)
   input <- zuh_decode(x, encoding, limits, call)
   doc <- zuh_parse_bytes(input$bytes, input$encoding, base_url, limits,
                          comments = comments, fragment = fragment,
@@ -474,6 +475,17 @@ zuh_utf8 <- function(x, arg, call) {
     return(x)
   }
   enc2utf8(x)
+}
+
+# zuh_utf8() on each string of a character vector, then an input error
+# unless every string but NA is valid UTF-8 (#125).
+zuh_utf8_valid <- function(x, arg, call) {
+  for (i in seq_along(x)) x[[i]] <- zuh_utf8(x[[i]], arg, call)
+  if (!all(validUTF8(x[!is.na(x)]))) {
+    zuh_input_error(arg, sprintf("`%s` is not valid UTF-8.", arg),
+                    call = call)
+  }
+  x
 }
 
 # Whether the session's character type is the C locale's ASCII.

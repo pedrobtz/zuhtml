@@ -51,7 +51,8 @@ html_url <- function(x, attr = "href", base_url = NULL) {
     zuh_input_error("base_url", "`base_url` must be NULL or a single string.",
                     call = call)
   }
-  base <- if (is.null(base_url)) zuh_doc_base(n$doc) else base_url
+  base <- if (is.null(base_url)) zuh_doc_base(n$doc) else
+    zuh_utf8_valid(base_url, "base_url", call)
   zuh_resolve(html_attr(x, attr), base)
 }
 
