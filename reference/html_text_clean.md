@@ -4,8 +4,8 @@ Text as a reader would want it from a page, rather than exactly as
 parsed. It is not a browser's `innerText`: there is no layout or CSS,
 and hidden elements are included. The rules are fixed and documented:
 
-- text inside `<script>`, `<style>` and `<template>` is skipped, and so
-  are comments;
+- text inside `<script>`, `<style>` (HTML's or SVG's) and `<template>`
+  is skipped, and so are comments;
 
 - runs of whitespace (space, tab, newline, carriage return, form feed)
   collapse to a single space, except inside `<pre>`, `<textarea>`,
@@ -37,8 +37,9 @@ html_text_clean(x, trim = TRUE, nbsp = TRUE)
 
 - trim:
 
-  If `TRUE`, no whitespace at the start or end. If `FALSE`, whitespace
-  there is kept, collapsed to a single space.
+  If `TRUE`, no whitespace at the start or end, even from `<pre>` or
+  `<textarea>`. If `FALSE`, whitespace there is kept, collapsed to a
+  single space outside preformatted elements.
 
 - nbsp:
 

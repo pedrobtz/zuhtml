@@ -27,11 +27,16 @@ html_limits(
 
 - max_input:
 
-  Largest input, in bytes of UTF-8 after decoding.
+  Largest input, in bytes of UTF-8 after decoding. Raw input is also
+  refused, before decoding, when it is longer than four times this.
 
 - max_memory:
 
-  Largest native memory the parser may hold at once, in bytes.
+  Largest native memory the parser may hold at once, in bytes. A parse
+  that runs past it reports the memory in use where it stopped, which
+  the parse needs at least; once a parse completes,
+  `html_info()$parse_peak_bytes` is the smallest value that parses that
+  input.
 
 - max_depth:
 
@@ -55,7 +60,11 @@ html_limits(
 
 - max_selector_length:
 
-  Longest CSS selector, in bytes.
+  Longest CSS selector, in bytes. The selection functions take no
+  `limits`: they use the limits the document was parsed with. It bounds
+  the selectors you pass, not the ones the extraction functions such as
+  [`html_forms()`](https://pedrobtz.github.io/zuhtml/reference/html_forms.md)
+  use internally.
 
 ## Value
 

@@ -62,6 +62,41 @@ A `<template>` element's contents are its children here, but they are
 inert: searches and text extraction do not descend into them.
 `html_template_content()` returns them explicitly.
 
+## Nodesets
+
+A `zuhtml_nodeset` holds node IDs that only mean something in the
+document that owns them. Subsetting (`[`, `[[`),
+[`rev()`](https://rdrr.io/r/base/rev.html),
+[`rep()`](https://rdrr.io/r/base/rep.html),
+[`unique()`](https://rdrr.io/r/base/unique.html) and `length<-` keep the
+owner; `length<-` pads with missing nodes.
+[`c()`](https://rdrr.io/r/base/c.html), `[<-` and `[[<-` accept only
+nodes of the same document (and, for assignment, `NA` for a missing
+node), and raise a `zuhtml_input_error` otherwise.
+
+`==` and `!=` between two nodesets of the same document compare node
+identity, element by element: two `<p>a</p>` elements are different
+nodes. Comparing nodes of different documents, or a nodeset with
+anything else, is a `zuhtml_input_error`.
+[`match()`](https://rdrr.io/r/base/match.html), `%in%`,
+[`setdiff()`](https://rdrr.io/r/base/sets.html) and the other set
+operations compare nodes too, so a node is never found among another
+document's nodes. [`sort()`](https://rdrr.io/r/base/sort.html),
+[`order()`](https://rdrr.io/r/base/order.html) and
+[`xtfrm()`](https://rdrr.io/r/base/xtfrm.html) follow document order.
+
+Every other operator (arithmetic, `<` and the other orderings, `!`,
+`&`), the math functions, [`sum()`](https://rdrr.io/r/base/sum.html),
+[`max()`](https://rdrr.io/r/base/Extremes.html),
+[`range()`](https://rdrr.io/r/base/range.html) and the rest of the
+Summary group, [`mean()`](https://rdrr.io/r/base/mean.html),
+[`median()`](https://rdrr.io/r/stats/median.html) and
+[`diff()`](https://rdrr.io/r/base/diff.html) are refused with a
+`zuhtml_input_error`, and so is
+[`rank()`](https://rdrr.io/r/base/rank.html), which needs `>`. Use
+[`as.integer()`](https://rdrr.io/r/base/integer.html) to work with the
+IDs as numbers.
+
 ## See also
 
 Other navigation:

@@ -20,7 +20,16 @@ the message text, which may change.
   [`html_limits()`](https://pedrobtz.github.io/zuhtml/reference/html_limits.md)
   was exceeded. Fields `limit` (its name, such as `"max_depth"`),
   `maximum` (its value) and `observed` (the value that tripped it, where
-  known). Nothing is returned and all native memory is released.
+  known). Nothing is returned and all native memory is released. Three
+  fixed limits use the same class: `"arena"`, the most attributes or
+  string-pool bytes one document can hold (just under \\2^{32}\\);
+  `"string_length"`, R's limit on the bytes of one string; and
+  `"memory"`, when a result being built grows past what a size can
+  count. Results (text, Markdown, serialized HTML, table grids) are
+  built in memory R allocates, so running out of memory there is not a
+  `zuhtml_error`: it is R's own error, such as "cannot allocate vector
+  of size ...", and R releases what was allocated. Only parsing has a
+  native memory budget, `max_memory`.
 
 - `zuhtml_parse_error`: an internal invariant of the parser failed. This
   is a bug; please report it.

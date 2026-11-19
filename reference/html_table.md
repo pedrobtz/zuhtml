@@ -141,11 +141,18 @@ removing surrounding whitespace.
   column when all are whole and fit, otherwise a double column.
   `decimal` is the decimal mark. `thousands`, if given, is a grouping
   mark allowed between groups of three digits, as in `1,234,567.5`; a
-  badly grouped value such as `1,23` keeps the column character.
+  badly grouped value such as `1,23` keeps the column character. Cell
+  text has its non-breaking spaces turned into spaces, so
+  `thousands = "\u00a0"` matches either.
 
-- A value with a leading zero, such as `"0012"`, keeps the column
-  character: it is an identifier, not a number. `"0"` and `"0.5"` are
-  numbers.
+- A value with a leading zero, such as `"0012"`, or `"0,123"` with
+  `thousands = ","`, keeps the column character: it is an identifier,
+  not a number. `"0"` and `"0.5"` are numbers.
+
+- A value with more than 15 significant digits, which a double need not
+  hold exactly, or one that overflows to infinity, underflows to zero or
+  is subnormal, such as `"12345678901234567890"`, `"1e999"` or
+  `"1e-310"`, keeps the column character.
 
 - `Inf`, `NaN`, `NA`, currency symbols and percentages are not numbers;
   list such strings in `na`, or convert them yourself. A column with no

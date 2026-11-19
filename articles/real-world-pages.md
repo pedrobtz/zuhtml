@@ -54,17 +54,17 @@ by_name <- html_read(
 )
 html_info(by_name)[c("nodes", "input_bytes", "native_bytes")]
 #> $nodes
-#> [1] 232465
+#> [1] 232519
 #> 
 #> $input_bytes
-#> [1] 4272296
+#> [1] 4273336
 #> 
 #> $native_bytes
-#> [1] 13906937
+#> [1] 13910215
 
 packages <- html_tables(by_name)[[1]]
 dim(packages)
-#> [1] 25820     2
+#> [1] 25826     2
 head(packages)
 #>              V1
 #> 1              
@@ -92,7 +92,7 @@ each package row has a link:
 
 rows <- html_elements(by_name, "table tr:not([id])")
 length(rows)
-#> [1] 25794
+#> [1] 25800
 
 packages <- data.frame(
   package = html_text_clean(html_element(rows, "td:first-child")),
@@ -125,7 +125,7 @@ first <- toupper(substr(packages$package, 1, 1))
 head(sort(table(first), decreasing = TRUE))
 #> first
 #>    S    R    C    M    P    G 
-#> 2909 2438 2086 2052 1846 1534
+#> 2909 2440 2087 2053 1847 1534
 head(packages$package[grepl("\\bshiny\\b", packages$title, ignore.case = TRUE)])
 #> [1] "a11yShiny"     "abstractr"     "activAnalyzer" "adepro"       
 #> [5] "AdverseEvents" "airGRteaching"
@@ -146,16 +146,16 @@ recent <- html_tables(by_date)[[1]]
 names(recent)
 #> [1] "Date"    "Package" "Title"
 head(recent, 3)
-#>         Date Package                                                     Title
-#> 1 2026-11-18 admixr2                                  Aggregate Data Modelling
-#> 2 2026-11-18    aidR Reading and Standardizing Automated Insulin Delivery Data
-#> 3 2026-11-18  bcdata       Search and Retrieve Data from the BC Data Catalogue
+#>         Date      Package                                       Title
+#> 1 2026-11-19          auk   eBird Data Extraction and Processing in R
+#> 2 2026-11-19  BioTooltipR            Add Bio Tooltips to HTML Reports
+#> 3 2026-11-19 canvasXpress Visualization Package for CanvasXpress in R
 
 year <- substr(recent$Date, 1, 4)
 tail(table(year), 8)
 #> year
 #>  2019  2020  2021  2022  2023  2024  2025  2026 
-#>   581   863  1125  1607  2204  2649  4891 10385
+#>   581   863  1125  1607  2204  2649  4889 10393
 ```
 
 Dates stay character, as every cell does: convert them when you know
@@ -164,7 +164,7 @@ they are dates.
 ``` r
 
 range(as.Date(recent$Date))
-#> [1] "2011-09-07" "2026-11-18"
+#> [1] "2011-09-07" "2026-11-19"
 ```
 
 ## Many small tables: CRAN mirrors
@@ -387,8 +387,11 @@ back <- html_parse(commonmark::markdown_html(
   paste(html_markdown(parts), collapse = "\n\n")
 ))
 html_text_clean(html_elements(back, "h3"))
+#> [1] "2.7 What documentation exists for R? ¶"
 length(html_elements(back, "li"))
+#> [1] 6
 length(html_elements(back, "pre"))
+#> [1] 1
 ```
 
 ## Directory listings
@@ -572,14 +575,14 @@ head(html_text(entries[grepl("/$", html_attr(entries, "href"))]))
 ## A very large page, and the limits
 
 CRAN’s check summary, with one row per package and one column per check
-flavor, is tens of megabytes of HTML: larger than the default
+flavour, is tens of megabytes of HTML: larger than the default
 `max_input` of 16 MiB.
 
 ``` r
 
 summary_page <- fetch(paste0(cran, "web/checks/check_summary_by_package.html"))
 file.size(summary_page) / 2^20
-#> [1] 53.51751
+#> [1] 53.4757
 err <- tryCatch(html_read(summary_page), zuhtml_limit_error = function(e) e)
 err$limit
 #> [1] "max_input"
@@ -593,16 +596,16 @@ big <- html_limits(max_input = 128 * 2^20, max_memory = 4 * 2^30)
 checks <- html_read(summary_page, limits = big)
 html_info(checks)[c("nodes", "native_bytes", "parse_peak_bytes")]
 #> $nodes
-#> [1] 2633310
+#> [1] 2626722
 #> 
 #> $native_bytes
-#> [1] 170118951
+#> [1] 169817310
 #> 
 #> $parse_peak_bytes
-#> [1] 636288136
+#> [1] 804887114
 status <- html_tables(checks, limits = big)[[1]]
 dim(status)
-#> [1] 26274    17
+#> [1] 26160    17
 names(status)[1:4]
 #> [1] "Package"                               
 #> [2] "Version"                               
@@ -610,7 +613,7 @@ names(status)[1:4]
 #> [4] "r-devel\nLinux\nx86_64\n(Debian GCC)"
 ```
 
-The flavor names contain line breaks because the header cells do: they
+The flavour names contain line breaks because the header cells do: they
 are written `r-devel<br>Linux<br>...`, and cleaned text turns `<br>`
 into `"\n"`. Replace them if single-line names suit better:
 
@@ -623,5 +626,5 @@ names(status)[1:4]
 table(status[[3]])[1:5]
 #> 
 #>       ERROR  FAIL  NOTE NOTE* 
-#>   523    64     2  5265    12
+#>   412    64     2  5265    12
 ```

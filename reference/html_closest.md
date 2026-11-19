@@ -19,7 +19,10 @@ html_closest(x, css)
 
 - css:
 
-  A CSS selector: a single string.
+  A CSS selector: a single string, of at most the `max_selector_length`
+  bytes of the
+  [`html_limits()`](https://pedrobtz.github.io/zuhtml/reference/html_limits.md)
+  the document was parsed with.
 
 ## Value
 

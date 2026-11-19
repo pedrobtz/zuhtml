@@ -16,7 +16,13 @@ html_parse(
   limits = html_limits()
 )
 
-html_read(path, ...)
+html_read(
+  path,
+  encoding = NULL,
+  base_url = NULL,
+  comments = TRUE,
+  limits = html_limits()
+)
 ```
 
 ## Arguments
@@ -27,9 +33,10 @@ html_read(path, ...)
 
 - encoding:
 
-  The encoding of raw input, as a name
-  [`iconv()`](https://rdrr.io/r/base/iconv.html) accepts; `NULL` to use
-  a byte-order mark, the page's declaration, or UTF-8.
+  The encoding of raw input: UTF-16 or the name of an ASCII-compatible
+  encoding [`iconv()`](https://rdrr.io/r/base/iconv.html) accepts (see
+  "Encoding"); `NULL` to use a byte-order mark, the page's declaration,
+  or UTF-8.
 
 - base_url:
 
@@ -48,10 +55,6 @@ html_read(path, ...)
 
   One file path, URL or connection; see "Reading files, URLs and
   connections".
-
-- ...:
-
-  Arguments passed on to `html_parse()`.
 
 ## Value
 
@@ -91,14 +94,19 @@ Reading stops with a `zuhtml_limit_error` as soon as the input passes
 four times `max_input` bytes, before a larger file is read at all. A
 file that does not exist, an unreachable URL, and a connection that
 cannot be read are `zuhtml_input_error`s. The input is always read whole
-before parsing, because decoding needs all of it.
+before parsing, because decoding needs all of it. The other arguments
+mean what they mean to `html_parse()`, whatever `path` is.
 
 ## Encoding
 
 A character string is taken as text: it is converted to UTF-8 with
 [`enc2utf8()`](https://rdrr.io/r/base/Encoding.html), and `encoding`
-must be `NULL` or `"UTF-8"`. A string marked as `"bytes"` is rejected;
-pass a raw vector instead.
+must be `NULL` or `"UTF-8"`. In a C locale, where
+[`enc2utf8()`](https://rdrr.io/r/base/Encoding.html) cannot convert, an
+unmarked string's non-ASCII bytes are read as UTF-8, as
+[`readLines()`](https://rdrr.io/r/base/readLines.html) returns a UTF-8
+file's lines there. A string marked as `"bytes"` is rejected; pass a raw
+vector instead.
 
 A raw vector is decoded with, in order of precedence, a byte-order mark
 (UTF-8, UTF-16LE or UTF-16BE), `encoding`, a declaration in the page, or
@@ -106,6 +114,17 @@ UTF-8. A byte-order mark that contradicts `encoding` is an error, and so
 is any byte sequence that is invalid in the chosen encoding: nothing is
 replaced silently. A fetcher that knows the HTTP charset should pass it
 as `encoding`.
+
+Raw input longer than four times `max_input` is refused before it is
+decoded, whatever it decodes to: no supported encoding needs more than
+four bytes for a character, but the escape sequences of a stateful
+encoding such as ISO-2022-JP decode to nothing.
+
+UTF-16 is decoded by zuhtml itself, and windows-1255 and windows-1258
+from the Encoding Standard's indexes, so that a combining mark stays a
+character of its own as in a browser. Every other encoding is converted
+by [`iconv()`](https://rdrr.io/r/base/iconv.html) and must be
+ASCII-compatible: UCS-2, UTF-32 and EBCDIC are encoding errors.
 
 The declaration is found as browsers find it, by the HTML standard's
 prescan of the first 1024 bytes for `<meta charset="...">` or

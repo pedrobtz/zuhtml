@@ -35,9 +35,10 @@ with `itemscope`; the `content` attribute of `<meta>`; the resolved
 `<track>` and `<video>`, `href` of `<a>`, `<area>` and `<link>`, and
 `data` of `<object>` (resolved as
 [`html_url()`](https://pedrobtz.github.io/zuhtml/reference/html_url.md)
-does, `""` when that fails); the `value` attribute of `<data>` and
-`<meter>`; the `datetime` attribute of `<time>` when present. Otherwise
-it is the element's text, which here is cleaned as
+does, `""` when the attribute is absent or does not resolve); the
+`value` attribute of `<data>` and `<meter>`; the `datetime` attribute of
+`<time>` when present. Otherwise it is the element's text, which here is
+cleaned as
 [`html_text_clean()`](https://pedrobtz.github.io/zuhtml/reference/html_text_clean.md)
 does, not the raw `textContent`. An item that is its own ancestor
 through `itemref` is `NULL`.

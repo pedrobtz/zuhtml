@@ -2,7 +2,7 @@
 
 Reads a URL-valued attribute from each node and resolves it against the
 document's base URL with the reference-resolution algorithm of RFC 3986,
-section 5 (<https://www.rfc-editor.org/rfc/rfc3986#section-5>): dot
+section 5 (<https://www.rfc-editor.org/rfc/rfc3986.html#section-5>): dot
 segments are removed and relative, query-only, fragment-only and
 protocol-relative references are handled. Nothing is fetched.
 
@@ -37,8 +37,9 @@ missing nodes. The original attribute value stays available through
 
 ## Details
 
-The base URL is `base_url` if given; otherwise the document's first
-`<base href>` resolved against the `base_url` given to
+The base URL is `base_url` if given; otherwise the document's first HTML
+`<base href>` (not an SVG or MathML `<base>`) resolved against the
+`base_url` given to
 [`html_parse()`](https://pedrobtz.github.io/zuhtml/reference/html_parse.md);
 otherwise that `base_url` alone.
 

@@ -2,9 +2,9 @@
 
 The structured data pages embed as JSON-LD: the text of each
 `<script type="application/ld+json">` below the given nodes (and the
-nodes themselves), in document order. The type is matched as a MIME
-type: case-insensitively, ignoring surrounding whitespace and any
-parameters.
+nodes themselves), in document order; an SVG or MathML `<script>` does
+not count. The type is matched as a MIME type: case-insensitively,
+ignoring surrounding whitespace and any parameters.
 
 ## Usage
 
@@ -21,9 +21,10 @@ html_json_ld(x, parse = FALSE)
 - parse:
 
   If `TRUE`, parse each block with
-  [`jsonlite::fromJSON()`](https://rdrr.io/pkg/jsonlite/man/fromJSON.html)
+  [`jsonlite::parse_json()`](https://rdrr.io/pkg/jsonlite/man/read_json.html)
   (with `simplifyVector = FALSE`, so objects are named lists and arrays
-  are lists). This needs the jsonlite package. A wrapper around the
+  are lists). The text is only ever parsed as JSON, never read as a file
+  name or URL. This needs the jsonlite package. A wrapper around the
   whole block, `<![CDATA[ ... ]]>` or `<!-- ... -->`, optionally
   commented out with `//` or `/* */` as pages often do, is removed
   first.
