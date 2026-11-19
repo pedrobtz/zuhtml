@@ -18,7 +18,10 @@
 #'   input is also refused, before decoding, when it is longer than four
 #'   times this.
 #' @param max_memory Largest native memory the parser may hold at once, in
-#'   bytes.
+#'   bytes. A parse that runs past it reports the memory in use where it
+#'   stopped, which the parse needs at least; once a parse completes,
+#'   `html_info()$parse_peak_bytes` is the smallest value that parses that
+#'   input.
 #' @param max_depth Deepest nesting of open elements. Parsing time grows
 #'   with the square of nesting depth, so this bounds it; it is enforced
 #'   while parsing, not afterwards.

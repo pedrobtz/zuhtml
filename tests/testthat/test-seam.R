@@ -95,15 +95,53 @@ test_that("limit errors carry the zuhtml_error parent class", {
   expect_s3_class(err, "condition")
 })
 
-test_that("a max_memory breach reports the bytes it would have needed", {
+test_that("parse_peak_bytes is the smallest max_memory that parses (#130)", {
+  # The oracle is a bisection on max_memory itself. The ledger counts
+  # every block with its header and conversion checks the frozen arrays
+  # with Gumbo's tree, and parse_peak_bytes records the larger of the two,
+  # so the agreement is exact, with no tolerance.
+  html <- strrep("<p>text", 200)
+  parses <- function(m) {
+    tryCatch({
+      html_parse(html, limits = html_limits(max_memory = m))
+      TRUE
+    }, zuhtml_limit_error = function(e) FALSE)
+  }
+  lo <- 1024
+  hi <- html_limits()$max_memory
+  while (hi - lo > 1) {
+    mid <- floor((lo + hi) / 2)
+    if (parses(mid)) hi <- mid else lo <- mid
+  }
+  peak <- html_info(html_parse(html))$parse_peak_bytes
+  expect_identical(peak, hi)
+  # One byte less trips at exactly that peak.
   err <- expect_error(
-    html_parse(strrep("<p>text", 1000), limits = html_limits(max_memory = 1e4)),
+    html_parse(html, limits = html_limits(max_memory = hi - 1)),
     class = "zuhtml_limit_error"
   )
-  expect_true(is.finite(err$observed))
+  expect_identical(err$limit, "max_memory")
+  expect_identical(err$observed, hi)
+  expect_match(conditionMessage(err),
+               sprintf("ran past max_memory = %.0f bytes at %.0f bytes",
+                       hi - 1, hi), fixed = TRUE)
+})
+
+test_that("a max_memory breach reports where it tripped, not the need (#130)", {
+  html <- strrep("<p>text", 200)
+  err <- expect_error(
+    html_parse(html, limits = html_limits(max_memory = 1e4)),
+    class = "zuhtml_limit_error"
+  )
+  need <- html_info(html_parse(html))$parse_peak_bytes
+  # The live bytes the refused allocation would have made: past the
+  # limit, and a lower bound on what the parse needs.
   expect_gt(err$observed, 1e4)
-  expect_match(conditionMessage(err), sprintf("%.0f bytes", err$observed),
-               fixed = TRUE)
+  expect_lte(err$observed, need)
+  expect_match(conditionMessage(err),
+               sprintf("ran past max_memory = 10000 bytes at %.0f bytes",
+                       err$observed), fixed = TRUE)
+  expect_match(conditionMessage(err), "needs at least that", fixed = TRUE)
 })
 
 test_that("an injected allocation failure has no observed size", {
