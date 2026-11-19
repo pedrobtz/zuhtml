@@ -206,3 +206,13 @@ test_that("the tree dump is a string, through the cleanup-safe path", {
   expect_type(out, "character")
   expect_match(out, "| <html>", fixed = TRUE)
 })
+
+test_that("an uncountable memory request is reported as such, not as 1.8e19 bytes (#130)", {
+  # The ledger sets observed to SIZE_MAX when a request is too large to
+  # count (src/zuh_memory.c); no input reaches that from R, so the wording
+  # is tested on the helper the parser uses.
+  huge <- zuh_memory_message(1e6, 2^64)
+  expect_match(huge, "more native memory than can be counted", fixed = TRUE)
+  expect_no_match(huge, "18446744073709551616", fixed = TRUE)
+  expect_match(zuh_memory_message(1e6, 2e6), "at 2000000 bytes", fixed = TRUE)
+})
