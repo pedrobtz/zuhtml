@@ -153,3 +153,41 @@ test_that("no links give a typed zero-row frame", {
   expect_identical(dim(l), c(0L, 3L))
   expect_type(l$url, "character")
 })
+
+test_that("an unmarked non-ASCII base_url is UTF-8 in a C locale (#125)", {
+  h <- "<a href=x>t</a>"
+  raw_base <- "http://e/\xc3\xa9/"
+  base <- "http://e/é/"
+  local_c_ctype()
+  # The oracle: the same calls with the base URL marked as UTF-8.
+  want <- html_parse(h, base_url = base)
+  doc <- html_parse(h, base_url = raw_base)
+  a <- html_elements(doc, "a")
+  expect_identical(html_url(a), html_url(html_elements(want, "a")))
+  expect_identical(html_links(doc, absolute = TRUE),
+                   html_links(want, absolute = TRUE))
+  expect_identical(html_markdown(doc), html_markdown(want))
+  expect_identical(html_url(html_elements(html_parse(h), "a"),
+                            base_url = raw_base),
+                   html_url(a))
+  frag <- html_fragment(h, base_url = raw_base)
+  expect_identical(html_url(html_elements(frag, "a")), html_url(a))
+  path <- withr::local_tempfile(fileext = ".html")
+  writeLines(h, path)
+  expect_identical(html_url(html_elements(html_read(path, base_url = raw_base),
+                                          "a")),
+                   html_url(a))
+})
+
+test_that("a base_url that is not valid UTF-8 is an input error (#125)", {
+  bad <- "http://e/\xff/"
+  bytes <- "http://e/\xc3\xa9/"
+  Encoding(bytes) <- "bytes"
+  a <- html_elements(html_parse("<a href=x>t</a>"), "a")
+  for (b in list(bad, bytes)) {
+    expect_error(html_parse("<p>", base_url = b), class = "zuhtml_input_error")
+    expect_error(html_fragment("<p>", base_url = b),
+                 class = "zuhtml_input_error")
+    expect_error(html_url(a, base_url = b), class = "zuhtml_input_error")
+  }
+})

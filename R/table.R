@@ -121,6 +121,13 @@ html_table <- function(x, header = "auto", trim = TRUE, na = character(),
     zuh_input_error("na", "`na` must be a character vector without NA.",
                     call = call)
   }
+  na <- zuh_utf8_valid(na, "na", call)
+  if (is.character(decimal)) {
+    decimal <- zuh_utf8_valid(decimal, "decimal", call)
+  }
+  if (is.character(thousands)) {
+    thousands <- zuh_utf8_valid(thousands, "thousands", call)
+  }
   limits <- zuh_check_limits(limits, call = call)
   # Cell text has its non-breaking spaces turned into spaces, so a
   # non-breaking space as the grouping mark matches a space.
@@ -229,6 +236,7 @@ html_tables <- function(x, css = "table", match = NULL, ...) {
                     call = call)
   }
   if (!is.null(match)) {
+    match <- zuh_utf8_valid(match, "match", call)
     tryCatch(
       suppressWarnings(grepl(match, "")),
       error = function(e) {
@@ -241,7 +249,8 @@ html_tables <- function(x, css = "table", match = NULL, ...) {
       }
     )
   }
-  tabs <- zuh_select_including(x, css, call)
+  # The default selector is the package's own; one given is the caller's.
+  tabs <- zuh_select_including(x, css, call, user = !missing(css))
   tabs <- tabs[html_name(tabs) %in% "table" &
                  html_namespace(tabs) %in% zuh_xhtml]
   n <- zuh_nodes(tabs)
@@ -254,11 +263,11 @@ html_tables <- function(x, css = "table", match = NULL, ...) {
 }
 
 # The elements of x matching css, including the nodes of x themselves,
-# without duplicates, in document order.
-zuh_select_including <- function(x, css, call) {
-  found <- html_elements(x, css)
+# without duplicates, in document order. `user` as in zuh_find().
+zuh_select_including <- function(x, css, call, user = FALSE) {
+  found <- zuh_find(x, css, 0L, call, user)
   if (!inherits(x, "zuhtml_nodeset")) return(found)
-  self <- html_filter(x, css)
+  self <- zuh_filter(x, css, call, user)
   new_nodeset(sort(unique(c(unclass(self), unclass(found)))),
               zuh_owner(found))
 }
@@ -324,11 +333,11 @@ html_table_cells <- function(x, trim = TRUE, absolute = FALSE,
   column <- first %% nc + 1L
 
   # Links outside nested tables, grouped by the cell that holds them.
-  links <- html_elements(cells, "a[href], area[href]")
-  mine <- as.integer(html_closest(links, "table")) == n$ids
+  links <- zuh_elements(cells, "a[href], area[href]")
+  mine <- as.integer(zuh_closest(links, "table")) == n$ids
   links <- links[mine]
   urls <- if (absolute) html_url(links) else html_attr(links, "href")
-  cell_of <- match(as.integer(html_closest(links, "td, th")), g$cell_node)
+  cell_of <- match(as.integer(zuh_closest(links, "td, th")), g$cell_node)
   by_cell <- split(urls, factor(cell_of, levels = seq_len(k)))
 
   out <- data.frame(

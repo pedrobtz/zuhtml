@@ -28,7 +28,8 @@
 #' @param max_table_cells Most cells a table may expand to, spans included.
 #' @param max_selector_length Longest CSS selector, in bytes. The selection
 #'   functions take no `limits`: they use the limits the document was parsed
-#'   with.
+#'   with. It bounds the selectors you pass, not the ones the extraction
+#'   functions such as [html_forms()] use internally.
 #'
 #' @return An object of class `zuhtml_limits`: a named list of the limits,
 #'   as doubles.

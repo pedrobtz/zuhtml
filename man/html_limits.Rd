@@ -35,7 +35,8 @@ continues past it; only the record is truncated.}
 
 \item{max_selector_length}{Longest CSS selector, in bytes. The selection
 functions take no \code{limits}: they use the limits the document was parsed
-with.}
+with. It bounds the selectors you pass, not the ones the extraction
+functions such as \code{\link[=html_forms]{html_forms()}} use internally.}
 }
 \value{
 An object of class \code{zuhtml_limits}: a named list of the limits,
