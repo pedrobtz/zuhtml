@@ -24,7 +24,8 @@ escaped, so the text reads back as written.
 The conversion covers:
 \itemize{
 \item headings (\verb{#} to \verb{######}), paragraphs and the other block elements
-(separated by blank lines), and thematic breaks (\verb{<hr>}, as \verb{---});
+(separated by blank lines), and thematic breaks (\verb{<hr>}, as \verb{---}, or
+as \verb{***} where it opens a \code{-} list item);
 \item emphasis (\verb{<em>}, \verb{<i>}) as \verb{*...*} and strong (\verb{<strong>}, \verb{<b>}) as
 \verb{**...**}, where CommonMark reads it back as written: emphasis that
 cannot be written safely, such as emphasis inside emphasis of its

@@ -10,16 +10,22 @@ md_back <- function(markdown) {
 }
 
 # What the round trip must keep: the cleaned text, link and image targets,
-# the number of lists with text (empty ones are left out), and the text of
-# inline code.
+# the number of lists and of list items that are written (empty ones are
+# left out; an item with an image, a rule or a code block is not empty),
+# and the text of inline code.
 md_shape <- function(doc) {
   code <- html_elements(doc, "code, kbd, samp, tt")
   code <- html_text_clean(code[is.na(html_closest(code, "pre"))])
+  written <- function(nodes) {
+    html_text_clean(nodes) != "" |
+      !is.na(html_element(nodes, "img[src], hr, pre"))
+  }
   list(
     text = html_text_clean(doc),
     links = html_attr(html_elements(doc, "a[href]"), "href"),
     images = html_attr(html_elements(doc, "img[src]"), "src"),
-    lists = sum(html_text_clean(html_elements(doc, "ul, ol")) != ""),
+    lists = sum(written(html_elements(doc, "ul, ol"))),
+    items = sum(written(html_elements(doc, "li"))),
     code = code[code != ""]
   )
 }
