@@ -16,8 +16,6 @@ All on GitHub Actions, through the `pedrobtz/r-actions` workflows:
 * ubuntu-latest, R release and R oldrel-1
 * R-devel containers with CRAN's compilers: `clang23`, `ubuntu-clang`,
   `ubuntu-gcc16`
-* `nosuggests` (only hard dependencies installed) and `nold` (no long
-  double)
 * UBSan, ASan, valgrind, gctorture, rchk, LTO and gcc `-fanalyzer`
 
 ## R CMD check results
