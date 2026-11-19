@@ -129,8 +129,19 @@ document that owns them. Subsetting (<code>[</code>, <code>[[</code>), <code><a 
 <code><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique()</a></code> and <code>length&lt;-</code> keep the owner; <code>length&lt;-</code> pads with missing
 nodes. <code><a href="https://rdrr.io/r/base/c.html" class="external-link">c()</a></code>, <code>[&lt;-</code> and <code>[[&lt;-</code> accept only nodes of the same document
 (and, for assignment, <code>NA</code> for a missing node), and raise a
-<code>zuhtml_input_error</code> otherwise. Arithmetic, comparison and math
-functions are refused: use <code><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer()</a></code> to work with the IDs.</p>
+<code>zuhtml_input_error</code> otherwise.</p>
+<p><code>==</code> and <code>!=</code> between two nodesets of the same document compare node
+identity, element by element: two <code>&lt;p&gt;a&lt;/p&gt;</code> elements are different
+nodes. Comparing nodes of different documents, or a nodeset with
+anything else, is a <code>zuhtml_input_error</code>. <code><a href="https://rdrr.io/r/base/match.html" class="external-link">match()</a></code>, <code>%in%</code>,
+<code><a href="https://rdrr.io/r/base/sets.html" class="external-link">setdiff()</a></code> and the other set operations compare nodes too, so a node is
+never found among another document's nodes. <code><a href="https://rdrr.io/r/base/sort.html" class="external-link">sort()</a></code>, <code><a href="https://rdrr.io/r/base/order.html" class="external-link">order()</a></code> and
+<code><a href="https://rdrr.io/r/base/xtfrm.html" class="external-link">xtfrm()</a></code> follow document order.</p>
+<p>Every other operator (arithmetic, <code>&lt;</code> and the other orderings, <code>!</code>,
+<code>&amp;</code>), the math functions, <code><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum()</a></code>, <code><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max()</a></code>, <code><a href="https://rdrr.io/r/base/range.html" class="external-link">range()</a></code> and the rest of
+the Summary group, <code><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean()</a></code>, <code><a href="https://rdrr.io/r/stats/median.html" class="external-link">median()</a></code> and <code><a href="https://rdrr.io/r/base/diff.html" class="external-link">diff()</a></code> are refused with a
+<code>zuhtml_input_error</code>, and so is <code><a href="https://rdrr.io/r/base/rank.html" class="external-link">rank()</a></code>, which needs <code>&gt;</code>. Use
+<code><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer()</a></code> to work with the IDs as numbers.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

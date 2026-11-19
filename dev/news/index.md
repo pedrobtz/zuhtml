@@ -83,6 +83,26 @@
   ([\#92](https://github.com/pedrobtz/zuhtml/issues/92)). Selector error
   positions count characters there too.
 
+- The same holds for `base_url` (of
+  [`html_parse()`](https://pedrobtz.github.io/zuhtml/dev/reference/html_parse.md),
+  [`html_fragment()`](https://pedrobtz.github.io/zuhtml/dev/reference/html_fragment.md),
+  [`html_read()`](https://pedrobtz.github.io/zuhtml/dev/reference/html_parse.md)
+  and
+  [`html_url()`](https://pedrobtz.github.io/zuhtml/dev/reference/html_url.md))
+  and for
+  [`html_table()`](https://pedrobtz.github.io/zuhtml/dev/reference/html_table.md)’s
+  `na`, `decimal` and `thousands` and
+  [`html_tables()`](https://pedrobtz.github.io/zuhtml/dev/reference/html_table.md)’s
+  `match`. In a C locale a non-ASCII base URL had come out of
+  [`html_url()`](https://pedrobtz.github.io/zuhtml/dev/reference/html_url.md),
+  [`html_links()`](https://pedrobtz.github.io/zuhtml/dev/reference/html_links.md)
+  and
+  [`html_markdown()`](https://pedrobtz.github.io/zuhtml/dev/reference/html_markdown.md)
+  as the text `<c3><a9>`, `na` had matched nothing and `match` had
+  failed with an unclassed error. Each of these arguments that is not
+  valid UTF-8, or is marked as `"bytes"`, is now a `zuhtml_input_error`
+  ([\#125](https://github.com/pedrobtz/zuhtml/issues/125)).
+
 - A `<meta>` charset label with a non-ASCII byte is ignored as an
   unknown label, in every locale, instead of failing with an unclassed
   error, so a later valid declaration is used
@@ -113,7 +133,15 @@
 - `html_limits(max_selector_length =)` now takes effect: a document
   keeps the limits it was parsed with, and selection on it uses their
   `max_selector_length`
-  ([\#83](https://github.com/pedrobtz/zuhtml/issues/83)).
+  ([\#83](https://github.com/pedrobtz/zuhtml/issues/83)). It bounds only
+  the selectors the caller passes, so extraction functions such as
+  [`html_forms()`](https://pedrobtz.github.io/zuhtml/dev/reference/html_forms.md),
+  [`html_links()`](https://pedrobtz.github.io/zuhtml/dev/reference/html_links.md)
+  and
+  [`html_title()`](https://pedrobtz.github.io/zuhtml/dev/reference/html_title.md)
+  work on a document parsed with a small `max_selector_length`; their
+  own selectors had been refused with a `zuhtml_limit_error`
+  ([\#124](https://github.com/pedrobtz/zuhtml/issues/124)).
 
 - [`print()`](https://rdrr.io/r/base/print.html) of
   [`html_limits()`](https://pedrobtz.github.io/zuhtml/dev/reference/html_limits.md)
@@ -136,10 +164,31 @@
   its ID and silently address a different node of the target document;
   it is now a `zuhtml_input_error`
   ([\#82](https://github.com/pedrobtz/zuhtml/issues/82)). Arithmetic,
-  comparison and math functions on a nodeset are refused the same way
-  (use [`as.integer()`](https://rdrr.io/r/base/integer.html) for the
-  IDs), and `length<-` keeps the nodeset class, padding with missing
-  nodes.
+  ordering and math functions on a nodeset are refused the same way (use
+  [`as.integer()`](https://rdrr.io/r/base/integer.html) for the IDs),
+  and `length<-` keeps the nodeset class, padding with missing nodes.
+
+- `==` and `!=` between two nodesets of the same document compare node
+  identity, as `html_parent(a) == html_parent(b)` did in 0.1.0; across
+  documents, or with a number, they are a `zuhtml_input_error`
+  ([\#151](https://github.com/pedrobtz/zuhtml/issues/151)).
+  [`sum()`](https://rdrr.io/r/base/sum.html),
+  [`max()`](https://rdrr.io/r/base/Extremes.html),
+  [`range()`](https://rdrr.io/r/base/range.html) and the rest of the
+  Summary group, [`mean()`](https://rdrr.io/r/base/mean.html),
+  [`median()`](https://rdrr.io/r/stats/median.html) and
+  [`diff()`](https://rdrr.io/r/base/diff.html) are refused like
+  arithmetic, instead of computing on the IDs;
+  [`rank()`](https://rdrr.io/r/base/rank.html), which needs `>`, is
+  refused too (use `rank(as.integer(x))`).
+  [`sort()`](https://rdrr.io/r/base/sort.html) and
+  [`order()`](https://rdrr.io/r/base/order.html) follow document order
+  through a new [`xtfrm()`](https://rdrr.io/r/base/xtfrm.html) method.
+  [`match()`](https://rdrr.io/r/base/match.html), `%in%` and
+  [`setdiff()`](https://rdrr.io/r/base/sets.html) compare nodes, not
+  their serialized markup, so two identical `<p>a</p>` elements no
+  longer match each other, and a node never matches one of another
+  document ([\#128](https://github.com/pedrobtz/zuhtml/issues/128)).
 
 - Printing a nodeset shows a newline in text as `\n`, not `\\n`
   ([\#109](https://github.com/pedrobtz/zuhtml/issues/109)).

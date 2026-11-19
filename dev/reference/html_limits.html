@@ -109,7 +109,8 @@ continues past it; only the record is truncated.</p></dd>
 <dt id="arg-max-selector-length">max_selector_length<a class="anchor" aria-label="anchor" href="#arg-max-selector-length"></a></dt>
 <dd><p>Longest CSS selector, in bytes. The selection
 functions take no <code>limits</code>: they use the limits the document was parsed
-with.</p></dd>
+with. It bounds the selectors you pass, not the ones the extraction
+functions such as <code><a href="html_forms.html">html_forms()</a></code> use internally.</p></dd>
 
 </dl></div>
     <div class="section level2">

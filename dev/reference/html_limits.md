@@ -57,7 +57,10 @@ html_limits(
 - max_selector_length:
 
   Longest CSS selector, in bytes. The selection functions take no
-  `limits`: they use the limits the document was parsed with.
+  `limits`: they use the limits the document was parsed with. It bounds
+  the selectors you pass, not the ones the extraction functions such as
+  [`html_forms()`](https://pedrobtz.github.io/zuhtml/dev/reference/html_forms.md)
+  use internally.
 
 ## Value
 

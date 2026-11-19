@@ -54,17 +54,17 @@ by_name <- html_read(
 )
 html_info(by_name)[c("nodes", "input_bytes", "native_bytes")]
 #> $nodes
-#> [1] 232546
+#> [1] 232519
 #> 
 #> $input_bytes
-#> [1] 4273845
+#> [1] 4273336
 #> 
 #> $native_bytes
-#> [1] 13911843
+#> [1] 13910215
 
 packages <- html_tables(by_name)[[1]]
 dim(packages)
-#> [1] 25829     2
+#> [1] 25826     2
 head(packages)
 #>              V1
 #> 1              
@@ -92,7 +92,7 @@ each package row has a link:
 
 rows <- html_elements(by_name, "table tr:not([id])")
 length(rows)
-#> [1] 25803
+#> [1] 25800
 
 packages <- data.frame(
   package = html_text_clean(html_element(rows, "td:first-child")),
@@ -125,7 +125,7 @@ first <- toupper(substr(packages$package, 1, 1))
 head(sort(table(first), decreasing = TRUE))
 #> first
 #>    S    R    C    M    P    G 
-#> 2909 2440 2088 2053 1847 1534
+#> 2909 2440 2087 2053 1847 1534
 head(packages$package[grepl("\\bshiny\\b", packages$title, ignore.case = TRUE)])
 #> [1] "a11yShiny"     "abstractr"     "activAnalyzer" "adepro"       
 #> [5] "AdverseEvents" "airGRteaching"
@@ -155,7 +155,7 @@ year <- substr(recent$Date, 1, 4)
 tail(table(year), 8)
 #> year
 #>  2019  2020  2021  2022  2023  2024  2025  2026 
-#>   581   863  1125  1607  2204  2649  4889 10396
+#>   581   863  1125  1607  2204  2649  4889 10393
 ```
 
 Dates stay character, as every cell does: convert them when you know
@@ -582,7 +582,7 @@ flavour, is tens of megabytes of HTML: larger than the default
 
 summary_page <- fetch(paste0(cran, "web/checks/check_summary_by_package.html"))
 file.size(summary_page) / 2^20
-#> [1] 53.47984
+#> [1] 53.47494
 err <- tryCatch(html_read(summary_page), zuhtml_limit_error = function(e) e)
 err$limit
 #> [1] "max_input"
@@ -596,13 +596,13 @@ big <- html_limits(max_input = 128 * 2^20, max_memory = 4 * 2^30)
 checks <- html_read(summary_page, limits = big)
 html_info(checks)[c("nodes", "native_bytes", "parse_peak_bytes")]
 #> $nodes
-#> [1] 2626821
+#> [1] 2626704
 #> 
 #> $native_bytes
-#> [1] 169826491
+#> [1] 169815628
 #> 
 #> $parse_peak_bytes
-#> [1] 635100776
+#> [1] 635063237
 status <- html_tables(checks, limits = big)[[1]]
 dim(status)
 #> [1] 26160    17
@@ -626,5 +626,5 @@ names(status)[1:4]
 table(status[[3]])[1:5]
 #> 
 #>       ERROR  FAIL  NOTE NOTE* 
-#>   409    64     2  5265    12
+#>   412    64     2  5265    12
 ```
