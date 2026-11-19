@@ -25,16 +25,19 @@ iconv_names <- function() {
 
 # Switch LC_CTYPE to the C locale until the calling test ends, or skip
 # where the platform will not.
+#
+# The skip is on the platform, never on zuh_ascii_locale(), the code under
+# test (#129): Windows reports no codeset for its C locale, so the #92 rule
+# does not apply there yet (#122). Everywhere else the detector must see
+# the C locale's ASCII, and a broken detector fails the calling test.
 local_c_ctype <- function(env = parent.frame()) {
+  testthat::skip_on_os("windows") # #122
   old <- Sys.getlocale("LC_CTYPE")
   set <- suppressWarnings(Sys.setlocale("LC_CTYPE", "C"))
   if (!nzchar(set)) testthat::skip("LC_CTYPE cannot be set to C")
   withr::defer(Sys.setlocale("LC_CTYPE", old), envir = env)
-  # The #92 rule applies only where zuh_ascii_locale() sees an ASCII codeset;
-  # Windows reports none, so its C locale keeps the old behaviour (#122).
-  if (!zuh_ascii_locale()) {
-    testthat::skip("LC_CTYPE = C is not an ASCII codeset zuhtml recognises here")
-  }
+  testthat::expect_true(zuh_ascii_locale(),
+                        label = "zuh_ascii_locale() in LC_CTYPE = C")
 }
 
 # The decoded UTF-8 bytes of raw input, or NULL for an encoding error.
