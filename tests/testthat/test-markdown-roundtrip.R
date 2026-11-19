@@ -136,3 +136,40 @@ test_that("random inline trees survive the round trip", {
     expect_styles_kept(r)
   }
 })
+
+test_that("a rule opening a list item keeps the list (#133)", {
+  skip_without_round_trip()
+  expect_round_trip("<ul><li><hr><ul><li>n</ul></ul>")
+  expect_round_trip("<ul><li><ul><li><hr></ul></ul>")
+  expect_round_trip("<ul><li>a</ul><ul><li><hr><li>b</ul>")
+  expect_round_trip("<blockquote><ul><li><hr></ul></blockquote>")
+})
+
+test_that("link text with ']:' in code is no reference definition (#133)", {
+  skip_without_round_trip()
+  expect_round_trip("<p><a href=u><code>]:</code></a></p>")
+  expect_round_trip("<p><a href=u><code>]: x</code></a></p>")
+  expect_round_trip("<ul><li><a href=u>a<code>]:b</code></a></ul>")
+})
+
+test_that("a leading '^' in link or image text is no footnote (#133)", {
+  skip_without_round_trip()
+  expect_round_trip("<p><img src=i.png alt='^baz'></p>")
+  expect_round_trip("<p><a href=u>^x</a> <a href=v><i>^.</i>y</a></p>")
+})
+
+test_that("an '&' ending a text node makes no entity with the next (#133)", {
+  skip_without_round_trip()
+  expect_round_trip("<p>&amp;<span>amp;</span></p>")
+  expect_round_trip("<p>&amp;<b>#38;</b> x&amp;<i>lt;</i></p>")
+})
+
+test_that("':' and '|' at a line start make no table (#127)", {
+  skip_without_round_trip()
+  for (html in c("<p>a<br>:-</p>", "<p>a<br>|-|</p>", "<p>a | b<br>|:-|-</p>",
+                 "<p>:-</p>", "<p>|-|</p>", "<p><code>x</code><br>:-</p>",
+                 "<ul><li>a<br>:-</ul>", "<p><b>a</b><br><i>:-</i></p>")) {
+    r <- expect_round_trip(html)
+    expect_length(html_elements(r$back, "table"), 0)
+  }
+})
