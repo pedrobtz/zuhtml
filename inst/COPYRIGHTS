@@ -147,3 +147,16 @@ the test suite.
   Copyright (c) 2010 Arc90 Inc
   Licensed under the Apache License, Version 2.0; the full text is in
   src/vendor/gumbo/COPYING. The files are unmodified.
+
+tests/testthat/fixtures/whatwg/
+-------------------------------
+
+Two index files of the WHATWG Encoding Standard, index-windows-1255.txt
+and index-windows-1258.txt, downloaded unmodified from
+https://encoding.spec.whatwg.org/ on 2026-11-19 (each dated 2024-09-18 in
+its header, with the identifier given there). They are used only by the
+test suite, as the oracle for the decoding tables in R/sniff.R.
+
+  Copyright (c) WHATWG (Apple, Google, Mozilla, Microsoft).
+  Licensed under the Creative Commons Attribution 4.0 International
+  License: https://creativecommons.org/licenses/by/4.0/
