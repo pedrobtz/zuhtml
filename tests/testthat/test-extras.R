@@ -44,6 +44,20 @@ test_that("html_strings() skips script, style, template and comments", {
   expect_identical(html_strings(html_element(doc, "script")), list(character()))
 })
 
+test_that("html_strings() skips SVG script and style too, as html_text_clean() does (#98)", {
+  doc <- html_parse(paste0(
+    "<div>x<svg><script>s()</script><style>p{}</style>",
+    "<text>t</text></svg>y</div>"
+  ))
+  div <- html_element(doc, "div")
+  expect_identical(html_strings(div), list(c("x", "t", "y")))
+  # The same rule html_text_clean() follows: script and style are code in
+  # SVG as in HTML; MathML has neither, so its text stays.
+  expect_identical(html_text_clean(div), "xty")
+  math <- html_parse("<div>a<math><mi>x</mi></math>b</div>")
+  expect_identical(html_strings(html_element(math, "div")), list(c("a", "x", "b")))
+})
+
 test_that("html_strings() is vectorized with missing nodes and text nodes", {
   doc <- html_parse("<p>a</p><p></p>")
   p <- html_elements(doc, "p")
