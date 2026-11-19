@@ -8,6 +8,22 @@
   does, instead of returning their code as text
   ([\#98](https://github.com/pedrobtz/zuhtml/issues/98)).
 
+- [`html_markdown()`](https://pedrobtz.github.io/zuhtml/dev/reference/html_markdown.md)
+  no longer escapes a `:`, `.` or `)` after a code span, emphasis or a
+  link at the start of a line (`` `x`: description ``, not
+  `` `x`\: description ``), and escapes `:` and `|` at a line start only
+  below another line of the paragraph, where a table delimiter row could
+  form ([\#127](https://github.com/pedrobtz/zuhtml/issues/127)).
+
+- [`html_markdown()`](https://pedrobtz.github.io/zuhtml/dev/reference/html_markdown.md)
+  output no longer loses content when rendered: an `<hr>` that opens a
+  `-` list item is written `***` (`- ---` is a thematic break and
+  dropped the list), link text with `]:` in a code span no longer makes
+  a link reference definition, a leading `^` in link or image text is
+  escaped (cmark-gfm read it as a footnote), and an `&` that ends a text
+  node is escaped, so `&amp;` split across elements stays as written
+  ([\#133](https://github.com/pedrobtz/zuhtml/issues/133)).
+
 - The shared object is compiled with hidden symbol visibility and
   exports only `R_init_zuhtml`, so its internal and vendored ‘Gumbo’
   symbols cannot clash with another library loaded into the same

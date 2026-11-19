@@ -29,7 +29,8 @@ other nodes and for missing nodes.
 The conversion covers:
 
 - headings (`#` to `######`), paragraphs and the other block elements
-  (separated by blank lines), and thematic breaks (`<hr>`, as `---`);
+  (separated by blank lines), and thematic breaks (`<hr>`, as `---`, or
+  as `***` where it opens a `-` list item);
 
 - emphasis (`<em>`, `<i>`) as `*...*` and strong (`<strong>`, `<b>`) as
   `**...**`, where CommonMark reads it back as written: emphasis that
