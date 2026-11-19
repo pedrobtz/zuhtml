@@ -17,7 +17,7 @@
 html_title <- function(x) {
   call <- sys.call()
   n <- zuh_nodes(x, call = call)
-  titles <- html_elements(n$doc, "title")
+  titles <- zuh_elements(n$doc, "title")
   titles <- titles[html_namespace(titles) == zuh_xhtml]
   if (length(titles) == 0L) return(NA_character_)
   t <- paste(html_text(titles[1L]), collapse = "")
@@ -209,8 +209,8 @@ zuh_item_props <- function(item) {
 }
 
 zuh_scope_props <- function(e, start, own) {
-  cand <- html_elements(e, "[itemprop]")
-  near <- as.integer(html_closest(html_parent(cand), "[itemscope]"))
+  cand <- zuh_elements(e, "[itemprop]")
+  near <- as.integer(zuh_closest(html_parent(cand), "[itemscope]"))
   keep <- if (own) near %in% start else is.na(near) | near < start
   ids <- as.integer(cand)[keep]
   if (!own && !is.na(html_attr(e, "itemprop"))) ids <- c(start, ids)
@@ -222,7 +222,7 @@ zuh_scope_props <- function(e, start, own) {
 # so any character and any length works.
 zuh_by_id <- function(doc, ids) {
   if (length(ids) == 0L) return(new_nodeset(integer(), doc))
-  all <- html_elements(doc, "[id]")
+  all <- zuh_elements(doc, "[id]")
   m <- match(ids, html_attr(all, "id"))
   m[is.na(ids) | !nzchar(ids)] <- NA_integer_
   all[m]

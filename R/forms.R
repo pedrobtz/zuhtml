@@ -69,7 +69,7 @@ html_forms <- function(x) {
   doc <- zuh_owner(forms)
   if (length(forms) == 0L) return(list())
   base <- zuh_doc_base(doc)
-  ctrls <- zuh_html_only(html_elements(doc,
+  ctrls <- zuh_html_only(zuh_elements(doc,
                                        "input, select, textarea, button"))
   owner <- zuh_form_owner(ctrls, doc)
   lapply(seq_along(forms), function(i) {
@@ -97,13 +97,13 @@ zuh_html_only <- function(x) x[html_namespace(x) %in% zuh_xhtml]
 # The nearest inclusive ancestor of each node matching css that is an HTML
 # element, or a missing node: an SVG or MathML match is skipped.
 zuh_closest_html <- function(x, css) {
-  out <- html_closest(x, css)
+  out <- zuh_closest(x, css)
   ids <- as.integer(out)
   doc <- zuh_owner(out)
   repeat {
     foreign <- !is.na(ids) & !(html_namespace(out) %in% zuh_xhtml)
     if (!any(foreign)) return(out)
-    ids[foreign] <- as.integer(html_closest(html_parent(out[foreign]), css))
+    ids[foreign] <- as.integer(zuh_closest(html_parent(out[foreign]), css))
     out <- new_nodeset(ids, doc)
   }
 }
@@ -123,7 +123,7 @@ zuh_form_owner <- function(ctrls, doc) {
   owner[has_ref] <- ifelse(is_form, as.integer(target), NA_integer_)
   # Forms the parser closed at once inside a table own the unowned controls
   # that follow them in that table, up to the next form.
-  forms <- zuh_html_only(html_elements(doc, "form"))
+  forms <- zuh_html_only(zuh_elements(doc, "form"))
   empty <- forms[html_name(html_parent(forms)) %in%
                    c("table", "tbody", "thead", "tfoot", "tr") &
                    lengths(lapply(seq_along(forms), function(i) {
@@ -134,10 +134,10 @@ zuh_form_owner <- function(ctrls, doc) {
     cid <- as.integer(ctrls)
     for (k in seq_along(empty)) {
       e <- as.integer(empty[k])
-      table <- html_closest(empty[k], "table")
+      table <- zuh_closest(empty[k], "table")
       later <- fid[fid > e]
       stop_at <- if (length(later)) min(later) else Inf
-      inside <- as.integer(html_closest(ctrls, "table")) ==
+      inside <- as.integer(zuh_closest(ctrls, "table")) ==
         as.integer(table)
       take <- is.na(owner) & is.na(ref) & cid > e & cid < stop_at &
         !is.na(inside) & inside
@@ -225,7 +225,7 @@ zuh_display_size <- function(size, multiple) {
 # with none marked selected selects its first enabled option when its
 # display size is 1, and one with several keeps the last.
 zuh_options <- function(select, multiple, size = 1) {
-  o <- html_elements(select, "option")
+  o <- zuh_elements(select, "option")
   label <- html_attr(o, "label")
   text <- gsub("[ \t\n\r\f]+", " ",
                trimws(html_text(o), whitespace = "[ \t\n\r\f]"))
@@ -233,7 +233,7 @@ zuh_options <- function(select, multiple, size = 1) {
   value[is.na(value)] <- text[is.na(value)]
   label[is.na(label) | !nzchar(label)] <- text[is.na(label) | !nzchar(label)]
   disabled <- !is.na(html_attr(o, "disabled")) |
-    !is.na(as.integer(html_closest(html_parent(o), "optgroup[disabled]")))
+    !is.na(as.integer(zuh_closest(html_parent(o), "optgroup[disabled]")))
   selected <- !is.na(html_attr(o, "selected"))
   if (!multiple) {
     if (sum(selected) > 1L) {
@@ -257,7 +257,7 @@ zuh_disabled <- function(ctrls) {
                 html_namespace(anc) %in% zuh_xhtml &
                 !is.na(html_attr(anc, "disabled"))]
     for (k in seq_along(fs)) {
-      legend <- html_element(fs[k], ":scope > legend")
+      legend <- zuh_element(fs[k], ":scope > legend")
       inside <- !is.na(unclass(legend)) &&
         as.integer(legend) %in% as.integer(anc)
       if (!inside) return(TRUE)

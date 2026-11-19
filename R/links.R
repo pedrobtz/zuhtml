@@ -96,7 +96,7 @@ html_links <- function(x, absolute = FALSE) {
 # base_url alone. NA if there is none.
 zuh_doc_base <- function(doc) {
   given <- if (is.null(doc$base_url)) NA_character_ else doc$base_url
-  b <- html_elements(doc, "base[href]")
+  b <- zuh_elements(doc, "base[href]")
   b <- b[html_namespace(b) %in% zuh_xhtml]
   if (length(b)) {
     r <- zuh_resolve(html_attr(b[1L], "href"), given)

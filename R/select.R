@@ -68,43 +68,54 @@
 #'
 #' try(html_elements(doc, "div:has(h2)"))
 html_elements <- function(x, css) {
-  call <- sys.call()
-  n <- zuh_nodes(x, call = call)
-  res <- zuh_select(n, css, 0L, call)
-  new_nodeset(res, n$doc)
+  zuh_find(x, css, 0L, sys.call(), user = TRUE)
 }
 
 #' @rdname html_elements
 #' @export
 html_element <- function(x, css) {
-  call <- sys.call()
-  n <- zuh_nodes(x, call = call)
-  new_nodeset(zuh_select(n, css, 1L, call), n$doc)
+  zuh_find(x, css, 1L, sys.call(), user = TRUE)
 }
 
 #' @rdname html_elements
 #' @export
 html_matches <- function(x, css) {
-  call <- sys.call()
-  zuh_select(zuh_nodes(x, call = call), css, 2L, call)
+  zuh_find(x, css, 2L, sys.call(), user = TRUE)
 }
 
 #' @rdname html_elements
 #' @export
 html_filter <- function(x, css) {
-  call <- sys.call()
+  zuh_filter(x, css, sys.call(), user = TRUE)
+}
+
+# Selection by mode: 0 elements, 1 element, 2 matches, 3 closest. `user`
+# says whether `css` is the caller's. max_selector_length bounds only the
+# caller's selectors, not the package's own fixed ones (#124), which the
+# internal helpers below pass.
+zuh_find <- function(x, css, mode, call, user = FALSE) {
+  n <- zuh_nodes(x, call = call)
+  res <- zuh_select(n, css, mode, call, user)
+  if (mode == 2L) res else new_nodeset(res, n$doc)
+}
+
+zuh_filter <- function(x, css, call = sys.call(-1L), user = FALSE) {
   if (!inherits(x, "zuhtml_nodeset")) {
     zuh_input_error("x", "`x` must be a zuhtml_nodeset.", call = call)
   }
-  x[html_matches(x, css) %in% TRUE]
+  x[zuh_find(x, css, 2L, call, user) %in% TRUE]
 }
+
+zuh_elements <- function(x, css) zuh_find(x, css, 0L, sys.call(-1L))
+zuh_element <- function(x, css) zuh_find(x, css, 1L, sys.call(-1L))
+zuh_closest <- function(x, css) zuh_find(x, css, 3L, sys.call(-1L))
 
 # A bound on matching work per call, in compound-selector tests. Matching is
 # near-linear in practice; this stops a pathological selector and document
 # pair long before it would stall a session.
 zuh_selector_work_limit <- 1e9
 
-zuh_select <- function(nodes, css, mode, call) {
+zuh_select <- function(nodes, css, mode, call, user) {
   if (!is.character(css) || length(css) != 1L || is.na(css)) {
     zuh_input_error("css", "`css` must be a single selector string.",
                     call = call)
@@ -118,7 +129,7 @@ zuh_select <- function(nodes, css, mode, call) {
   limits <- nodes$doc$limits
   max_len <- if (is.null(limits)) html_limits()$max_selector_length else
     limits$max_selector_length
-  if (nchar(css, type = "bytes") > max_len) {
+  if (user && nchar(css, type = "bytes") > max_len) {
     zuh_limit_error(
       "max_selector_length", max_len, nchar(css, type = "bytes"),
       sprintf("The selector is longer than max_selector_length = %.0f bytes.",
@@ -183,7 +194,5 @@ zuh_selector_failure <- function(res, css, call) {
 #' html_attr(html_closest(bold, "tr"), "id")
 #' html_closest(bold, "ul")
 html_closest <- function(x, css) {
-  call <- sys.call()
-  n <- zuh_nodes(x, call = call)
-  new_nodeset(zuh_select(n, css, 3L, call), n$doc)
+  zuh_find(x, css, 3L, sys.call(), user = TRUE)
 }

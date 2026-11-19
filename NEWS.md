@@ -74,7 +74,11 @@
 
 * `html_limits(max_selector_length =)` now takes effect: a document keeps
   the limits it was parsed with, and selection on it uses their
-  `max_selector_length` (#83).
+  `max_selector_length` (#83). It bounds only the selectors the caller
+  passes, so extraction functions such as `html_forms()`, `html_links()`
+  and `html_title()` work on a document parsed with a small
+  `max_selector_length`; their own selectors had been refused with a
+  `zuhtml_limit_error` (#124).
 
 * `print()` of `html_limits()` and `html_info()` works under
   `options(OutDec = ",")` (#110).
