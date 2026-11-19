@@ -160,10 +160,91 @@ test_that("arithmetic and comparison on a nodeset are refused", {
   p <- html_elements(html_parse("<p>a</p><p>b</p>"), "p")
   expect_error(p + 1L, class = "zuhtml_input_error")
   expect_error(1L - p, class = "zuhtml_input_error")
-  expect_error(p == p, class = "zuhtml_input_error")
+  expect_error(p < p, class = "zuhtml_input_error")
+  expect_error(p >= p, class = "zuhtml_input_error")
   expect_error(-p, class = "zuhtml_input_error")
+  expect_error(!p, class = "zuhtml_input_error")
+  expect_error(p & p, class = "zuhtml_input_error")
   expect_error(abs(p), class = "zuhtml_input_error")
   expect_identical(as.integer(p) + 1L, as.vector(unclass(p)) + 1L)
+})
+
+test_that("== and != compare nodes of one document by identity (#151)", {
+  doc <- html_parse("<div><p>a</p><p>a</p></div><div><p>a</p></div>")
+  p <- html_elements(doc, "p")
+  parent <- html_parent(p)
+  expect_identical(parent == parent[1], c(TRUE, TRUE, FALSE))
+  expect_identical(parent != parent[3], c(TRUE, TRUE, FALSE))
+  # Equal text and markup, different nodes.
+  expect_identical(p[1] == p[2], FALSE)
+  expect_identical(p == rev(p), c(FALSE, TRUE, FALSE))
+  # A missing node compares as NA.
+  expect_identical(p[c(1, 4)] == p[1], c(TRUE, NA))
+  expect_identical(p[0] == p, logical())
+})
+
+test_that("== and != refuse nodes of another document and numbers (#151)", {
+  a <- html_elements(html_parse("<p>a</p>"), "p")
+  b <- html_elements(html_parse("<p>a</p>"), "p")
+  expect_identical(as.integer(a), as.integer(b))
+  expect_error(a == b, class = "zuhtml_input_error")
+  expect_error(a != b, class = "zuhtml_input_error")
+  expect_error(a == as.integer(a), class = "zuhtml_input_error")
+  expect_error(as.integer(a) != a, class = "zuhtml_input_error")
+  expect_error(a == NA, class = "zuhtml_input_error")
+})
+
+test_that("Summary functions, mean() and diff() on a nodeset are refused (#128)", {
+  p <- html_elements(html_parse("<p>a</p><p>b</p><p>c</p>"), "p")
+  for (f in list(sum, max, min, range, prod, any, all)) {
+    expect_error(f(p), class = "zuhtml_input_error")
+  }
+  expect_error(max(p, 1L), class = "zuhtml_input_error")
+  expect_error(mean(p), class = "zuhtml_input_error")
+  expect_error(median(p), class = "zuhtml_input_error")
+  expect_error(diff(p), class = "zuhtml_input_error")
+})
+
+test_that("match() and %in% compare nodes, not their markup (#128)", {
+  doc <- html_parse("<p>a</p><p>a</p><p>b</p>")
+  p <- html_elements(doc, "p")
+  expect_identical(match(p, p[2:3]), c(NA, 1L, 2L))
+  expect_identical(p %in% p[1], c(TRUE, FALSE, FALSE))
+  expect_identical(html_text(setdiff(p, p[1])), c("a", "b"))
+  expect_identical(match(p[c(1, 4)], p[c(4, 1)]), c(2L, 1L))
+})
+
+test_that("match() and %in% find no node of another document (#128)", {
+  a <- html_elements(html_parse("<p>a</p><p>b</p>"), "p")
+  b <- html_elements(html_parse("<p>a</p><p>b</p>"), "p")
+  expect_identical(as.integer(a), as.integer(b))
+  expect_identical(match(a, b), c(NA_integer_, NA_integer_))
+  expect_identical(a %in% b, c(FALSE, FALSE))
+  expect_identical(setdiff(a, b), a)
+})
+
+test_that("xtfrm(), order() and sort() follow document order (#128)", {
+  doc <- html_parse("<p>1</p><p>2</p><p>3</p>")
+  p <- html_elements(doc, "p")
+  x <- p[c(3, 1, 2)]
+  expect_identical(xtfrm(x), as.integer(x))
+  expect_identical(order(x), c(2L, 3L, 1L))
+  expect_identical(sort(x), p)
+  expect_identical(html_text(sort(x, decreasing = TRUE)), c("3", "2", "1"))
+  expect_identical(html_document(sort(x)), doc)
+})
+
+test_that("rank() needs ordering, which stays refused (#151)", {
+  p <- html_elements(html_parse("<p>1</p><p>2</p>"), "p")
+  expect_error(rank(p), class = "zuhtml_input_error")
+  expect_identical(rank(as.integer(p[2:1])), c(2, 1))
+})
+
+test_that("assigning NA with a number into a nodeset is refused (#128)", {
+  p <- html_elements(html_parse("<p>a</p><p>b</p>"), "p")
+  expect_error(p[1:2] <- c(NA, 1L), class = "zuhtml_input_error")
+  expect_error(p[[1]] <- c(NA, 1L), class = "zuhtml_input_error")
+  expect_identical(html_text(p), c("a", "b"))
 })
 
 test_that("length<- keeps the class and pads with missing nodes", {

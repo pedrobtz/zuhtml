@@ -326,3 +326,20 @@ test_that("the raw-input bound is reported as four times max_input (#85)", {
   doc <- html_parse(x[-(1:30)], encoding = "ISO-2022-JP", limits = lim)
   expect_identical(html_info(doc)$input_bytes, 2)
 })
+
+test_that("the raw-input bound admits exactly four times max_input (#132)", {
+  skip_without_iconv("ISO-2022-JP")
+  # Each escape is three bytes that decode to nothing, so both inputs
+  # decode to well within max_input; only the raw bound separates them.
+  lim <- html_limits(max_input = 10)
+  at <- charToRaw(paste0(strrep("\033(B", 12), "abcd"))
+  over <- charToRaw(paste0(strrep("\033(B", 13), "ab"))
+  expect_length(at, 40L)
+  expect_length(over, 41L)
+  doc <- html_parse(at, encoding = "ISO-2022-JP", limits = lim)
+  expect_identical(html_info(doc)$input_bytes, 4)
+  err <- expect_error(html_parse(over, encoding = "ISO-2022-JP", limits = lim),
+                      class = "zuhtml_limit_error")
+  expect_identical(err$limit, "max_input")
+  expect_identical(err$observed, 41)
+})

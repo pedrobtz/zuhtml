@@ -194,3 +194,18 @@ test_that("html_forms() scopes to the given nodes", {
   expect_identical(f[[1]]$fields$name, "y")
   expect_length(html_forms(html_elements(doc, "form")), 2L)
 })
+
+test_that("a signed zero select size is display size 0 (#132)", {
+  # The rules for parsing non-negative integers accept a sign; "-0" and
+  # "+0" are 0, not negative, so neither select is a drop-down.
+  doc <- html_parse(paste0(
+    "<form>",
+    "<select name=m0 size=-0><option>a<option>b</select>",
+    "<select name=p0 size=+0><option>a<option>b</select>",
+    "<select name=m00 size=' -00x'><option>a<option>b</select>",
+    "</form>"
+  ))
+  fl <- html_forms(doc)[[1]]$fields
+  expect_identical(stats::setNames(fl$value, fl$name),
+                   c(m0 = "", p0 = "", m00 = ""))
+})

@@ -24,8 +24,8 @@ The text nodes of each node's subtree, in tree order, as separate
 strings: the pieces \code{\link[=html_text]{html_text()}} concatenates. Boundaries between
 elements are kept, which matters when the markup, not whitespace,
 separates values (\verb{<td>1</td><td>2</td>} is \code{"1"}, \code{"2"}, not \code{"12"}).
-Text inside \verb{<script>}, \verb{<style>} and \verb{<template>} is skipped, as are
-comments.
+Text inside \verb{<script>} and \verb{<style>} (HTML's and SVG's) and \verb{<template>}
+is skipped, as are comments.
 }
 \examples{
 doc <- html_parse("<p>One <b>two</b>\n  <i> three </i></p>")

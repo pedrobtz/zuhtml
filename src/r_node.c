@@ -560,7 +560,9 @@ skipped_container(const zuh_doc *doc, const zuh_node *n) {
     return 0;
   if ((n->flags & ZUH_FLAG_TEMPLATE) != 0)
     return 1;
-  if (n->ns != ZUH_NS_HTML)
+  /* SVG has its own <script> and <style>, which hold code as HTML's do;
+   * MathML has neither (as kind_of() in zuh_text.c). */
+  if (n->ns != ZUH_NS_HTML && n->ns != ZUH_NS_SVG)
     return 0;
   name = zuh_str(doc, n->name);
   return strcmp(name, "script") == 0 || strcmp(name, "style") == 0;

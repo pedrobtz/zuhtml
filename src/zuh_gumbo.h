@@ -34,7 +34,9 @@ typedef struct {
 typedef struct {
   size_t observed;        /* for a limit status: the value that tripped it */
   size_t n_allocs;        /* allocations Gumbo requested */
-  size_t peak_bytes;      /* peak live bytes in the ledger */
+  size_t peak_bytes;      /* the most memory max_memory counted at once:
+                             ledger bytes, headers included, or the
+                             ledger plus the frozen arrays at conversion */
 } zuh_parse_stats;
 
 /* Parse `len` bytes of UTF-8 at `buf` and convert the tree into `doc`,

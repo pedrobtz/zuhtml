@@ -72,7 +72,7 @@ zuh_list_text <- function(l) {
 
 # The lists an item owns: the outermost <ul>/<ol> elements inside it.
 zuh_owned_lists <- function(li) {
-  cand <- html_elements(li, "ul, ol")
+  cand <- zuh_elements(li, "ul, ol")
   cand <- cand[html_namespace(cand) %in% zuh_xhtml]
   n <- zuh_nodes(cand)
   new_nodeset(zuh_checked(.Call(C_zuh_outermost, n$doc$ptr, n$ids), n),
