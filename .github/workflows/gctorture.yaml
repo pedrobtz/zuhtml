@@ -1,0 +1,87 @@
+# gctorture through r-actions' gctorture.yml, as its examples/gctorture.yml
+# caller does. It was a job in native-checks.yaml that passed no `profile`,
+# so every pull request ran step 20, the full setting: about 100 minutes and
+# up against the 120-minute job limit by 2026-11-18.
+#
+# Pull requests run the wide quick-step (500) under a 10-minute budget; past
+# it the check fails. The weekly schedule and a manual dispatch run step 20,
+# the sensitive setting: dispatch it on a branch with
+# `gh workflow run gctorture.yaml --ref <branch>` before a release, or before
+# merging a change to PROTECTs or finalizers.
+#
+# No `push:`: a pull request already checks its merge with main, and the
+# schedule checks main (r-actions README, "Pushes to main").
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+  schedule:
+    - cron: "29 5 * * 0"
+  workflow_dispatch:
+
+name: gctorture
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  gctorture:
+    if: >-
+      github.event_name != 'pull_request'
+      || contains(github.event.pull_request.labels.*.name, 'full-ci')
+      || !(contains(github.event.pull_request.labels.*.name, 'ci:docs')
+        || contains(github.event.pull_request.labels.*.name, 'ci:minimal')
+        || contains(github.event.pull_request.labels.*.name, 'skip-ci:gctorture'))
+    uses: pedrobtz/r-actions/.github/workflows/gctorture.yml@v1
+    with:
+      profile: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && 'full' || 'quick' }}
+      # Inverted, because `cond && 0 || 10` is always 10: an expression
+      # treats 0 as false.
+      test-timeout-minutes: ${{ (github.event_name != 'schedule' && github.event_name != 'workflow_dispatch') && 10 || 0 }}
+      timeout-minutes: 240
+
+  # A scheduled failure otherwise notifies only whoever last edited the cron
+  # line. This keeps one open issue, labelled gctorture, while the scheduled
+  # run is red: it opens it, comments at each further failure, and closes it
+  # on the next green run.
+  report:
+    needs: gctorture
+    # always(), so a failed or timed-out run is reported rather than skipping
+    # this job; skipped means a docs-only change and says nothing.
+    if: ${{ always() && github.event_name == 'schedule' && needs.gctorture.result != 'skipped' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - name: Open, update or close the gctorture issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RESULT: ${{ needs.gctorture.result }}
+          RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -eu
+          open=$(gh issue list --repo "$REPO" --label gctorture --state open \
+                   --json number --jq '.[0].number // empty')
+          if [ "$RESULT" = success ]; then
+            if [ -n "$open" ]; then
+              gh issue close "$open" --repo "$REPO" --comment "Green again on ${SHA:0:7}: $RUN"
+            fi
+            exit 0
+          fi
+          # A job that reached timeout-minutes is `cancelled`; that is a
+          # failure here too.
+          body="Scheduled gctorture at step 20 ended \`$RESULT\` on ${SHA:0:7}: $RUN"
+          if [ -n "$open" ]; then
+            gh issue comment "$open" --repo "$REPO" --body "$body"
+          else
+            gh label create gctorture --repo "$REPO" --color B60205 \
+              --description "Scheduled gctorture run is failing" --force
+            gh issue create --repo "$REPO" --label gctorture \
+              --title "Scheduled gctorture fails" --body "$body"
+          fi

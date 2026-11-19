@@ -4,6 +4,11 @@
 # pointer finalizers and R-level long jumps out of C run under
 # instrumentation. Reusable workflows from pedrobtz/r-actions.
 #
+# `profile: auto` goes to the three workflows it changes: quick (an ordinary
+# pull request) skips the ASan containers, valgrind and cran-special's extra
+# legs; full runs them (schedule, dispatch, a `full-ci` pull request).
+# gctorture has its own caller, gctorture.yaml.
+#
 # Gating follows ci.md. Each r-actions workflow gates itself on the changed
 # files through its own `changes` job; every job first tests the labels
 # (`ci:docs`, `ci:minimal`, `skip-ci:<job>`; `full-ci` overrides), so a
@@ -39,6 +44,7 @@ jobs:
     uses: pedrobtz/r-actions/.github/workflows/sanitizers.yml@v1
     with:
       asan: true
+      profile: auto
 
   # --leak-check=full, so a leak arrives with a stack; only definite and
   # indirect leaks count, since "possibly lost" includes interior pointers
@@ -52,6 +58,7 @@ jobs:
         || contains(github.event.pull_request.labels.*.name, 'skip-ci:valgrind'))
     uses: pedrobtz/r-actions/.github/workflows/valgrind.yml@v1
     with:
+      profile: auto
       valgrind-opts: >-
         --leak-check=full
         --show-leak-kinds=definite,indirect
@@ -59,15 +66,6 @@ jobs:
       # R's own do_iconv() leaks a buffer when it errors on an unknown
       # encoding, which a test provokes; the file has the mechanism.
       suppressions: "tools/valgrind.supp"
-
-  gctorture:
-    if: >-
-      github.event_name != 'pull_request'
-      || contains(github.event.pull_request.labels.*.name, 'full-ci')
-      || !(contains(github.event.pull_request.labels.*.name, 'ci:docs')
-        || contains(github.event.pull_request.labels.*.name, 'ci:minimal')
-        || contains(github.event.pull_request.labels.*.name, 'skip-ci:gctorture'))
-    uses: pedrobtz/r-actions/.github/workflows/gctorture.yml@v1
 
   # Hard-failing: an unprotected SEXP is the class of bug that ships green
   # and corrupts memory in someone else's session.
@@ -122,4 +120,4 @@ jobs:
         || contains(github.event.pull_request.labels.*.name, 'skip-ci:cran-special'))
     uses: pedrobtz/r-actions/.github/workflows/cran-special.yml@v1
     with:
-      profile: ${{ github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'full-ci') && 'quick' || 'full' }}
+      profile: auto
