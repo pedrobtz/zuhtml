@@ -78,8 +78,21 @@ zuh_check_flag <- function(x, arg, call) {
 #' `unique()` and `length<-` keep the owner; `length<-` pads with missing
 #' nodes. `c()`, `[<-` and `[[<-` accept only nodes of the same document
 #' (and, for assignment, `NA` for a missing node), and raise a
-#' `zuhtml_input_error` otherwise. Arithmetic, comparison and math
-#' functions are refused: use `as.integer()` to work with the IDs.
+#' `zuhtml_input_error` otherwise.
+#'
+#' `==` and `!=` between two nodesets of the same document compare node
+#' identity, element by element: two `<p>a</p>` elements are different
+#' nodes. Comparing nodes of different documents, or a nodeset with
+#' anything else, is a `zuhtml_input_error`. `match()`, `%in%`,
+#' `setdiff()` and the other set operations compare nodes too, so a node is
+#' never found among another document's nodes. `sort()`, `order()` and
+#' `xtfrm()` follow document order.
+#'
+#' Every other operator (arithmetic, `<` and the other orderings, `!`,
+#' `&`), the math functions, `sum()`, `max()`, `range()` and the rest of
+#' the Summary group, `mean()`, `median()` and `diff()` are refused with a
+#' `zuhtml_input_error`, and so is `rank()`, which needs `>`. Use
+#' `as.integer()` to work with the IDs as numbers.
 #'
 #' @param x A `zuhtml_document` or `zuhtml_nodeset`. A document stands for
 #'   its document node.

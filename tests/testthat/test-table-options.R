@@ -195,3 +195,33 @@ test_that("convert options are validated", {
   expect_identical(tab(html, header = FALSE, convert = TRUE,
                        decimal = "]", thousands = "^")$V1, 1L)
 })
+
+test_that("unmarked non-ASCII na, match and marks are UTF-8 in a C locale (#125)", {
+  na <- "\xc3\xa9"
+  dot <- "\xc2\xb7"
+  nbsp <- "\xc2\xa0"
+  html <- paste0("<table><tr><th>a<th>b<th>c",
+                 "<tr><td>é<td>1·5<td>1 234</table>")
+  local_c_ctype()
+  expect_identical(tab(html, na = na)$a, NA_character_)
+  doc <- html_parse(html)
+  expect_length(html_tables(doc, match = na), 1L)
+  expect_length(html_tables(doc, match = paste0("^", dot)), 0L)
+  expect_identical(tab(html, convert = TRUE, decimal = dot)$b, 1.5)
+  expect_identical(tab(html, convert = TRUE, thousands = nbsp)$c, 1234L)
+})
+
+test_that("na, match and marks that are not valid UTF-8 are input errors (#125)", {
+  bytes <- "\xc3\xa9"
+  Encoding(bytes) <- "bytes"
+  html <- "<table><tr><td>1</table>"
+  doc <- html_parse(html)
+  for (b in list("\xff", bytes)) {
+    expect_error(tab(html, na = c("x", b)), class = "zuhtml_input_error")
+    expect_error(html_tables(doc, match = b), class = "zuhtml_input_error")
+    expect_error(tab(html, convert = TRUE, decimal = b),
+                 class = "zuhtml_input_error")
+    expect_error(tab(html, convert = TRUE, thousands = b),
+                 class = "zuhtml_input_error")
+  }
+})

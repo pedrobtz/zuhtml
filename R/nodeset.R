@@ -64,24 +64,73 @@ zuh_assign_ids <- function(x, value, call) {
 # Node IDs are document-local labels, not numbers: arithmetic on them, or
 # comparing them, would silently address or match other nodes. Use
 # as.integer() to work with the IDs themselves.
+# The exception is `==` and `!=` between nodesets of one document, which
+# compare node identity (#151).
 #' @export
 Ops.zuhtml_nodeset <- function(e1, e2) {
+  call <- sys.call()
+  if (.Generic %in% c("==", "!=") && !missing(e2) &&
+      inherits(e1, "zuhtml_nodeset") && inherits(e2, "zuhtml_nodeset")) {
+    if (!identical(zuh_owner(e1)$ptr, zuh_owner(e2)$ptr)) {
+      zuh_input_error(
+        "e2", "Nodes from different documents cannot be compared.",
+        call = call
+      )
+    }
+    a <- as.integer(e1)
+    b <- as.integer(e2)
+    return(if (.Generic == "==") a == b else a != b)
+  }
+  zuh_refuse_ids(sprintf("`%s`", .Generic), call)
+}
+
+zuh_refuse_ids <- function(what, call) {
   zuh_input_error(
     "x",
-    sprintf(paste0("`%s` is not defined for nodesets; use as.integer() ",
-                   "for the node IDs."), .Generic),
-    call = sys.call()
+    sprintf("%s is not defined for nodesets; use as.integer() for the node IDs.",
+            what),
+    call = call
   )
 }
 
 #' @export
 Math.zuhtml_nodeset <- function(x, ...) {
-  zuh_input_error(
-    "x",
-    sprintf(paste0("`%s()` is not defined for nodesets; use as.integer() ",
-                   "for the node IDs."), .Generic),
-    call = sys.call()
-  )
+  zuh_refuse_ids(sprintf("`%s()`", .Generic), sys.call())
+}
+
+#' @export
+Summary.zuhtml_nodeset <- function(..., na.rm = FALSE) {
+  zuh_refuse_ids(sprintf("`%s()`", .Generic), sys.call())
+}
+
+#' @export
+mean.zuhtml_nodeset <- function(x, ...) {
+  zuh_refuse_ids("`mean()`", sys.call())
+}
+
+#' @exportS3Method stats::median
+median.zuhtml_nodeset <- function(x, na.rm = FALSE, ...) {
+  zuh_refuse_ids("`median()`", sys.call())
+}
+
+#' @export
+diff.zuhtml_nodeset <- function(x, ...) {
+  zuh_refuse_ids("`diff()`", sys.call())
+}
+
+# Sorting and ordering go by ID, which is document order.
+#' @export
+xtfrm.zuhtml_nodeset <- function(x) as.integer(x)
+
+# match(), %in%, setdiff() and the other set operations compare nodes: a
+# node of one document is never found among another document's nodes,
+# whatever its ID or markup. Missing nodes stay NA.
+#' @export
+mtfrm.zuhtml_nodeset <- function(x) {
+  ids <- as.integer(x)
+  out <- paste0(format(zuh_owner(x)$ptr), "#", ids)
+  out[is.na(ids)] <- NA_character_
+  out
 }
 
 #' @export

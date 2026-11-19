@@ -55,6 +55,15 @@
   `html_attr()`, instead of each byte becoming the text `<c3>` (#92).
   Selector error positions count characters there too.
 
+* The same holds for `base_url` (of `html_parse()`, `html_fragment()`,
+  `html_read()` and `html_url()`) and for `html_table()`'s `na`, `decimal`
+  and `thousands` and `html_tables()`'s `match`. In a C locale a non-ASCII
+  base URL had come out of `html_url()`, `html_links()` and
+  `html_markdown()` as the text `<c3><a9>`, `na` had matched nothing and
+  `match` had failed with an unclassed error. Each of these arguments that
+  is not valid UTF-8, or is marked as `"bytes"`, is now a
+  `zuhtml_input_error` (#125).
+
 * A `<meta>` charset label with a non-ASCII byte is ignored as an unknown
   label, in every locale, instead of failing with an unclassed error, so a
   later valid declaration is used (#93).
@@ -77,7 +86,11 @@
 
 * `html_limits(max_selector_length =)` now takes effect: a document keeps
   the limits it was parsed with, and selection on it uses their
-  `max_selector_length` (#83).
+  `max_selector_length` (#83). It bounds only the selectors the caller
+  passes, so extraction functions such as `html_forms()`, `html_links()`
+  and `html_title()` work on a document parsed with a small
+  `max_selector_length`; their own selectors had been refused with a
+  `zuhtml_limit_error` (#124).
 
 * `print()` of `html_limits()` and `html_info()` works under
   `options(OutDec = ",")` (#110).
@@ -90,9 +103,21 @@
   `NA`, as `c()` already did. Assigning a node of another document, or a
   bare number, used to keep its ID and silently address a different node
   of the target document; it is now a `zuhtml_input_error` (#82).
-  Arithmetic, comparison and math functions on a nodeset are refused the
+  Arithmetic, ordering and math functions on a nodeset are refused the
   same way (use `as.integer()` for the IDs), and `length<-` keeps the
   nodeset class, padding with missing nodes.
+
+* `==` and `!=` between two nodesets of the same document compare node
+  identity, as `html_parent(a) == html_parent(b)` did in 0.1.0; across
+  documents, or with a number, they are a `zuhtml_input_error` (#151).
+  `sum()`, `max()`, `range()` and the rest of the Summary group, `mean()`,
+  `median()` and `diff()` are refused like arithmetic, instead of
+  computing on the IDs; `rank()`, which needs `>`, is refused too (use
+  `rank(as.integer(x))`). `sort()` and `order()` follow document order
+  through a new `xtfrm()` method. `match()`, `%in%` and `setdiff()`
+  compare nodes, not their serialized markup, so two identical `<p>a</p>`
+  elements no longer match each other, and a node never matches one of
+  another document (#128).
 
 * Printing a nodeset shows a newline in text as `\n`, not `\\n` (#109).
   `print(x, n =)` checks that `n` is a single non-negative whole number
