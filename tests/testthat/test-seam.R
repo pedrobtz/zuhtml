@@ -174,6 +174,12 @@ test_that("every native status maps to a classed condition", {
                       class = "zuhtml_limit_error")
   expect_identical(err$limit, "arena")
   expect_identical(err$observed, 5e9)
+  # limit_memory from a result builder cannot be reached from R (#126):
+  # the builders' zuh_buf and table grid are R_alloc-backed, and R_alloc
+  # long-jumps with R's own error instead of returning NULL, so the status
+  # comes only from a size_t overflow in zuh_buf_put(), past what a 64-bit
+  # build can allocate. ?zuhtml-conditions says R's error is what users
+  # see; the mapping is checked here by a synthetic status.
   err <- expect_error(zuhtml:::zuh_checked(status("limit_memory", NA), n),
                       class = "zuhtml_limit_error")
   expect_identical(err$limit, "memory")
@@ -192,6 +198,9 @@ test_that("every native status maps to a classed condition", {
 })
 
 test_that("the tree dump is a string, through the cleanup-safe path", {
+  # Only the path that returns: the cleanup that frees the malloc'd dump
+  # runs when R fails to allocate the string, which no test can force
+  # (#86, #126; alloc-failure, gap #62 in .agents/assurance.md).
   doc <- html_parse("<p>x")
   out <- .Call(zuhtml:::C_zuh_doc_dump, doc$ptr)
   expect_type(out, "character")

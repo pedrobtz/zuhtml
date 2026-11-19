@@ -109,9 +109,11 @@
 * Native failures outside parsing are classed conditions (#84). A result
   string longer than R allows, from `html_text()`, `html_text_clean()`,
   `html_markdown()` or `html_serialize()`, is a `zuhtml_limit_error` with
-  `limit = "string_length"`, and running out of native memory while
-  building a result or a table grid one with `limit = "memory"`; both were
-  plain R errors. A document whose attributes or strings overflow the
+  `limit = "string_length"`; it was a plain R error. Running out of memory
+  while building a result or a table grid is still R's own error ("cannot
+  allocate vector of size ..."), because R allocates those buffers;
+  `?zuhtml-conditions` now says so instead of promising a
+  `zuhtml_limit_error` with `limit = "memory"` (#126). A document whose attributes or strings overflow the
   arena's 32-bit offsets is a `zuhtml_limit_error` with `limit = "arena"`
   rather than a misleading `max_memory` error. A `max_memory` error now
   reports in `observed` the native memory in use where the parse ran past
