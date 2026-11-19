@@ -100,9 +100,21 @@
   `NA`, as `c()` already did. Assigning a node of another document, or a
   bare number, used to keep its ID and silently address a different node
   of the target document; it is now a `zuhtml_input_error` (#82).
-  Arithmetic, comparison and math functions on a nodeset are refused the
+  Arithmetic, ordering and math functions on a nodeset are refused the
   same way (use `as.integer()` for the IDs), and `length<-` keeps the
   nodeset class, padding with missing nodes.
+
+* `==` and `!=` between two nodesets of the same document compare node
+  identity, as `html_parent(a) == html_parent(b)` did in 0.1.0; across
+  documents, or with a number, they are a `zuhtml_input_error` (#151).
+  `sum()`, `max()`, `range()` and the rest of the Summary group, `mean()`,
+  `median()` and `diff()` are refused like arithmetic, instead of
+  computing on the IDs; `rank()`, which needs `>`, is refused too (use
+  `rank(as.integer(x))`). `sort()` and `order()` follow document order
+  through a new `xtfrm()` method. `match()`, `%in%` and `setdiff()`
+  compare nodes, not their serialized markup, so two identical `<p>a</p>`
+  elements no longer match each other, and a node never matches one of
+  another document (#128).
 
 * Printing a nodeset shows a newline in text as `\n`, not `\\n` (#109).
   `print(x, n =)` checks that `n` is a single non-negative whole number
