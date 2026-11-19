@@ -73,7 +73,12 @@ Nothing is returned and all native memory is released. Three fixed
 limits use the same class: <code>"arena"</code>, the most attributes or
 string-pool bytes one document can hold (just under \(2^{32}\));
 <code>"string_length"</code>, R's limit on the bytes of one string; and
-<code>"memory"</code>, when native memory runs out while a result is built.</p></li>
+<code>"memory"</code>, when a result being built grows past what a size can
+count. Results (text, Markdown, serialized HTML, table grids) are built
+in memory R allocates, so running out of memory there is not a
+<code>zuhtml_error</code>: it is R's own error, such as "cannot allocate vector of
+size ...", and R releases what was allocated. Only parsing has a
+native memory budget, <code>max_memory</code>.</p></li>
 <li><p><code>zuhtml_parse_error</code>: an internal invariant of the parser failed. This
 is a bug; please report it.</p></li>
 <li><p><code>zuhtml_pointer_error</code>: a document is no longer available, for example

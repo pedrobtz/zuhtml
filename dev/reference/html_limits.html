@@ -84,7 +84,10 @@ times this.</p></dd>
 
 <dt id="arg-max-memory">max_memory<a class="anchor" aria-label="anchor" href="#arg-max-memory"></a></dt>
 <dd><p>Largest native memory the parser may hold at once, in
-bytes.</p></dd>
+bytes. A parse that runs past it reports the memory in use where it
+stopped, which the parse needs at least; once a parse completes,
+<code>html_info()$parse_peak_bytes</code> is the smallest value that parses that
+input.</p></dd>
 
 
 <dt id="arg-max-depth">max_depth<a class="anchor" aria-label="anchor" href="#arg-max-depth"></a></dt>

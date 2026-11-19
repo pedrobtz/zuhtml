@@ -67,7 +67,9 @@ that owns it.</p></dd>
 <li><p><code>context</code>: a fragment's context element, <code>NA</code> for a document;</p></li>
 <li><p><code>nodes</code>, <code>attributes</code>: counts;</p></li>
 <li><p><code>native_bytes</code>: memory the document owns, outside R's heap;</p></li>
-<li><p><code>parse_peak_bytes</code>: the most memory the parser held at once;</p></li>
+<li><p><code>parse_peak_bytes</code>: the most native memory the parse held at once,
+counted as <code>max_memory</code> counts it, so it is the smallest
+<code>max_memory</code> that parses the same input with the same options;</p></li>
 <li><p><code>input_bytes</code>: size of the decoded UTF-8 input;</p></li>
 <li><p><code>encoding</code>: the encoding the input was decoded from;</p></li>
 <li><p><code>encoding_source</code>: where that encoding came from: <code>"bom"</code> (a
@@ -99,7 +101,7 @@ the doctype selected;</p></li>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   nodes              9</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   attributes         0</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   native_bytes       579</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   parse_peak_bytes   2,307</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   parse_peak_bytes   3,854</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   input_bytes        39</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   encoding           UTF-8</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   encoding_source    string</span>

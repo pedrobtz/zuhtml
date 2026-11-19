@@ -217,13 +217,26 @@
   [`html_markdown()`](https://pedrobtz.github.io/zuhtml/dev/reference/html_markdown.md)
   or
   [`html_serialize()`](https://pedrobtz.github.io/zuhtml/dev/reference/html_serialize.md),
-  is a `zuhtml_limit_error` with `limit = "string_length"`, and running
-  out of native memory while building a result or a table grid one with
-  `limit = "memory"`; both were plain R errors. A document whose
-  attributes or strings overflow the arena’s 32-bit offsets is a
+  is a `zuhtml_limit_error` with `limit = "string_length"`; it was a
+  plain R error. Running out of memory while building a result or a
+  table grid is still R’s own error (“cannot allocate vector of size
+  …”), because R allocates those buffers; `?zuhtml-conditions` now says
+  so instead of promising a `zuhtml_limit_error` with `limit = "memory"`
+  ([\#126](https://github.com/pedrobtz/zuhtml/issues/126)). A document
+  whose attributes or strings overflow the arena’s 32-bit offsets is a
   `zuhtml_limit_error` with `limit = "arena"` rather than a misleading
   `max_memory` error. A `max_memory` error now reports in `observed` the
-  bytes the parse would have needed.
+  native memory in use where the parse ran past the limit.
+
+- A `max_memory` error says where the parse ran past the limit (“ran
+  past max_memory = M bytes at N bytes”), a lower bound on what it
+  needs; it said the parse “needed” N bytes, which was well short of the
+  need. `html_info()$parse_peak_bytes` now counts what `max_memory`
+  counts, conversion’s frozen arrays included, so it is the smallest
+  `max_memory` that parses that input; it was about a fifth lower. A
+  request too large to count is reported as a breach rather than as
+  memory the system refused
+  ([\#130](https://github.com/pedrobtz/zuhtml/issues/130)).
 
 - The internal tree dump used by the tests and the conformance gate no
   longer leaks its buffer if R fails to allocate the result string

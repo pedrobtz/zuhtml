@@ -602,7 +602,7 @@ html_info(checks)[c("nodes", "native_bytes", "parse_peak_bytes")]
 #> [1] 169815628
 #> 
 #> $parse_peak_bytes
-#> [1] 635063237
+#> [1] 804879646
 status <- html_tables(checks, limits = big)[[1]]
 dim(status)
 #> [1] 26160    17

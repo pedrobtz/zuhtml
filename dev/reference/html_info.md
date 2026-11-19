@@ -27,7 +27,9 @@ An object of class `zuhtml_doc_info`: a list with
 
 - `native_bytes`: memory the document owns, outside R's heap;
 
-- `parse_peak_bytes`: the most memory the parser held at once;
+- `parse_peak_bytes`: the most native memory the parse held at once,
+  counted as `max_memory` counts it, so it is the smallest `max_memory`
+  that parses the same input with the same options;
 
 - `input_bytes`: size of the decoded UTF-8 input;
 
@@ -67,7 +69,7 @@ html_info(html_parse("<!DOCTYPE html><title>t</title><p>Hello"))
 #>   nodes              9
 #>   attributes         0
 #>   native_bytes       579
-#>   parse_peak_bytes   2,307
+#>   parse_peak_bytes   3,854
 #>   input_bytes        39
 #>   encoding           UTF-8
 #>   encoding_source    string
