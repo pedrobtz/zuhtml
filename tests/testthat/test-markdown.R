@@ -126,6 +126,55 @@ test_that("html_markdown() escapes Markdown in text", {
   expect_identical(md("<p>a # b - c"), "a # b - c")
 })
 
+test_that("a line start after a code span or emphasis escapes nothing (#127)", {
+  expect_identical(md("<p><code>x</code>: description</p>"),
+                   "`x`: description")
+  expect_identical(md("<dt><code>-v</code></dt><dd>: verbose"),
+                   "`-v`\n\n: verbose")
+  expect_identical(md("<p><b>1</b>. x"), "**1**. x")
+  expect_identical(md("<p><i>2</i>) x"), "*2*) x")
+  expect_identical(md("<p><a href=u>3</a>. x"), "[3](u). x")
+  expect_identical(md("<p><img src=i alt=4>. x"), "![4](i). x")
+  # A removed opener still leaves its text escaped as at a line start.
+  expect_identical(md("<p><i>1.</i>b"), "1\\.b")
+})
+
+test_that("':' and '|' are escaped only where a table could form (#127)", {
+  # The first line of a paragraph has no line above to be a header row.
+  expect_identical(md("<p>:smile: hi</p>"), ":smile: hi")
+  expect_identical(md("<p>| pipes |</p>"), "| pipes |")
+  expect_identical(md("<p>x</p><p>: colon</p><p>| pipe</p>"),
+                   "x\n\n: colon\n\n| pipe")
+  expect_identical(md("<ul><li>a<li>: b<li>| c</ul>"), "- a\n- : b\n- | c")
+  expect_identical(md("<blockquote>: q</blockquote>"), "> : q")
+  # A later line is under one: cmark-gfm makes "a\n:-" a table even
+  # without a pipe in "a".
+  expect_identical(md("<p>a<br>: c<br>| d"), "a\\\n\\: c\\\n\\| d")
+  expect_identical(md("<ul><li>a<br>:-</ul>"), "- a\\\n  \\:-")
+})
+
+test_that("markup that CommonMark would read as something else is not written (#133)", {
+  # A thematic break opening a '-' item would read as one line of '-'.
+  expect_identical(md("<ul><li><hr><ul><li>n</ul></ul>"), "- ***\n\n  - n")
+  expect_identical(md("<ul><li><ul><li><hr></ul></ul>"), "- - ***")
+  expect_identical(md("<ul><li>a</ul><ul><li><hr></ul>"), "- a\n\n* ---")
+  expect_identical(md("<ol><li><hr></ol>"), "1. ---")
+  # Link text with "]:" in code would make a link reference definition.
+  expect_identical(md("<p><a href=u><code>]:</code></a></p>"),
+                   "[`]:`](u )")
+  expect_identical(md("<p><a href=u><code>a]</code>:</a></p>"),
+                   "[`a]`:](u)")
+  # A leading '^' would be a footnote reference.
+  expect_identical(md("<img src=i.png alt='^baz'>"), "![\\^baz](i.png)")
+  expect_identical(md("<p><a href=u>^x</a></p>"), "[\\^x](u)")
+  expect_identical(md("<p><a href=u><i>^.</i>y</a></p>"), "[\\^.y](u)")
+  expect_identical(md("<p>a^b [^c]"), "a^b \\[^c\\]")
+  # An '&' at the end of a text node may start an entity with the next.
+  expect_identical(md("<p>&amp;<span>amp;</span></p>"), "\\&amp;")
+  expect_identical(md("<p>a & b &amp;c"), "a & b \\&c")
+  expect_identical(md("<p><img src=i alt='a &'>x"), "![a &](i)x")
+})
+
 test_that("html_markdown() writes simple tables as pipe tables", {
   expect_identical(
     md(paste0(

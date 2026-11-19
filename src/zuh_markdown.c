@@ -65,6 +65,7 @@ typedef struct {
   long next;                /* list: the next item's number */
   int list;                 /* list item: its list's frame index, or -1 */
   const char *url;          /* link */
+  unsigned char code_colon; /* link: its text has "]:" in a code span */
   size_t open_at;           /* emphasis: where its opener was written;
                              * list: md.content on entry */
   int table_prev;           /* table: the enclosing md.table */
@@ -84,6 +85,7 @@ typedef struct {
   int started;        /* visible content has been written */
   int need_prefix;    /* at a line start whose prefix is not written */
   int line_start;     /* the prefix was just written, nothing after it */
+  int para_start;     /* that line is the first of its paragraph */
   int line_content;   /* something follows the prefix on this line */
   int lead_digits;    /* the line so far is a digit run after its prefix */
   unsigned char prev; /* last byte written */
@@ -154,7 +156,8 @@ static int is_alnum(unsigned char ch);
 
 /* Remove the emphasis opener of n bytes at `at`. Text around it keeps its
  * meaning: an unescaped '!' before a link's "[" or an '&' before what
- * would make an entity reference is escaped in its place. (Text after an
+ * would make an entity reference is escaped in its place, and so is a '^'
+ * after a link's "[". (Text after an
  * opener at a line start was escaped as at a line start.) */
 static void
 cut_opener(md *m, size_t at, size_t n) {
@@ -169,6 +172,12 @@ cut_opener(md *m, size_t at, size_t n) {
   after = (unsigned char) o->buf[at + n];
   for (k = at - 1; k > 0 && o->buf[k - 1] == '\\'; k--)
     ;
+  if ((at - 1 - k) % 2 == 0 && before == '[' && after == '^') {
+    /* "[*^" becomes "[\\^", not a footnote reference. */
+    o->buf[at] = '\\';
+    cut(m, at + 1, n - 1);
+    return;
+  }
   if (((at - 1 - k) % 2 == 0) &&
       ((before == '!' && after == '[') ||
        (before == '&' && (is_alnum(after) || after == '#')))) {
@@ -429,6 +438,7 @@ put_prefix(md *m, int blank) {
       item_marker(m, i);
       put(m, f[i].marker, f[i].marker_len);
       f[i].marker_pending = 0;
+      m->para_start = 1;
     } else {
       put(m, "                ", f[i].marker_len);
     }
@@ -470,6 +480,10 @@ put_closer(md *m, const frame *f) {
   case D_LINK:
     put(m, "](", 2);
     put_dest(m, f->url);
+    /* "[`]:`](u)" would be a link reference definition, label "`" and
+     * destination "`](u)"; "](u )" leaves the line no valid one. */
+    if (f->code_colon)
+      put(m, " ", 1);
     put(m, ")", 1);
     break;
   default:
@@ -555,6 +569,7 @@ emit_breaks(md *m) {
     }
     m->need_prefix = 1;
     m->line_content = 0;
+    m->para_start = m->nl_written >= 2;
   }
   m->pending_nl = 0;
 }
@@ -592,6 +607,7 @@ content_start(md *m, int next) {
       put(m, "\\\n", 2);
     }
     m->need_prefix = 1;
+    m->para_start = 0;
     m->space = 0;
   }
   m->hard = 0;
@@ -685,9 +701,24 @@ suppressed(const md *m) {
 
 /* ---- Text -------------------------------------------------------------- */
 
-/* Write bytes [p, end) of non-whitespace text, escaped. */
+/* Whether the output ends in an unescaped "[": the opener of a link or an
+ * image, as a '[' in text is escaped. */
+static int
+after_bracket(const md *m) {
+  const zuh_buf *o = m->out;
+  size_t k;
+  if (o->failed || o->len == 0 || o->buf[o->len - 1] != '[')
+    return 0;
+  for (k = o->len - 1; k > 0 && o->buf[k - 1] == '\\'; k--)
+    ;
+  return (o->len - 1 - k) % 2 == 0;
+}
+
+/* Write bytes [p, end) of non-whitespace text, escaped. `open_end`: the
+ * text may go on in the next text node. */
 static void
-put_escaped(md *m, const unsigned char *p, const unsigned char *end) {
+put_escaped(md *m, const unsigned char *p, const unsigned char *end,
+            int open_end) {
   const unsigned char *start = p, *run = p;
   for (; p < end; p++) {
     unsigned char ch = *p;
@@ -697,9 +728,11 @@ put_escaped(md *m, const unsigned char *p, const unsigned char *end) {
     if (m->line_start) {
       /* Block markers, and the first character of a GFM table's
        * delimiter row ("-", ":" or "|"), which would turn the line above
-       * into a table header. */
+       * into a table header: cmark-gfm needs no pipe in that line ("a\n:-"
+       * is a table), but there must be one, so the first line of a
+       * paragraph needs no ":" or "|" escaped. */
       if (ch == '#' || ch == '-' || ch == '+' || ch == '=' || ch == '~' ||
-          ch == ':' || ch == '|')
+          ((ch == ':' || ch == '|') && !m->para_start))
         esc = 1;
       m->lead_digits = ch >= '0' && ch <= '9';
       m->line_start = 0;
@@ -719,7 +752,14 @@ put_escaped(md *m, const unsigned char *p, const unsigned char *end) {
         esc = 1;
       break;
     case '&':
-      if (is_alnum(nx) || nx == '#')
+      /* At the end of a text node, the next one may continue an entity
+       * name ("&" then "amp;"): "\\&" is always safe. */
+      if (is_alnum(nx) || nx == '#' || (p + 1 == end && open_end))
+        esc = 1;
+      break;
+    case '^':
+      /* "[^x]" is a footnote reference to cmark-gfm. */
+      if (p == start && after_bracket(m))
         esc = 1;
       break;
     case '|':
@@ -759,7 +799,7 @@ put_text(md *m, const char *s) {
     start = p;
     while (*p != '\0' && ws_len(p) == 0)
       p++;
-    put_escaped(m, start, p);
+    put_escaped(m, start, p, *p == '\0');
     m->line_content = 1;
   }
 }
@@ -891,8 +931,24 @@ put_code(md *m, zuh_id id) {
     put(m, " ", 1);
   put_repeat(m, '`', fence);
   m->line_content = 1;
+  m->line_start = 0;
+  m->lead_digits = 0;
   m->code_end = m->out->len;
   m->code_valid = 1;
+  for (i = 0; i + 1 < len; i++) {
+    if (s[i] == ']' && s[i + 1] == ':') {
+      /* See put_closer(). */
+      frame *f = FRAMES(m);
+      int k;
+      for (k = NFRAMES(m) - 1; k >= 0; k--) {
+        if (f[k].delim == D_LINK && f[k].dstate == S_OPEN) {
+          f[k].code_colon = 1;
+          break;
+        }
+      }
+      break;
+    }
+  }
   if (ws)
     m->space = 1;
 }
@@ -1006,7 +1062,7 @@ put_image(md *m, zuh_id id) {
     start = p;
     while (*p != '\0' && !is_ws(*p))
       p++;
-    put_escaped(m, start, p);
+    put_escaped(m, start, p, 0);
   }
   put(m, "](", 2);
   put_dest(m, url_of(m, id, "src"));
@@ -1158,6 +1214,20 @@ list_items(const md *m, zuh_id id, zuh_id *first) {
 
 /* ---- Enter and leave ----------------------------------------------------- */
 
+/* Whether the current output line holds byte `ch`. */
+static int
+line_has(const md *m, char ch) {
+  size_t i = m->out->len;
+  if (m->out->failed)
+    return 0;
+  while (i > 0 && m->out->buf[i - 1] != '\n') {
+    if (m->out->buf[i - 1] == ch)
+      return 1;
+    i--;
+  }
+  return 0;
+}
+
 /* Enter element or document `id`. Returns 1 if a frame was pushed (the
  * walk descends and calls leave()), 0 if the node was handled whole or
  * skipped. */
@@ -1219,7 +1289,8 @@ enter(md *m, zuh_id id) {
       return 0;
     want_break(m, 2);
     content_start(m, 0);
-    put(m, "---", 3);
+    /* "- ---" would be a thematic break, not an item holding one. */
+    put(m, line_has(m, '-') ? "***" : "---", 3);
     m->line_content = 1;
     want_break(m, 2);
     return 0;
@@ -1451,6 +1522,9 @@ close_emphasis(md *m, const frame *f, int after) {
     return;
   }
   put_closer(m, f);
+  /* The line no longer starts with what follows: "**1**. x". */
+  m->line_start = 0;
+  m->lead_digits = 0;
   m->closer_end = o->len;
   m->closer_delim = f->delim;
   m->closer_open_at = f->open_at;
@@ -1590,6 +1664,7 @@ zuh_markdown(const zuh_doc *doc, zuh_id id, const zuh_md_urls *urls,
   m.urls = urls;
   m.out = out;
   m.need_prefix = 1;
+  m.para_start = 1;
   m.table = -1;
   zuh_buf_init(&m.stack, out->alloc, out->userdata);
   zuh_buf_init(&m.tmp, out->alloc, out->userdata);

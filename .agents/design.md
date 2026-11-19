@@ -305,7 +305,9 @@ Emphasis is written only where CommonMark's delimiter algorithm parses it back a
 
 Code spans: whitespace at a span's ends is written outside it, as a space. A span right after another, with nothing between, joins it, as `` `a``b` `` would read as one span containing two backticks.
 
-Escaping: besides the inline delimiters, a line start escapes the block markers and `:` and `|`, the characters that could begin a GFM table delimiter row under a line with a pipe. A `!` before a link is escaped, so the link does not become an image.
+Escaping: besides the inline delimiters, a line start escapes the block markers, and `:` and `|`, the characters that could begin a GFM table delimiter row, on every line but a paragraph's first: cmark-gfm makes a table of `a` over `:-`, without a pipe in the header row (#127). A code span, an emphasis closer, a link or an image ends the line start, so `` `x`: y `` and `**1**. x` are written as they are. A `!` before a link is escaped, so the link does not become an image; a `^` right after a link's or an image's `[` is escaped, so it is no footnote reference; an `&` at the end of a text node is escaped, as the next text node could continue an entity name (#133).
+
+Constructs CommonMark would read as something else (#133): an `<hr>` on a line that holds a `-` list marker is written `***`, as `- ---` is a thematic break; a link whose text has `]:` in a code span is closed `](url )`, as `` [`]:`](u) `` is a link reference definition.
 
 Lists: items are numbered as they are written, so an empty item left out takes no number. A reversed list without `start` counts down from its number of written items. CommonMark reads only the first number; negative numbers are written as `0`. A list right after another of its kind, with nothing written between, takes the other bullet (`-`, `*`) or delimiter (`.`, `)`), or the two would read as one list.
 
