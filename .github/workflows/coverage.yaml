@@ -23,6 +23,6 @@ jobs:
         || contains(github.event.pull_request.labels.*.name, 'skip-ci:coverage'))
     # Pinned to a commit, not to @v1: this job holds a write token (it
     # commits the badge to gh-pages), and a tag is mutable (ci.md).
-    uses: pedrobtz/r-actions/.github/workflows/coverage.yml@384a13f884d5a2d3d98d3cd988708aef09bff253 # v1.45.0
+    uses: pedrobtz/r-actions/.github/workflows/coverage.yml@ae59a2805e622e9ba0f3e902bc5f39eba33c6670 # v1.45.1
     permissions:
       contents: write
